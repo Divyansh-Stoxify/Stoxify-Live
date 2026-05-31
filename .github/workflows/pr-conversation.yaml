@@ -12,7 +12,6 @@ permissions:
 jobs:
   check_and_respond:
     runs-on: ubuntu-latest
-    environment: development
     if: |
       github.event_name == 'issue_comment' &&
       github.event.issue.pull_request != null &&
