@@ -1,0 +1,307 @@
+name: Deploy Stocxify Frontend
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deployment Environment"
+        required: true
+        default: "development"
+        type: choice
+        options:
+          - development
+          - qa
+          - production
+      tag:
+        description: "Tag to deploy"
+        type: string
+  push:
+    branches:
+      - main
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'development' }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install nodejs
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependency
+        run: npm install
+
+      - name: Run type check
+        run: npm run typecheck
+
+      - name: Run lint check
+        run: npm run lint:check
+
+      - name: Run format check
+        run: npm run format:check
+
+      - name: Perform build checks
+        run: npm run build
+
+  bump-version:
+    runs-on: ubuntu-latest
+    needs: [static-checks]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    outputs:
+      new_tag: ${{ steps.bump.outputs.new_tag }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Determine and Push Tag
+        id: bump
+        run: |
+          git fetch --tags
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Latest tag: $LATEST_TAG"
+          VERSION=${LATEST_TAG#v}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          echo "Commit message: $COMMIT_MSG"
+
+          if [[ "$COMMIT_MSG" == "[release]"* ]]; then
+            MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0
+          elif [[ "$COMMIT_MSG" == "[feature]"* ]]; then
+            MINOR=$((MINOR + 1)); PATCH=0
+          elif [[ "$COMMIT_MSG" == "[fix]"* ]]; then
+            PATCH=$((PATCH + 1))
+          else
+            echo "Skipping tag creation: Commit message must start with [fix], [feature], or [release]"
+            exit 0
+          fi
+
+          NEW_TAG="v$MAJOR.$MINOR.$PATCH"
+          echo "New tag: $NEW_TAG"
+          git tag $NEW_TAG
+          git push origin $NEW_TAG
+          echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+
+  create-image:
+    runs-on: ubuntu-latest
+    needs: [static-checks, bump-version]
+    if: github.event_name == 'push' || github.event.inputs.environment == 'development' || github.event.inputs.environment == ''
+    environment: ${{ github.event.inputs.environment || 'development' }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Determine Version
+        id: package-version
+        run: |
+          if [ "${{ github.event_name }}" == "push" ]; then
+            NEW_TAG="${{ needs.bump-version.outputs.new_tag }}"
+            if [ -z "$NEW_TAG" ]; then
+              echo "Error: No tag generated. Commit message must start with [fix], [feature], or [release]."
+              exit 1
+            fi
+            # Strip 'v' for Docker image tag consistency
+            echo "version=${NEW_TAG#v}" >> $GITHUB_OUTPUT
+          else
+            VERSION=$(node -p "require('./package.json').version")
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKER_REGISTRY_URL }}/stocxify/frontend-stocxify:${{ steps.package-version.outputs.version }} .
+          docker tag ${{ secrets.DOCKER_REGISTRY_URL }}/stocxify/frontend-stocxify:${{ steps.package-version.outputs.version }} ${{ secrets.DOCKER_REGISTRY_URL }}/stocxify/frontend-stocxify:latest
+
+      - name: Login to Docker Registry
+        run: |
+          echo "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" | docker login ${{ secrets.DOCKER_REGISTRY_URL }} -u "${{ secrets.DOCKER_REGISTRY_USERNAME }}" --password-stdin
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ secrets.DOCKER_REGISTRY_URL }}/stocxify/frontend-stocxify:${{ steps.package-version.outputs.version }}
+          docker push ${{ secrets.DOCKER_REGISTRY_URL }}/stocxify/frontend-stocxify:latest
+
+  deploy-image:
+    runs-on: ubuntu-latest
+    needs: [static-checks]
+    if: github.event.inputs.environment != 'development' && github.event.inputs.environment != ''
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Validate tag input
+        run: |
+          if [ -z "${{ github.event.inputs.tag }}" ]; then
+            echo "Error: Tag is required for non-development deployments"
+            exit 1
+          fi
+
+      - name: Login to Docker Registry
+        run: |
+          echo "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" | docker login ${{ secrets.DOCKER_REGISTRY_URL }} -u "${{ secrets.DOCKER_REGISTRY_USERNAME }}" --password-stdin
+
+      - name: Verify image tag exists in registry
+        run: |
+          IMAGE_NAME="${{ secrets.DOCKER_REGISTRY_URL }}/stocxify/frontend-stocxify:${{ github.event.inputs.tag }}"
+          echo "Checking if image exists: $IMAGE_NAME"
+          if docker manifest inspect "$IMAGE_NAME" > /dev/null 2>&1; then
+            echo "Image tag ${{ github.event.inputs.tag }} found in registry"
+          else
+            echo "Error: Image tag ${{ github.event.inputs.tag }} not found in registry"
+            exit 1
+          fi
+
+      # --- OPTIONAL VPN STEP ---
+      # Only needed if your deploy target is reachable only through a VPN.
+      # Remove this step (and the OVPN_* secrets) if your server is reachable directly.
+      # Update .github/scripts/wait-for-vpn.sh with YOUR VPN subnet(s).
+      - name: Install OpenVPN
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openvpn openvpn-systemd-resolved
+
+      - name: Connect to VPN and wait
+        run: |
+          echo "${{ secrets.OVPN_USERNAME }}" > pass.txt
+          echo "${{ secrets.OVPN_PASSWORD }}" >> pass.txt
+
+          echo "Attempting to connect to VPN 1..."
+          echo "${{ secrets.OVPN_PROFILE_BASE64 }}" > ovpn1_b64
+          base64 --decode ovpn1_b64 > ovpn1.ovpn
+          sudo openvpn --config ovpn1.ovpn --auth-user-pass pass.txt --daemon
+
+          if ./.github/scripts/wait-for-vpn.sh; then
+            echo "Successfully connected to VPN 1."
+          else
+            echo "VPN 1 failed, trying VPN 2..."
+            sudo killall openvpn || true
+            sleep 2
+            echo "${{ secrets.OVPN_PROFILE_BASE64_2 }}" > ovpn2_b64
+            base64 --decode ovpn2_b64 > ovpn2.ovpn
+            sudo openvpn --config ovpn2.ovpn --auth-user-pass pass.txt --daemon
+            if ./.github/scripts/wait-for-vpn.sh; then
+              echo "Successfully connected to VPN 2."
+            else
+              echo "Both VPN profiles failed to establish connection. Failing."
+              exit 1
+            fi
+          fi
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY_BASE64 }}" > ssh_key_b64
+          base64 --decode ssh_key_b64 > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          cat >> ~/.ssh/config <<EOF
+          Host target
+            HostName ${{ vars.TARGET_SERVER }}
+            User ${{ secrets.SSH_USERNAME }}
+            IdentityFile ~/.ssh/id_rsa
+            StrictHostKeyChecking no
+          EOF
+
+      - name: Create .env file
+        run: |
+          cat<<EOT>> .env
+          PORT="${{ vars.PORT }}"
+          FULL_IMAGE_NAME="${{ secrets.DOCKER_REGISTRY_URL }}/stocxify/frontend-stocxify:${{ github.event.inputs.tag }}"
+          EOT
+
+      - name: Deploy Docker image on target server
+        run: |
+          scp .env target:/home/${{ secrets.SSH_USERNAME }}/.env
+          scp docker-compose.deploy.yml target:/home/${{ secrets.SSH_USERNAME }}/docker-compose.deploy.yml
+          scp .github/scripts/execute-stocxify.sh target:/home/${{ secrets.SSH_USERNAME }}/execute-stocxify.sh
+          ssh target "bash execute-stocxify.sh docker '${{ secrets.DOCKER_REGISTRY_URL }}' '${{ secrets.DOCKER_REGISTRY_USERNAME }}' '${{ secrets.DOCKER_REGISTRY_PASSWORD }}' '${{ github.event.inputs.tag }}' '${{ vars.DISK_USAGE_THRESHOLD }}'"
+
+      - name: Check application status
+        run: |
+          ./.github/scripts/app-status.sh ${{ vars.TARGET_SERVER }} ${{ vars.PORT }}
+
+  deploy-dev:
+    runs-on: ubuntu-latest
+    needs: [static-checks]
+    if: github.event.inputs.environment == 'development' || github.event.inputs.environment == ''
+    environment: ${{ github.event.inputs.environment || 'development' }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Creating artefact (stocxify.tar.gz)
+        run: |
+          cat<<EOT>> .env.development
+          PORT="${{ vars.PORT }}"
+          EOT
+          tar --exclude=.github --exclude=.git --exclude=node_modules --exclude=.next -zcvf ../stocxify.tar.gz .
+          mv ../stocxify.tar.gz ./stocxify.tar.gz
+
+      # --- OPTIONAL VPN STEP (see note in deploy-image job) ---
+      - name: Install OpenVPN
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openvpn openvpn-systemd-resolved
+
+      - name: Connect to VPN and wait
+        run: |
+          echo "${{ secrets.OVPN_USERNAME }}" > pass.txt
+          echo "${{ secrets.OVPN_PASSWORD }}" >> pass.txt
+
+          echo "Attempting to connect to VPN 1..."
+          echo "${{ secrets.OVPN_PROFILE_BASE64 }}" > ovpn1_b64
+          base64 --decode ovpn1_b64 > ovpn1.ovpn
+          sudo openvpn --config ovpn1.ovpn --auth-user-pass pass.txt --daemon
+
+          if ./.github/scripts/wait-for-vpn.sh; then
+            echo "Successfully connected to VPN 1."
+          else
+            echo "VPN 1 failed, trying VPN 2..."
+            sudo killall openvpn || true
+            sleep 2
+            echo "${{ secrets.OVPN_PROFILE_BASE64_2 }}" > ovpn2_b64
+            base64 --decode ovpn2_b64 > ovpn2.ovpn
+            sudo openvpn --config ovpn2.ovpn --auth-user-pass pass.txt --daemon
+            if ./.github/scripts/wait-for-vpn.sh; then
+              echo "Successfully connected to VPN 2."
+            else
+              echo "Both VPN profiles failed to establish connection. Failing."
+              exit 1
+            fi
+          fi
+
+      - name: Install sshpass
+        run: |
+          sudo apt-get install -y sshpass
+
+      - name: Upload artifact and execute
+        run: |
+          NODE_ENV=${{ github.event.inputs.environment || 'development' }}
+          if [ "$NODE_ENV" = "development" ]; then
+            DEPLOY_MODE="raw"
+          else
+            DEPLOY_MODE="docker"
+          fi
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -r stocxify.tar.gz ${{ secrets.SSH_USERNAME }}@${{ vars.TARGET_SERVER }}:/home/${{ secrets.SSH_USERNAME }}
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -r ./.github/scripts/execute-stocxify.sh ${{ secrets.SSH_USERNAME }}@${{ vars.TARGET_SERVER }}:/home/${{ secrets.SSH_USERNAME }}
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${{ secrets.SSH_USERNAME }}@${{ vars.TARGET_SERVER }} "PORT='${{ vars.PORT }}' bash execute-stocxify.sh $DEPLOY_MODE '${{ secrets.DOCKER_REGISTRY_URL }}' '${{ secrets.DOCKER_REGISTRY_USERNAME }}' '${{ secrets.DOCKER_REGISTRY_PASSWORD }}' '${{ github.event.inputs.tag }}' '${{ vars.DISK_USAGE_THRESHOLD }}'"
+
+      - name: Check application status
+        run: |
+          ./.github/scripts/app-status.sh ${{ vars.TARGET_SERVER }} ${{ vars.PORT }}

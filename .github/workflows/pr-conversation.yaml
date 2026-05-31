@@ -1,0 +1,227 @@
+name: PR Review Conversation
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  check_and_respond:
+    runs-on: ubuntu-latest
+    environment: development
+    if: |
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request != null &&
+      github.event.comment.user.type != 'Bot'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for AI Tag
+        id: check_tag
+        shell: bash
+        env:
+          COMMENT_BODY: "${{ github.event.comment.body }}"
+        run: |-
+          # Check for any of the supported tags
+          if echo "$COMMENT_BODY" | grep -qiE '@(ai\b|ai-bot|openrouter|code-review)'; then
+            echo "has_ai_tag=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_ai_tag=false" >> $GITHUB_OUTPUT
+            echo "No AI tag found in comment"
+            exit 0
+          fi
+
+      - name: Get Diff Context
+        id: get_diff
+        if: steps.check_tag.outputs.has_ai_tag == 'true'
+        shell: bash
+        env:
+          PR_NUMBER: "${{ github.event.issue.number }}"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |-
+          gh pr view "$PR_NUMBER" --json baseRefName,headRefName > pr_info.json
+          BASE_REF=$(jq -r '.baseRefName' pr_info.json)
+          HEAD_REF=$(jq -r '.headRefName' pr_info.json)
+
+          git fetch origin "${HEAD_REF}"
+          git fetch origin "${BASE_REF}"
+          git checkout "${HEAD_REF}"
+          git diff "origin/${BASE_REF}" \
+            -- ':!node_modules' ':!dist' ':!build' ':!*.lock' ':!package-lock.json' \
+            ':!*.log' ':!*.tar.gz' ':!*.zip' ':!*.min.js' ':!*.min.css' \
+            > "diff.txt" || true
+
+          # Truncate if too large
+          DIFF_SIZE=$(wc -c < "diff.txt" | tr -d ' ')
+          MAX_SIZE=400000  # 400KB for conversations
+          if [ "$DIFF_SIZE" -gt "$MAX_SIZE" ]; then
+            head -c "$MAX_SIZE" "diff.txt" > "diff_truncated.txt"
+            mv "diff_truncated.txt" "diff.txt"
+            echo -e "\n\n[TRUNCATED: First 400KB]" >> "diff.txt"
+          fi
+
+          {
+            echo "pull_request_diff<<EOF"
+            cat "diff.txt"
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+
+      - name: Get Conversation Thread
+        id: get_thread
+        if: steps.check_tag.outputs.has_ai_tag == 'true'
+        shell: bash
+        env:
+          PR_NUMBER: "${{ github.event.issue.number }}"
+          COMMENT_ID: "${{ github.event.comment.id }}"
+          COMMENT_BODY: "${{ github.event.comment.body }}"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |-
+          # Get all comments for the PR
+          ALL_COMMENTS=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+            --paginate)
+
+          # Get current comment
+          CURRENT_COMMENT=$(echo "$ALL_COMMENTS" | jq -r ".[] | select(.id == $COMMENT_ID)")
+          CURRENT_AUTHOR=$(echo "$CURRENT_COMMENT" | jq -r '.user.login')
+          CURRENT_TIME=$(echo "$CURRENT_COMMENT" | jq -r '.created_at')
+
+          # Find the most recent bot review comment before this one
+          BOT_REVIEW=$(echo "$ALL_COMMENTS" | jq -r \
+            "[.[] | select(.body | contains(\"🤖 **OpenRouter Review\")) | select(.created_at < \"$CURRENT_TIME\")] \
+            | sort_by(.created_at) \
+            | reverse \
+            | .[0] // empty")
+
+          if [ -z "$BOT_REVIEW" ]; then
+            echo "bot_review_body=No previous AI review found" >> $GITHUB_OUTPUT
+          else
+            echo "bot_review_body<<EOF" >> $GITHUB_OUTPUT
+            echo "$BOT_REVIEW" | jq -r '.body' >> $GITHUB_OUTPUT
+            echo 'EOF' >> $GITHUB_OUTPUT
+          fi
+
+          # Build conversation: include the comment that tagged the bot
+          # Strip the @mention tag from the body for cleaner context
+          CLEAN_BODY=$(echo "$COMMENT_BODY" | sed -E 's/@(ai\b|ai-bot|openrouter|code-review)//gi' | sed 's/^[[:space:]]*//')
+
+          CONVERSATION="👤 $CURRENT_AUTHOR: $CLEAN_BODY"
+
+          # Get PR metadata
+          PR_JSON=$(gh pr view "$PR_NUMBER" --json title,body)
+          PR_TITLE=$(echo "$PR_JSON" | jq -r '.title')
+          PR_BODY=$(echo "$PR_JSON" | jq -r '.body // ""')
+
+          {
+            echo "conversation<<EOF"
+            echo "$CONVERSATION"
+            echo 'EOF'
+            echo "pr_title<<EOF"
+            echo "$PR_TITLE"
+            echo 'EOF'
+            echo "pr_body<<EOF"
+            echo "$PR_BODY"
+            echo 'EOF'
+            echo "comment_author=$CURRENT_AUTHOR" >> $GITHUB_OUTPUT
+          } >> $GITHUB_OUTPUT
+
+      - name: AI Response
+        id: ai_response
+        if: steps.check_tag.outputs.has_ai_tag == 'true'
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL || 'openai/gpt-oss-120b:free' }}
+          CONVERSATION: ${{ steps.get_thread.outputs.conversation }}
+          BOT_REVIEW: ${{ steps.get_thread.outputs.bot_review_body }}
+          PR_TITLE: ${{ steps.get_thread.outputs.pr_title }}
+          PR_BODY: ${{ steps.get_thread.outputs.pr_body }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          COMMENT_AUTHOR: ${{ steps.get_thread.outputs.comment_author }}
+        run: |-
+          MODEL="${OPENROUTER_MODEL:-openai/gpt-oss-120b:free}"
+
+          sudo apt-get update && sudo apt-get install -y gh jq
+
+          DIFF="$(cat diff.txt 2>/dev/null || echo '')"
+
+          SYSTEM_PROMPT=$(cat .github/prompts/pr_conversation_system.txt)
+
+          USER_PROMPT=$(cat << EOF
+          ## Context
+          PR Title: $PR_TITLE
+          PR Description:
+          $PR_BODY
+
+          ## Previous AI Review
+          $BOT_REVIEW
+
+          ## Code Diff (for reference)
+          ---- BEGIN DIFF ----
+          $DIFF
+          ---- END DIFF ----
+
+          ## Current Question/Comment
+          $CONVERSATION
+
+          The developer tagged you for clarification. Please provide a helpful, concise response.
+          EOF
+          )
+
+          # Build JSON request body using files to avoid "Argument list too long" on large diffs/conversations
+          SYS_PROMPT_FILE="$(mktemp)"
+          USER_PROMPT_FILE="$(mktemp)"
+
+          printf '%s' "$SYSTEM_PROMPT" > "$SYS_PROMPT_FILE"
+          printf '%s' "$USER_PROMPT" > "$USER_PROMPT_FILE"
+
+          REQUEST_BODY=$(jq -n \
+            --arg model "$MODEL" \
+            --rawfile sys "$SYS_PROMPT_FILE" \
+            --rawfile user "$USER_PROMPT_FILE" \
+            '{
+              model: $model,
+              messages: [
+                { role: "system", content: $sys },
+                { role: "user", content: $user }
+              ],
+              temperature: 0.3
+            }')
+
+          rm -f "$SYS_PROMPT_FILE" "$USER_PROMPT_FILE"
+
+          BODY_FILE="$(mktemp)"
+          printf '%s' "$REQUEST_BODY" > "$BODY_FILE"
+
+          RESPONSE=$(curl -s -X POST https://openrouter.ai/api/v1/chat/completions \
+            -H "Authorization: Bearer $OPENROUTER_API_KEY" \
+            -H "Content-Type: application/json" \
+            -H "HTTP-Referer: https://github.com/${{ github.repository }}" \
+            -H "X-Title: Stocxify PR Conversation" \
+            --data-binary "@$BODY_FILE")
+
+          rm -f "$BODY_FILE"
+
+          CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty' 2>/dev/null || echo "")
+
+          if [ -z "$CONTENT" ]; then
+            API_ERROR=$(echo "$RESPONSE" | jq -r '.error.message // .message // .error // "Unknown error"' 2>/dev/null || echo "Unknown error")
+            RESPONSE_BODY="❌ **Error:** $API_ERROR"
+          else
+            RESPONSE_BODY="$CONTENT"
+          fi
+
+          # Post response as a new comment
+          COMMENT="🤖 **Response to @${COMMENT_AUTHOR}**\n\n$RESPONSE_BODY"
+          gh pr comment "$PR_NUMBER" --body "$COMMENT"
