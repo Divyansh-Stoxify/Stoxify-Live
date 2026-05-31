@@ -5,10 +5,10 @@ GitHub Actions for the Stocxify frontend
 
 ## Workflows
 
-| File | Trigger | What it does |
-|------|---------|--------------|
-| `workflows/pr.yaml` | PR opened/updated against `development` or `main` | Runs typecheck, lint, format check, and build. Then posts an AI code review (OpenRouter). |
-| `workflows/pr-conversation.yaml` | A comment on a PR mentions `@ai` / `@ai-bot` / `@openrouter` / `@code-review` | The AI bot replies in the thread using the prior review + diff as context. |
+| File                             | Trigger                                                                       | What it does                                                                              |
+| -------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `workflows/pr.yaml`              | PR opened/updated against `development` or `main`                             | Runs typecheck, lint, format check, and build. Then posts an AI code review (OpenRouter). |
+| `workflows/pr-conversation.yaml` | A comment on a PR mentions `@ai` / `@ai-bot` / `@openrouter` / `@code-review` | The AI bot replies in the thread using the prior review + diff as context.                |
 
 ## Static checks
 
@@ -30,6 +30,7 @@ Both AI workflows call `https://openrouter.ai/api/v1/chat/completions`.
 - Free models rotate and have rate limits. If reviews start failing, switch the model variable.
 
 ### Required setup
+
 - Secret `OPENROUTER_API_KEY` — your OpenRouter key.
   Settings → Secrets and variables → Actions → New repository secret.
 - (`GITHUB_TOKEN` is provided automatically by GitHub Actions.)
@@ -38,5 +39,6 @@ If you don't want AI reviews, delete the `pr_review` job from `pr.yaml` and the
 whole `pr-conversation.yaml` file. The static checks will still run.
 
 ## Prompts
+
 - `prompts/pr_review_system.txt` — instructions for the AI reviewer (React/Next.js focused).
 - `prompts/pr_conversation_system.txt` — instructions for the follow-up conversation bot.
