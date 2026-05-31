@@ -4,9 +4,7 @@ import { useEffect } from "react";
 
 export function RevealObserver() {
   useEffect(() => {
-    const elements = Array.from(
-      document.querySelectorAll<HTMLElement>("[data-reveal]"),
-    );
+    const elements = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal]"));
 
     if (!("IntersectionObserver" in window)) {
       elements.forEach((element) => element.classList.add("reveal-visible"));
@@ -22,7 +20,7 @@ export function RevealObserver() {
           }
         });
       },
-      { threshold: 0.1, rootMargin: "0px 0px -40px 0px" },
+      { threshold: 0.1, rootMargin: "0px 0px -40px 0px" }
     );
 
     elements.forEach((element) => observer.observe(element));

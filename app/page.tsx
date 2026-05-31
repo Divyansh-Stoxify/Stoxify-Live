@@ -98,7 +98,8 @@ const trustCards: Array<{
     iconColor: "text-[var(--brand)]",
     dot: "bg-[var(--brand)]",
     title: "Verified SEBI-Registered Experts",
-    description: "Every Research Analyst on Stoxify undergoes strict verification before going live:",
+    description:
+      "Every Research Analyst on Stoxify undergoes strict verification before going live:",
     bullets: [
       "Valid SEBI Registration Number",
       "Regulatory & Conflict of Interest Disclosures",
@@ -128,7 +129,8 @@ const trustCards: Array<{
     iconColor: "text-[var(--green)]",
     dot: "bg-[var(--green)]",
     title: "Independent Marketplace",
-    description: "Stoxify is a neutral marketplace. We do not provide tips, calls, or advice of our own.",
+    description:
+      "Stoxify is a neutral marketplace. We do not provide tips, calls, or advice of our own.",
     bullets: [
       "Only SEBI-registered RAs publish research",
       "All ideas timestamped & sealed at publish",
@@ -143,7 +145,8 @@ const trustCards: Array<{
     iconColor: "text-[var(--orange)]",
     dot: "bg-[var(--orange)]",
     title: "Secure Payments",
-    description: "Subscription fees go directly to the Research Analyst through a regulated payment channel.",
+    description:
+      "Subscription fees go directly to the Research Analyst through a regulated payment channel.",
     bullets: [
       "No hidden charges or commissions",
       "Transparent 5% platform fee only",
@@ -253,7 +256,13 @@ function TickerBar() {
             >
               <span className="text-white/65">{item.symbol}</span>
               <span className="text-white/35">{item.price}</span>
-              <span className={up ? "inline-flex items-center gap-1 font-semibold text-[#34D399]" : "inline-flex items-center gap-1 font-semibold text-[#F87171]"}>
+              <span
+                className={
+                  up
+                    ? "inline-flex items-center gap-1 font-semibold text-[#34D399]"
+                    : "inline-flex items-center gap-1 font-semibold text-[#F87171]"
+                }
+              >
                 <Icon className="h-3.5 w-3.5" name={up ? "trendingUp" : "trendingDown"} />
                 {item.change}
               </span>
@@ -301,7 +310,9 @@ function AlertCard({
     >
       <div className="mb-3 flex items-start justify-between">
         <div className="flex items-center gap-2.5">
-          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] text-xs font-extrabold text-white ${avatarClass}`}>
+          <div
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] text-xs font-extrabold text-white ${avatarClass}`}
+          >
             {initials}
           </div>
           <div>
@@ -312,7 +323,9 @@ function AlertCard({
         <span
           className={[
             "rounded-md px-2.5 py-[3px] text-[11px] font-extrabold tracking-[0.05em]",
-            buy ? "bg-[var(--green-light)] text-[var(--green)]" : "bg-[var(--red-light)] text-[var(--red)]",
+            buy
+              ? "bg-[var(--green-light)] text-[var(--green)]"
+              : "bg-[var(--red-light)] text-[var(--red)]",
           ].join(" ")}
         >
           {type}
@@ -388,21 +401,27 @@ function Hero() {
             from <em className="not-italic text-[var(--brand)]">Verified Experts</em>
           </h1>
           <p className="mb-8 max-w-[480px] text-[clamp(15px,1.6vw,17px)] font-normal leading-[1.65] text-[var(--muted)]">
-            Subscribe to SEBI-registered Research Analysts and receive real-time BUY/SELL ideas with entry, target &amp;
-            stop-loss - the moment they&apos;re published.
+            Subscribe to SEBI-registered Research Analysts and receive real-time BUY/SELL ideas with
+            entry, target &amp; stop-loss - the moment they&apos;re published.
           </p>
           <div className="mb-8 flex flex-wrap gap-2.5 max-[860px]:flex-col">
             <Link className={`${buttonLarge} ${buttonPrimary} max-[860px]:w-full`} href="#">
               Start Free - No Card Needed
               <Icon className="h-4 w-4" name="arrowRight" />
             </Link>
-            <Link className={`${buttonLarge} ${buttonGhost} max-[860px]:w-full`} href="#marketplace">
+            <Link
+              className={`${buttonLarge} ${buttonGhost} max-[860px]:w-full`}
+              href="#marketplace"
+            >
               Browse Analysts
             </Link>
           </div>
           <div className="flex flex-wrap gap-4 max-[560px]:flex-col max-[560px]:gap-2.5">
             {heroTrust.map((item) => (
-              <div className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--muted)]" key={item.label}>
+              <div
+                className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--muted)]"
+                key={item.label}
+              >
                 <Icon className="h-[15px] w-[15px] text-[var(--brand)]" name={item.icon} />
                 {item.label}
               </div>
@@ -458,7 +477,9 @@ function Hero() {
                 time="12 min ago · Swing"
                 type="SELL"
               />
-              <div className="py-2 text-center text-xs text-[var(--muted-2)]">5 more alerts today · Tap to see all</div>
+              <div className="py-2 text-center text-xs text-[var(--muted-2)]">
+                5 more alerts today · Tap to see all
+              </div>
             </div>
           </div>
         </div>
@@ -477,7 +498,8 @@ function Features() {
             Everything a serious trader needs.
           </h2>
           <p className="mx-auto mt-3 max-w-[500px] text-[clamp(15px,1.6vw,17px)] leading-[1.65] text-[var(--muted)]">
-            Stop chasing tips on Telegram. Get structured, verified, actionable ideas from registered professionals.
+            Stop chasing tips on Telegram. Get structured, verified, actionable ideas from
+            registered professionals.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-4 max-[860px]:grid-cols-1">
@@ -485,15 +507,19 @@ function Features() {
             <div
               className={revealClass(
                 feature.delay,
-                "rounded-lg border border-[var(--line)] bg-white p-8 transition-all hover:-translate-y-1 hover:border-[var(--brand-mid)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.09)]",
+                "rounded-lg border border-[var(--line)] bg-white p-8 transition-all hover:-translate-y-1 hover:border-[var(--brand-mid)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.09)]"
               )}
               data-reveal
               key={feature.title}
             >
-              <div className={`mb-[18px] flex h-11 w-11 items-center justify-center rounded-lg ${feature.iconWrap}`}>
+              <div
+                className={`mb-[18px] flex h-11 w-11 items-center justify-center rounded-lg ${feature.iconWrap}`}
+              >
                 <Icon className={`h-5 w-5 ${feature.iconColor}`} name={feature.icon} />
               </div>
-              <h3 className="mb-2.5 text-[17px] font-semibold tracking-[-0.01em] text-[var(--ink)]">{feature.title}</h3>
+              <h3 className="mb-2.5 text-[17px] font-semibold tracking-[-0.01em] text-[var(--ink)]">
+                {feature.title}
+              </h3>
               <p className="text-sm leading-[1.7] text-[var(--muted)]">{feature.description}</p>
             </div>
           ))}
@@ -513,26 +539,39 @@ function TrustCards() {
             Built on trust, regulated by SEBI.
           </h2>
           <p className="mx-auto mt-3 max-w-[500px] text-[clamp(15px,1.6vw,17px)] leading-[1.65] text-[var(--muted)]">
-            Every part of Stoxify is designed to protect traders and hold Research Analysts to the highest professional standard.
+            Every part of Stoxify is designed to protect traders and hold Research Analysts to the
+            highest professional standard.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-4 max-[860px]:grid-cols-1">
           {trustCards.map((card) => (
             <div
-              className={revealClass(card.delay, "rounded-lg border border-[var(--line)] bg-[var(--surface)] p-7")}
+              className={revealClass(
+                card.delay,
+                "rounded-lg border border-[var(--line)] bg-[var(--surface)] p-7"
+              )}
               data-reveal
               key={card.title}
             >
               <div className="mb-[18px] flex items-center gap-3.5">
-                <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] ${card.iconWrap}`}>
+                <div
+                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] ${card.iconWrap}`}
+                >
                   <Icon className={`h-6 w-6 ${card.iconColor}`} name={card.icon} />
                 </div>
-                <h3 className="m-0 text-base font-semibold tracking-[-0.01em] text-[var(--ink)]">{card.title}</h3>
+                <h3 className="m-0 text-base font-semibold tracking-[-0.01em] text-[var(--ink)]">
+                  {card.title}
+                </h3>
               </div>
-              <p className="mb-3.5 text-[13px] leading-[1.6] text-[var(--muted)]">{card.description}</p>
+              <p className="mb-3.5 text-[13px] leading-[1.6] text-[var(--muted)]">
+                {card.description}
+              </p>
               <ul className="flex list-none flex-col gap-2">
                 {card.bullets.map((bullet) => (
-                  <li className="flex items-center gap-2.5 text-[13px] text-[var(--muted)]" key={bullet}>
+                  <li
+                    className="flex items-center gap-2.5 text-[13px] text-[var(--muted)]"
+                    key={bullet}
+                  >
                     <span className={`block h-1.5 w-1.5 shrink-0 rounded-full ${card.dot}`} />
                     {bullet}
                   </li>
@@ -548,7 +587,10 @@ function TrustCards() {
 
 function Marketplace() {
   return (
-    <section className="bg-white px-10 py-24 max-[860px]:px-6 max-[860px]:py-16 max-[560px]:px-5 max-[560px]:py-14" id="marketplace">
+    <section
+      className="bg-white px-10 py-24 max-[860px]:px-6 max-[860px]:py-16 max-[560px]:px-5 max-[560px]:py-14"
+      id="marketplace"
+    >
       <div className="mx-auto max-w-[1200px]">
         <div className={revealClass()} data-reveal>
           <SectionTag>Analyst Marketplace</SectionTag>
@@ -556,7 +598,8 @@ function Marketplace() {
             Find your Research Analyst.
           </h2>
           <p className="mt-2.5 text-[clamp(15px,1.6vw,17px)] leading-[1.65] text-[var(--muted)]">
-            All listed analysts are SEBI-registered. Performance stats are verified, timestamped, and auditable.
+            All listed analysts are SEBI-registered. Performance stats are verified, timestamped,
+            and auditable.
           </p>
           <AnalystFilters />
         </div>
@@ -566,7 +609,7 @@ function Marketplace() {
             <article
               className={revealClass(
                 analyst.delay,
-                "cursor-pointer rounded-lg border-[1.5px] border-[var(--line)] bg-white p-6 transition-all hover:-translate-y-[3px] hover:border-[var(--brand-mid)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]",
+                "cursor-pointer rounded-lg border-[1.5px] border-[var(--line)] bg-white p-6 transition-all hover:-translate-y-[3px] hover:border-[var(--brand-mid)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]"
               )}
               data-reveal
               key={analyst.sebi}
@@ -579,8 +622,12 @@ function Marketplace() {
                   {analyst.initials}
                 </div>
                 <div>
-                  <h3 className="mb-[3px] font-sans text-[15px] font-bold tracking-[-0.02em]">{analyst.name}</h3>
-                  <div className="text-[11px] font-medium text-[var(--muted-2)]">SEBI RA · {analyst.sebi}</div>
+                  <h3 className="mb-[3px] font-sans text-[15px] font-bold tracking-[-0.02em]">
+                    {analyst.name}
+                  </h3>
+                  <div className="text-[11px] font-medium text-[var(--muted-2)]">
+                    SEBI RA · {analyst.sebi}
+                  </div>
                   <div className="mt-[5px] flex flex-wrap gap-[5px]">
                     {analyst.tags.map((tag, index) => (
                       <span
@@ -600,7 +647,10 @@ function Marketplace() {
 
               <div className="mb-4 grid grid-cols-3 gap-2">
                 {analyst.stats.map((stat) => (
-                  <div className="rounded-lg bg-[var(--surface)] px-2 py-2.5 text-center" key={stat.label}>
+                  <div
+                    className="rounded-lg bg-[var(--surface)] px-2 py-2.5 text-center"
+                    key={stat.label}
+                  >
                     <div
                       className={[
                         "font-sans text-lg font-extrabold tracking-[-0.5px] text-[var(--ink)]",
@@ -618,7 +668,9 @@ function Marketplace() {
 
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <span className="font-sans text-base font-bold text-[var(--ink)]">{analyst.price}</span>{" "}
+                  <span className="font-sans text-base font-bold text-[var(--ink)]">
+                    {analyst.price}
+                  </span>{" "}
                   <span className="text-xs text-[var(--muted)]">/month</span>
                 </div>
                 <button
@@ -634,7 +686,7 @@ function Marketplace() {
           <article
             className={revealClass(
               2,
-              "flex min-h-60 cursor-default items-center justify-center rounded-lg border-2 border-dashed border-[var(--line)] bg-white p-6",
+              "flex min-h-60 cursor-default items-center justify-center rounded-lg border-2 border-dashed border-[var(--line)] bg-white p-6"
             )}
             data-reveal
           >
@@ -643,7 +695,9 @@ function Marketplace() {
                 <Icon className="h-6 w-6" name="search" />
               </div>
               <div className="mb-1.5 font-sans text-base font-bold">340+ analysts listed</div>
-              <div className="mb-4 text-[13px] text-[var(--muted)]">Filter by style, returns &amp; more</div>
+              <div className="mb-4 text-[13px] text-[var(--muted)]">
+                Filter by style, returns &amp; more
+              </div>
               <Link className={`${buttonBase} ${buttonOutline} px-4 py-[7px]`} href="#">
                 Browse All
                 <Icon className="h-3.5 w-3.5" name="arrowRight" />
@@ -693,7 +747,7 @@ function HowItWorks() {
             <div
               className={revealClass(
                 step.delay,
-                "relative z-[1] rounded-lg border-[1.5px] border-[var(--line)] bg-white px-5 py-7 transition-all hover:-translate-y-1 hover:border-[var(--brand-mid)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.09)]",
+                "relative z-[1] rounded-lg border-[1.5px] border-[var(--line)] bg-white px-5 py-7 transition-all hover:-translate-y-1 hover:border-[var(--brand-mid)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.09)]"
               )}
               data-reveal
               key={step.title}
@@ -714,7 +768,13 @@ function HowItWorks() {
 function FinalCta() {
   return (
     <section className="bg-[linear-gradient(135deg,#1a3ab8_0%,#2D5BE3_50%,#3d6ef5_100%)] px-10 py-24 text-center max-[860px]:px-6 max-[860px]:py-16 max-[560px]:px-5 max-[560px]:py-14">
-      <h2 className={revealClass(0, "mb-3.5 text-[clamp(24px,3vw,40px)] font-medium leading-[1.2] tracking-[-0.01em] text-white")} data-reveal>
+      <h2
+        className={revealClass(
+          0,
+          "mb-3.5 text-[clamp(24px,3vw,40px)] font-medium leading-[1.2] tracking-[-0.01em] text-white"
+        )}
+        data-reveal
+      >
         Start trading smarter today.
       </h2>
       <p className={revealClass(2, "mb-9 text-lg text-white/65")} data-reveal>
@@ -739,13 +799,16 @@ function Footer() {
       <div className="mx-auto max-w-[1200px]">
         <div className="mb-14 grid grid-cols-[1.8fr_1fr_1fr_1fr] gap-12 max-[860px]:grid-cols-2 max-[860px]:gap-8 max-[560px]:grid-cols-1">
           <div>
-            <Link className="mb-3 flex items-center gap-2 font-sans text-xl font-extrabold text-white" href="/">
+            <Link
+              className="mb-3 flex items-center gap-2 font-sans text-xl font-extrabold text-white"
+              href="/"
+            >
               <span className="h-2 w-2 rounded-full bg-[var(--brand)]" />
               Stoxify
             </Link>
             <p className="mb-5 text-sm leading-[1.7] text-white/40">
-              India&apos;s first real-time trade idea marketplace - SEBI-registered Research Analysts, verified calls,
-              instant delivery.
+              India&apos;s first real-time trade idea marketplace - SEBI-registered Research
+              Analysts, verified calls, instant delivery.
             </p>
           </div>
 
@@ -753,10 +816,7 @@ function Footer() {
             links={["Browse Analysts", "Pricing", "How It Works", "Broker Connect"]}
             title="For Traders"
           />
-          <FooterColumn
-            links={["For Research Analysts", "Home", "Blog"]}
-            title="Platform"
-          />
+          <FooterColumn links={["For Research Analysts", "Home", "Blog"]} title="Platform" />
           <FooterColumn
             links={["Privacy Policy", "Terms", "SEBI Disclosures", "Grievance Redressal"]}
             title="Legal"
@@ -764,23 +824,35 @@ function Footer() {
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.08] pt-6 max-[860px]:flex-col max-[860px]:items-start max-[860px]:gap-2">
-          <div className="text-[13px] text-white/30">&copy; 2026 Stoxify Technologies Pvt. Ltd.</div>
+          <div className="text-[13px] text-white/30">
+            &copy; 2026 Stoxify Technologies Pvt. Ltd.
+          </div>
           <div className="flex gap-5 max-[560px]:flex-wrap max-[560px]:gap-3">
-            <Link className="text-[13px] text-white/30 transition-colors hover:text-white/60" href="/privacy">
+            <Link
+              className="text-[13px] text-white/30 transition-colors hover:text-white/60"
+              href="/privacy"
+            >
               Privacy
             </Link>
-            <Link className="text-[13px] text-white/30 transition-colors hover:text-white/60" href="/terms">
+            <Link
+              className="text-[13px] text-white/30 transition-colors hover:text-white/60"
+              href="/terms"
+            >
               Terms
             </Link>
-            <Link className="text-[13px] text-white/30 transition-colors hover:text-white/60" href="/sebi-disclosures">
+            <Link
+              className="text-[13px] text-white/30 transition-colors hover:text-white/60"
+              href="/sebi-disclosures"
+            >
               Disclosures
             </Link>
           </div>
         </div>
         <p className="mt-5 border-t border-white/[0.06] pt-5 text-[11.5px] leading-[1.75] text-white/20">
-          All trade ideas on Stoxify are published by SEBI-registered Research Analysts. Stoxify is a technology
-          intermediary and does not provide investment advice. Investments in securities are subject to market risks.
-          Read all scheme related documents carefully. Past performance is not indicative of future results.
+          All trade ideas on Stoxify are published by SEBI-registered Research Analysts. Stoxify is
+          a technology intermediary and does not provide investment advice. Investments in
+          securities are subject to market risks. Read all scheme related documents carefully. Past
+          performance is not indicative of future results.
         </p>
       </div>
     </footer>

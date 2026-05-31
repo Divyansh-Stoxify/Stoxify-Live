@@ -175,9 +175,7 @@ const icons: Record<IconName, ReactNode> = {
       <path d="m5 3 .8 2.2L8 6l-2.2.8L5 9l-.8-2.2L2 6l2.2-.8Z" />
     </>
   ),
-  star: (
-    <path d="m12 2 3 6.2 6.8 1-4.9 4.8 1.2 6.8L12 17.6l-6.1 3.2 1.2-6.8-4.9-4.8 6.8-1Z" />
-  ),
+  star: <path d="m12 2 3 6.2 6.8 1-4.9 4.8 1.2 6.8L12 17.6l-6.1 3.2 1.2-6.8-4.9-4.8 6.8-1Z" />,
   store: (
     <>
       <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
@@ -234,11 +232,7 @@ const icons: Record<IconName, ReactNode> = {
   zap: <path d="M13 2 3 14h8l-1 8 11-13h-8Z" />,
 };
 
-export function Icon({
-  name,
-  className,
-  ...props
-}: SVGProps<SVGSVGElement> & { name: IconName }) {
+export function Icon({ name, className, ...props }: SVGProps<SVGSVGElement> & { name: IconName }) {
   return (
     <svg
       aria-hidden="true"

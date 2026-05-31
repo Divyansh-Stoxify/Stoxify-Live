@@ -47,7 +47,7 @@ export function StoxifyNav({
         <ul
           className={cx(
             "flex flex-1 list-none items-center gap-1 max-[860px]:fixed max-[860px]:inset-x-0 max-[860px]:top-[66px] max-[860px]:z-[199] max-[860px]:flex-col max-[860px]:items-stretch max-[860px]:gap-0.5 max-[860px]:border-b max-[860px]:border-[var(--line)] max-[860px]:bg-white/95 max-[860px]:px-4 max-[860px]:py-3 max-[860px]:backdrop-blur-2xl",
-            open ? "max-[860px]:flex" : "max-[860px]:hidden",
+            open ? "max-[860px]:flex" : "max-[860px]:hidden"
           )}
         >
           <li>
@@ -80,19 +80,19 @@ export function StoxifyNav({
           <span
             className={cx(
               "block h-0.5 w-[22px] origin-center rounded-full bg-[var(--ink)] transition-transform",
-              open && "translate-y-[7px] rotate-45",
+              open && "translate-y-[7px] rotate-45"
             )}
           />
           <span
             className={cx(
               "block h-0.5 w-[22px] origin-center rounded-full bg-[var(--ink)] transition-all",
-              open && "scale-x-0 opacity-0",
+              open && "scale-x-0 opacity-0"
             )}
           />
           <span
             className={cx(
               "block h-0.5 w-[22px] origin-center rounded-full bg-[var(--ink)] transition-transform",
-              open && "-translate-y-[7px] -rotate-45",
+              open && "-translate-y-[7px] -rotate-45"
             )}
           />
         </button>
@@ -104,10 +104,7 @@ export function StoxifyNav({
           >
             Log In
           </Link>
-          <Link
-            className={ctaClass}
-            href={ctaHref}
-          >
+          <Link className={ctaClass} href={ctaHref}>
             {ctaLabel}
             <Icon className="h-3.5 w-3.5" name="arrowRight" />
           </Link>
