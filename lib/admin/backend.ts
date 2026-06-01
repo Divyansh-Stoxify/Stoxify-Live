@@ -17,8 +17,12 @@ function getBackendUrl(envName: "AUTH_SERVICE_URL" | "USER_SERVICE_URL", fallbac
 }
 
 export const backendUrls = {
-  auth: getBackendUrl("AUTH_SERVICE_URL", "http://localhost:8001"),
-  user: getBackendUrl("USER_SERVICE_URL", "http://localhost:8002"),
+  get auth() {
+    return getBackendUrl("AUTH_SERVICE_URL", "http://localhost:8001");
+  },
+  get user() {
+    return getBackendUrl("USER_SERVICE_URL", "http://localhost:8002");
+  },
 };
 
 export async function signedBackendFetch({
