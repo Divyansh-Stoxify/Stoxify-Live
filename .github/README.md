@@ -27,7 +27,9 @@ Both AI workflows call `https://openrouter.ai/api/v1/chat/completions`.
   model with a long context window. Override without editing YAML by setting the
   repository **variable** `OPENROUTER_MODEL` (e.g. `anthropic/claude-sonnet-4.6`).
   Browse free models: https://openrouter.ai/models?max_price=0
-- Free models rotate and have rate limits. If reviews start failing, switch the model variable.
+- Free models rotate and have rate limits. If the default model returns an empty response
+  or an API error, the workflows try `OPENROUTER_FALLBACK_MODELS` in order. Override
+  that repository variable with a comma-separated model list if needed.
 
 ### Required setup
 

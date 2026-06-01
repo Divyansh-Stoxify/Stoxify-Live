@@ -142,6 +142,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL || 'qwen/qwen3-coder:free' }}
+          OPENROUTER_FALLBACK_MODELS: ${{ vars.OPENROUTER_FALLBACK_MODELS || 'moonshotai/kimi-k2.6:free,poolside/laguna-m.1:free,openai/gpt-oss-120b:free,openrouter/free' }}
           CONVERSATION: ${{ steps.get_thread.outputs.conversation }}
           BOT_REVIEW: ${{ steps.get_thread.outputs.bot_review_body }}
           PR_TITLE: ${{ steps.get_thread.outputs.pr_title }}
@@ -150,6 +151,7 @@ jobs:
           COMMENT_AUTHOR: ${{ steps.get_thread.outputs.comment_author }}
         run: |-
           MODEL="${OPENROUTER_MODEL:-qwen/qwen3-coder:free}"
+          FALLBACK_MODELS="${OPENROUTER_FALLBACK_MODELS:-moonshotai/kimi-k2.6:free,poolside/laguna-m.1:free,openai/gpt-oss-120b:free,openrouter/free}"
 
           sudo apt-get update && sudo apt-get install -y gh jq
 
@@ -185,38 +187,61 @@ jobs:
           printf '%s' "$SYSTEM_PROMPT" > "$SYS_PROMPT_FILE"
           printf '%s' "$USER_PROMPT" > "$USER_PROMPT_FILE"
 
-          REQUEST_BODY=$(jq -n \
-            --arg model "$MODEL" \
-            --rawfile sys "$SYS_PROMPT_FILE" \
-            --rawfile user "$USER_PROMPT_FILE" \
-            '{
-              model: $model,
-              messages: [
-                { role: "system", content: $sys },
-                { role: "user", content: $user }
-              ],
-              temperature: 0.3
-            }')
+          RESPONSE=""
+          MODEL_ERRORS=""
+          MODEL_CANDIDATES="$MODEL,$FALLBACK_MODELS"
+          declare -A SEEN_MODELS=()
+
+          IFS=',' read -ra CANDIDATES <<< "$MODEL_CANDIDATES"
+          for CANDIDATE_MODEL in "${CANDIDATES[@]}"; do
+            CANDIDATE_MODEL="$(echo "$CANDIDATE_MODEL" | xargs)"
+            if [ -z "$CANDIDATE_MODEL" ] || [ -n "${SEEN_MODELS[$CANDIDATE_MODEL]:-}" ]; then
+              continue
+            fi
+            SEEN_MODELS[$CANDIDATE_MODEL]=1
+            echo "Trying OpenRouter model: $CANDIDATE_MODEL"
+
+            REQUEST_BODY=$(jq -n \
+              --arg model "$CANDIDATE_MODEL" \
+              --rawfile sys "$SYS_PROMPT_FILE" \
+              --rawfile user "$USER_PROMPT_FILE" \
+              '{
+                model: $model,
+                messages: [
+                  { role: "system", content: $sys },
+                  { role: "user", content: $user }
+                ],
+                temperature: 0.3
+              }')
+
+            BODY_FILE="$(mktemp)"
+            printf '%s' "$REQUEST_BODY" > "$BODY_FILE"
+
+            RESPONSE=$(curl -s -X POST https://openrouter.ai/api/v1/chat/completions \
+              -H "Authorization: Bearer $OPENROUTER_API_KEY" \
+              -H "Content-Type: application/json" \
+              -H "HTTP-Referer: https://github.com/${{ github.repository }}" \
+              -H "X-Title: Stocxify PR Conversation" \
+              --data-binary "@$BODY_FILE")
+
+            rm -f "$BODY_FILE"
+
+            CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty' 2>/dev/null || echo "")
+            if [ -n "$CONTENT" ]; then
+              break
+            fi
+
+            API_ERROR=$(echo "$RESPONSE" | jq -r '.error.message // .message // .error // "Unknown error"' 2>/dev/null || echo "Unknown error")
+            MODEL_ERRORS="${MODEL_ERRORS}- ${CANDIDATE_MODEL}: ${API_ERROR}"$'\n'
+          done
 
           rm -f "$SYS_PROMPT_FILE" "$USER_PROMPT_FILE"
-
-          BODY_FILE="$(mktemp)"
-          printf '%s' "$REQUEST_BODY" > "$BODY_FILE"
-
-          RESPONSE=$(curl -s -X POST https://openrouter.ai/api/v1/chat/completions \
-            -H "Authorization: Bearer $OPENROUTER_API_KEY" \
-            -H "Content-Type: application/json" \
-            -H "HTTP-Referer: https://github.com/${{ github.repository }}" \
-            -H "X-Title: Stocxify PR Conversation" \
-            --data-binary "@$BODY_FILE")
-
-          rm -f "$BODY_FILE"
 
           CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty' 2>/dev/null || echo "")
 
           if [ -z "$CONTENT" ]; then
             API_ERROR=$(echo "$RESPONSE" | jq -r '.error.message // .message // .error // "Unknown error"' 2>/dev/null || echo "Unknown error")
-            RESPONSE_BODY="❌ **Error:** $API_ERROR"
+            RESPONSE_BODY="❌ **Error:** $API_ERROR\n\nTried fallback models:\n${MODEL_ERRORS}"
           else
             RESPONSE_BODY="$CONTENT"
           fi
