@@ -141,7 +141,7 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL || 'openai/gpt-oss-120b:free' }}
+          OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL || 'qwen/qwen3-coder:free' }}
           CONVERSATION: ${{ steps.get_thread.outputs.conversation }}
           BOT_REVIEW: ${{ steps.get_thread.outputs.bot_review_body }}
           PR_TITLE: ${{ steps.get_thread.outputs.pr_title }}
@@ -149,7 +149,7 @@ jobs:
           PR_NUMBER: ${{ github.event.issue.number }}
           COMMENT_AUTHOR: ${{ steps.get_thread.outputs.comment_author }}
         run: |-
-          MODEL="${OPENROUTER_MODEL:-openai/gpt-oss-120b:free}"
+          MODEL="${OPENROUTER_MODEL:-qwen/qwen3-coder:free}"
 
           sudo apt-get update && sudo apt-get install -y gh jq
 

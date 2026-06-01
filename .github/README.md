@@ -23,9 +23,9 @@ GitHub Actions for the Stocxify frontend
 
 Both AI workflows call `https://openrouter.ai/api/v1/chat/completions`.
 
-- Model defaults to `openai/gpt-oss-120b:free` (OpenAI's open-weight 117B-parameter
-  MoE model). Override without editing YAML by setting the repository **variable**
-  `OPENROUTER_MODEL` (e.g. `qwen/qwen3-coder:free`).
+- Model defaults to `qwen/qwen3-coder:free` because it is a free, coding-focused
+  model with a long context window. Override without editing YAML by setting the
+  repository **variable** `OPENROUTER_MODEL` (e.g. `anthropic/claude-sonnet-4.6`).
   Browse free models: https://openrouter.ai/models?max_price=0
 - Free models rotate and have rate limits. If reviews start failing, switch the model variable.
 

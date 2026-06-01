@@ -101,9 +101,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Pick any free model from https://openrouter.ai/models?max_price=0
           # Override via the OPENROUTER_MODEL secret/variable without editing this file.
-          OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL || 'openai/gpt-oss-120b:free' }}
+          OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL || 'qwen/qwen3-coder:free' }}
         run: |-
-          MODEL="${OPENROUTER_MODEL:-openai/gpt-oss-120b:free}"
+          MODEL="${OPENROUTER_MODEL:-qwen/qwen3-coder:free}"
 
           sudo apt-get update && sudo apt-get install -y gh jq
 
