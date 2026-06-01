@@ -25,6 +25,10 @@ export const backendUrls = {
   },
 };
 
+/**
+ * Sends a signed JSON request to a backend service using the admin web device ID.
+ * Non-GET/HEAD requests serialize the provided body into the signed payload.
+ */
 export async function signedBackendFetch({
   baseUrl,
   path,
