@@ -1,0 +1,235 @@
+name: Run Static Checks and Tests
+
+on:
+  pull_request:
+    branches:
+      - development
+      - main
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install nodejs
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependency
+        run: npm install
+
+      - name: Run type check
+        run: npm run typecheck
+
+      - name: Run lint check
+        run: npm run lint:check
+
+      - name: Run format check
+        run: npm run format:check
+
+      - name: Perform build checks
+        run: npm run build
+
+  # tests:
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #     - name: Checkout Repository
+  #       uses: actions/checkout@v4
+
+  #     - name: Install nodejs
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '22'
+
+  #     - name: Install dependency
+  #       run: npm install
+
+  #     - name: Perform test
+  #       run: |
+  #         npm run test
+
+  pr_review:
+    runs-on: ubuntu-latest
+    needs: [static-checks]
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Get difference of pull request"
+        id: get_diff
+        shell: bash
+        env:
+          PULL_REQUEST_HEAD_REF: "${{ github.event.pull_request.head.ref }}"
+          PULL_REQUEST_BASE_REF: "${{ github.event.pull_request.base.ref }}"
+        run: |-
+          git fetch origin "${PULL_REQUEST_HEAD_REF}"
+          git fetch origin "${PULL_REQUEST_BASE_REF}"
+          git checkout "${PULL_REQUEST_HEAD_REF}"
+          git diff "origin/${PULL_REQUEST_BASE_REF}" \
+            -- ':!node_modules' ':!dist' ':!build' ':!*.lock' ':!package-lock.json' \
+            ':!*.log' ':!*.tar.gz' ':!*.zip' ':!*.min.js' ':!*.min.css' \
+            > "diff.txt" || true
+          DIFF_SIZE=$(wc -c < "diff.txt" | tr -d ' ')
+          MAX_SIZE=800000  # 800KB limit
+          if [ "$DIFF_SIZE" -gt "$MAX_SIZE" ]; then
+            echo "Warning: Diff ($DIFF_SIZE bytes) > limit. Truncating..."
+            head -c "$MAX_SIZE" "diff.txt" > "diff_truncated.txt"
+            mv "diff_truncated.txt" "diff.txt"
+            echo -e "\n\n[TRUNCATED: First 800KB reviewed]" >> "diff.txt"
+          fi
+          {
+            echo "pull_request_diff<<EOF"
+            cat "diff.txt"
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+
+      - name: OpenRouter AI Code Review
+        id: review
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Pick any free model from https://openrouter.ai/models?max_price=0
+          # Override via the OPENROUTER_MODEL secret/variable without editing this file.
+          OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL || 'qwen/qwen3-coder:free' }}
+          OPENROUTER_FALLBACK_MODELS: ${{ vars.OPENROUTER_FALLBACK_MODELS || 'moonshotai/kimi-k2.6:free,poolside/laguna-m.1:free,openai/gpt-oss-120b:free,openrouter/free' }}
+        run: |-
+          MODEL="${OPENROUTER_MODEL:-qwen/qwen3-coder:free}"
+          FALLBACK_MODELS="${OPENROUTER_FALLBACK_MODELS:-moonshotai/kimi-k2.6:free,poolside/laguna-m.1:free,openai/gpt-oss-120b:free,openrouter/free}"
+
+          sudo apt-get update && sudo apt-get install -y gh jq
+
+          # Read diff content directly from the file created in the previous step
+          DIFF="$(cat diff.txt 2>/dev/null || echo "")"
+
+          # Fetch PR metadata for additional context
+          PR_JSON=$(gh pr view ${{ github.event.pull_request.number }} --json title,body,headRefName,baseRefName || echo '{}')
+          PR_TITLE=$(echo "$PR_JSON" | jq -r '.title // "Unknown title"')
+          PR_BODY=$(echo "$PR_JSON" | jq -r '.body // ""')
+          HEAD_BRANCH=$(echo "$PR_JSON" | jq -r '.headRefName // ""')
+          BASE_BRANCH=$(echo "$PR_JSON" | jq -r '.baseRefName // ""')
+
+          # System-level instructions for the reviewer
+          SYSTEM_PROMPT=$(cat .github/prompts/pr_review_system.txt)
+
+          # User-level prompt with PR-specific context and diff
+          USER_PROMPT=$(cat << EOF
+          PR title: $PR_TITLE
+          Base branch: $BASE_BRANCH
+          Head branch: $HEAD_BRANCH
+
+          PR description:
+          $PR_BODY
+
+          Below is the unified git diff for this pull request. Follow the system instructions to review ONLY these changes.
+
+          ---- BEGIN DIFF ----
+          $DIFF
+          ---- END DIFF ----
+          EOF
+          )
+
+          # Short-circuit if there is nothing to review
+          if [ -z "$DIFF" ]; then
+            COMMENT="🤖 **OpenRouter Review**\n\nNo diff content available for this pull request; nothing to review."
+            gh pr comment ${{ github.event.pull_request.number }} --body "$COMMENT"
+            exit 0
+          fi
+
+          # Build JSON request body safely using temp files + --rawfile to avoid
+          # "Argument list too long" on large diffs.
+          SYS_PROMPT_FILE="$(mktemp)"
+          USER_PROMPT_FILE="$(mktemp)"
+
+          printf '%s' "$SYSTEM_PROMPT" > "$SYS_PROMPT_FILE"
+          printf '%s' "$USER_PROMPT" > "$USER_PROMPT_FILE"
+
+          RESPONSE=""
+          MODEL_ERRORS=""
+          MODEL_USED="$MODEL"
+          MODEL_CANDIDATES="$MODEL,$FALLBACK_MODELS"
+          declare -A SEEN_MODELS=()
+
+          IFS=',' read -ra CANDIDATES <<< "$MODEL_CANDIDATES"
+          for CANDIDATE_MODEL in "${CANDIDATES[@]}"; do
+            CANDIDATE_MODEL="$(echo "$CANDIDATE_MODEL" | xargs)"
+            if [ -z "$CANDIDATE_MODEL" ] || [ -n "${SEEN_MODELS[$CANDIDATE_MODEL]:-}" ]; then
+              continue
+            fi
+            SEEN_MODELS[$CANDIDATE_MODEL]=1
+            MODEL_USED="$CANDIDATE_MODEL"
+            echo "Trying OpenRouter model: $CANDIDATE_MODEL"
+
+            REQUEST_BODY=$(jq -n \
+              --arg model "$CANDIDATE_MODEL" \
+              --rawfile sys "$SYS_PROMPT_FILE" \
+              --rawfile user "$USER_PROMPT_FILE" \
+              '{
+                model: $model,
+                messages: [
+                  { role: "system", content: $sys },
+                  { role: "user", content: $user }
+                ],
+                temperature: 0.1
+              }')
+
+            BODY_FILE="$(mktemp)"
+            printf '%s' "$REQUEST_BODY" > "$BODY_FILE"
+
+            RESPONSE=$(curl -s -X POST https://openrouter.ai/api/v1/chat/completions \
+              -H "Authorization: Bearer $OPENROUTER_API_KEY" \
+              -H "Content-Type: application/json" \
+              -H "HTTP-Referer: https://github.com/${{ github.repository }}" \
+              -H "X-Title: Stocxify PR Review" \
+              --data-binary "@$BODY_FILE")
+
+            rm -f "$BODY_FILE"
+
+            CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty' 2>/dev/null || echo "")
+            REASONING=$(echo "$RESPONSE" | jq -r '.choices[0].message.reasoning // empty' 2>/dev/null || echo "")
+
+            if [ -n "$CONTENT" ] || [ -n "$REASONING" ]; then
+              break
+            fi
+
+            API_ERROR=$(echo "$RESPONSE" | jq -r '.error.message // .message // .error // "Unknown error from OpenRouter API"' 2>/dev/null || echo "Unknown error from OpenRouter API")
+            MODEL_ERRORS="${MODEL_ERRORS}- ${CANDIDATE_MODEL}: ${API_ERROR}"$'\n'
+          done
+
+          rm -f "$SYS_PROMPT_FILE" "$USER_PROMPT_FILE"
+
+          # Try to read the model's review content; otherwise surface the raw API error
+          CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty' 2>/dev/null || echo "")
+          REASONING=$(echo "$RESPONSE" | jq -r '.choices[0].message.reasoning // empty' 2>/dev/null || echo "")
+
+          if [ -z "$CONTENT" ]; then
+            if [ -n "$REASONING" ]; then
+              REVIEW="The model hit the token limit before completing the final review. Here is its reasoning:\n\n$REASONING"
+            else
+              API_ERROR=$(echo "$RESPONSE" | jq -r '.error.message // .message // .error // "Unknown error from OpenRouter API"' 2>/dev/null || echo "Unknown error from OpenRouter API")
+              REVIEW="The OpenRouter API returned an error while generating this review after trying the configured fallback models:\n\n${MODEL_ERRORS}\nLast raw response:\n\n\`\`\`json\n$RESPONSE\n\`\`\`\n\nParsed error message: $API_ERROR"
+            fi
+          else
+            REVIEW="$CONTENT"
+          fi
+
+          API_MODEL_USED=$(echo "$RESPONSE" | jq -r '.model // empty' 2>/dev/null || echo "")
+          if [ -n "$API_MODEL_USED" ]; then
+            MODEL_USED="$API_MODEL_USED"
+          fi
+
+          printf -v COMMENT '%s\n\n%s' \
+            "🤖 **OpenRouter Review** (Model: $MODEL_USED)" \
+            "$REVIEW"
+
+          gh pr comment ${{ github.event.pull_request.number }} --body "$COMMENT"

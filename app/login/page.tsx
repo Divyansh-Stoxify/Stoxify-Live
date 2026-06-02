@@ -71,7 +71,7 @@ export default function LoginPage() {
         email: formData.email,
         password: formData.password,
       };
-      
+
       console.log("Login form submitted successfully:", output);
       setSubmittedData(output);
     }, 1500);
@@ -86,7 +86,10 @@ export default function LoginPage() {
       <div className="flex h-full flex-col justify-between overflow-y-auto bg-white px-6 py-12 min-[860px]:px-16 min-[1100px]:px-24">
         {/* Top Spacer or Small Mobile Header */}
         <div className="flex justify-between items-center min-[860px]:hidden mb-8">
-          <Link className="flex items-center font-sans text-xl font-extrabold tracking-[-0.5px] text-[var(--ink)]" href="/">
+          <Link
+            className="flex items-center font-sans text-xl font-extrabold tracking-[-0.5px] text-[var(--ink)]"
+            href="/"
+          >
             Stoxify
           </Link>
           <Link className="text-xs font-semibold text-[var(--brand)]" href="/signup">
@@ -113,7 +116,8 @@ export default function LoginPage() {
                 <span>Login Simulated Successfully!</span>
               </div>
               <p className="text-[12px] opacity-90 leading-relaxed mb-2.5">
-                Check the browser developer console to view the payload. Next, we will connect this form to the backend auth endpoint.
+                Check the browser developer console to view the payload. Next, we will connect this
+                form to the backend auth endpoint.
               </p>
               <div className="bg-white/50 p-2.5 rounded font-mono text-[11px] text-[var(--ink)] overflow-x-auto whitespace-pre">
                 {JSON.stringify(submittedData, null, 2)}
@@ -125,7 +129,10 @@ export default function LoginPage() {
           <form className="space-y-4" onSubmit={handleSubmit}>
             {/* Email Address */}
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.05em] text-[var(--muted)]" htmlFor="email">
+              <label
+                className="mb-1.5 block text-xs font-bold uppercase tracking-[0.05em] text-[var(--muted)]"
+                htmlFor="email"
+              >
                 Email Address
               </label>
               <input
@@ -141,16 +148,24 @@ export default function LoginPage() {
                 type="email"
                 value={formData.email}
               />
-              {errors.email && <p className="mt-1 text-[11px] text-[var(--red)] font-medium">{errors.email}</p>}
+              {errors.email && (
+                <p className="mt-1 text-[11px] text-[var(--red)] font-medium">{errors.email}</p>
+              )}
             </div>
 
             {/* Password with Eye icon toggle and Forgot Password link */}
             <div>
               <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-xs font-bold uppercase tracking-[0.05em] text-[var(--muted)]" htmlFor="password">
+                <label
+                  className="block text-xs font-bold uppercase tracking-[0.05em] text-[var(--muted)]"
+                  htmlFor="password"
+                >
                   Password
                 </label>
-                <Link className="text-[11.5px] font-bold text-[var(--brand)] hover:underline" href="#">
+                <Link
+                  className="text-[11.5px] font-bold text-[var(--brand)] hover:underline"
+                  href="#"
+                >
                   Forgot password?
                 </Link>
               </div>
@@ -176,7 +191,9 @@ export default function LoginPage() {
                   <Icon className="h-4 w-4" name={showPassword ? "eyeOff" : "eye"} />
                 </button>
               </div>
-              {errors.password && <p className="mt-1 text-[11px] text-[var(--red)] font-medium">{errors.password}</p>}
+              {errors.password && (
+                <p className="mt-1 text-[11px] text-[var(--red)] font-medium">{errors.password}</p>
+              )}
             </div>
 
             {/* SUBMIT BUTTON */}
@@ -199,7 +216,9 @@ export default function LoginPage() {
           {/* SOCIAL LOGIN DIVIDER */}
           <div className="my-6 flex items-center justify-center gap-3">
             <span className="h-[1px] flex-1 bg-[var(--line)]" />
-            <span className="text-[9.5px] font-extrabold uppercase tracking-[0.1em] text-[var(--muted-2)]">Or Continue With</span>
+            <span className="text-[9.5px] font-extrabold uppercase tracking-[0.1em] text-[var(--muted-2)]">
+              Or Continue With
+            </span>
             <span className="h-[1px] flex-1 bg-[var(--line)]" />
           </div>
 

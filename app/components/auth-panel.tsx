@@ -6,19 +6,21 @@ import { useEffect, useState } from "react";
 // Hardcoded premium testimonials to cycle through or display based on context
 const TESTIMONIALS = [
   {
-    quote: "Stoxify gives me the perfect platform to monetize my expertise and broadcast live calls to thousands of traders instantly.",
+    quote:
+      "Stoxify gives me the perfect platform to monetize my expertise and broadcast live calls to thousands of traders instantly.",
     author: "Priya Desai",
     role: "SEBI Registered Analyst",
     initials: "PD",
-    gradient: "linear-gradient(135deg, #FF6B6B, #FF8E53)"
+    gradient: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
   },
   {
-    quote: "The instant alerts have changed how my subscribers trade. Payouts are seamless, and compliance tools are built directly into the flow.",
+    quote:
+      "The instant alerts have changed how my subscribers trade. Payouts are seamless, and compliance tools are built directly into the flow.",
     author: "Arjun Kapoor",
     role: "Equity & Index RA",
     initials: "AK",
-    gradient: "linear-gradient(135deg, #3B82F6, #2D5BE3)"
-  }
+    gradient: "linear-gradient(135deg, #3B82F6, #2D5BE3)",
+  },
 ];
 
 export function AuthPanel() {
@@ -48,7 +50,10 @@ export function AuthPanel() {
 
       {/* 2. LOGO / BRANDING (Z-1 to stay above background) */}
       <div className="relative z-10">
-        <Link className="inline-flex items-center font-sans text-[22px] font-extrabold tracking-[-0.5px] text-white" href="/">
+        <Link
+          className="inline-flex items-center font-sans text-[22px] font-extrabold tracking-[-0.5px] text-white"
+          href="/"
+        >
           Stoxify
         </Link>
       </div>
@@ -74,7 +79,9 @@ export function AuthPanel() {
           </div>
 
           <div>
-            <div className="text-[13px] font-bold text-white transition-colors">{current.author}</div>
+            <div className="text-[13px] font-bold text-white transition-colors">
+              {current.author}
+            </div>
             <div className="text-[11.5px] text-white/50">{current.role}</div>
           </div>
         </div>
