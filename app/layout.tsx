@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+
+import { TooltipProvider } from "@/components/ui/tooltip";
+
+import { LenisProvider } from "./components/lenis-provider";
 import "./globals.css";
+import "lenis/dist/lenis.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -19,8 +24,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html className={plusJakartaSans.variable} lang="en">
-      <body>{children}</body>
+    <html className={plusJakartaSans.variable} data-scroll-behavior="smooth" lang="en">
+      <body>
+        <LenisProvider>
+          <TooltipProvider>{children}</TooltipProvider>
+        </LenisProvider>
+      </body>
     </html>
   );
 }

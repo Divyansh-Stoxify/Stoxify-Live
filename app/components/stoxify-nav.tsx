@@ -36,11 +36,10 @@ export function StoxifyNav({
     <nav className="fixed inset-x-0 top-0 z-[200] flex h-[66px] items-center border-b border-[var(--line)] bg-white/90 backdrop-blur-2xl">
       <div className="mx-auto flex w-full max-w-[1200px] items-center gap-10 px-10 max-[860px]:px-6">
         <Link
-          className="flex shrink-0 items-center gap-2 font-sans text-[21px] font-extrabold tracking-[-0.5px] text-[var(--ink)]"
+          className="flex shrink-0 items-center font-sans text-[21px] font-extrabold tracking-[-0.5px] text-[var(--ink)]"
           href="/"
           onClick={closeMenu}
         >
-          <span className="h-2 w-2 rounded-full bg-[var(--brand)]" />
           Stoxify
         </Link>
 

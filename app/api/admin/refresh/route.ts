@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { backendUrls, signedBackendFetch } from "@/lib/admin/backend";
 import { adminCookieNames, adminCookieOptions } from "@/lib/admin/cookies";
 import { rejectCrossOriginPost } from "@/lib/admin/csrf";
+import { forwardedIpHeaders, readAdminSession, writeAdminTokenCookies } from "@/lib/admin/server-session";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const reject = rejectCrossOriginPost(request);
@@ -25,6 +26,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       method: "POST",
       deviceId,
       body: { refresh_token: refreshToken },
+      extraHeaders: forwardedIpHeaders(request),
     });
   } catch {
     return NextResponse.json({ ok: false, code: "SERVICE_UNAVAILABLE" }, { status: 503 });
@@ -49,16 +51,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: false, code: "REFRESH_FAILED" }, { status: 401 });
   }
 
-  const res = NextResponse.json({ ok: true });
-  res.cookies.set(adminCookieNames.accessToken, data.access_token, {
-    ...adminCookieOptions,
-    maxAge: 60 * 60,
-  });
-  if (data.refresh_token) {
-    res.cookies.set(adminCookieNames.refreshToken, data.refresh_token, {
-      ...adminCookieOptions,
-      maxAge: 60 * 60 * 24 * 30,
-    });
+  const session = await readAdminSession({ accessToken: data.access_token, deviceId }).catch(() => null);
+  if (!session?.authenticated) {
+    return NextResponse.json({ ok: false, code: "ADMIN_ACCESS_REQUIRED" }, { status: 403 });
   }
+
+  const res = NextResponse.json(session);
+  writeAdminTokenCookies(res, {
+    access_token: data.access_token,
+    refresh_token: data.refresh_token,
+  });
   return res;
 }

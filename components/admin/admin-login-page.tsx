@@ -10,16 +10,16 @@ import { FloatingPaths } from "@/components/floating-paths";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
-
-type LoginResponse = {
-  ok?: boolean;
-  error?: string;
-  message?: string;
-  code?: string;
-};
+import {
+  collectAdminDeviceFingerprint,
+  describeAdminDevice,
+} from "@/lib/admin/device-fingerprint";
+import { useAdminStore } from "@/lib/admin/store";
+import type { AdminSessionPayload } from "@/lib/admin/session-shared";
 
 export function AdminLoginPage() {
   const router = useRouter();
+  const setSession = useAdminStore((state) => state.setSession);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -36,24 +36,30 @@ export function AdminLoginPage() {
     setIsPending(true);
 
     try {
+      const device = await collectAdminDeviceFingerprint();
       const response = await fetch("/api/admin/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          device_fingerprint: device,
+          device_id: device.device_id,
+          device_name: describeAdminDevice(device),
+          device_type: device.device_type,
           email: email.trim(),
           password,
         }),
       });
-      const data = (await response.json()) as LoginResponse;
+      const data = (await response.json()) as AdminSessionPayload;
 
       if (!response.ok || !data.ok) {
-        setError(data.message || data.error || data.code || "Unable to sign in.");
+        setError(data.error || data.code || "Unable to sign in.");
         return;
       }
 
-      router.replace("/admin");
+      setSession(data);
+      router.replace(data.redirectTo ?? "/admin");
     } catch {
       setError("Unable to reach the auth service.");
     } finally {

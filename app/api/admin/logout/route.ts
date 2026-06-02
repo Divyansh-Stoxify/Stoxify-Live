@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { backendUrls, signedBackendFetch } from "@/lib/admin/backend";
 import { adminCookieNames, adminCookieOptions } from "@/lib/admin/cookies";
 import { rejectCrossOriginPost } from "@/lib/admin/csrf";
+import { forwardedIpHeaders } from "@/lib/admin/server-session";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const csrfRejection = rejectCrossOriginPost(request);
@@ -24,6 +25,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       accessToken,
       deviceId,
       body: refreshToken ? { refresh_token: refreshToken } : undefined,
+      extraHeaders: forwardedIpHeaders(request),
     }).catch(() => undefined);
   }
 
