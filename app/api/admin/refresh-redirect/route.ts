@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { backendUrls, signedBackendFetch } from "@/lib/admin/backend";
 import { adminCookieNames, adminCookieOptions } from "@/lib/admin/cookies";
+import { forwardedIpHeaders } from "@/lib/admin/server-session";
 
 /**
  * GET /api/admin/refresh-redirect
@@ -35,6 +36,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       method: "POST",
       deviceId,
       body: { refresh_token: refreshToken },
+      extraHeaders: forwardedIpHeaders(request),
     });
   } catch {
     return NextResponse.redirect(loginUrl);

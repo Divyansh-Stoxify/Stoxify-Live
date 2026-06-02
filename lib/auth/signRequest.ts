@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createSign, randomBytes } from "node:crypto";
+import { readFileSync } from "node:fs";
 
 const keyVersion = process.env.ECDSA_KEY_VERSION ?? process.env.JWT_KEY_ID ?? "v1.0";
 
@@ -9,7 +10,11 @@ function getPrivateKey() {
     return process.env.ECDSA_PRIVATE_KEY.replace(/\\n/g, "\n");
   }
 
-  throw new Error("ECDSA_PRIVATE_KEY is required for signed backend requests.");
+  if (process.env.ECDSA_PRIVATE_KEY_PATH) {
+    return readFileSync(process.env.ECDSA_PRIVATE_KEY_PATH, "utf8");
+  }
+
+  throw new Error("ECDSA_PRIVATE_KEY or ECDSA_PRIVATE_KEY_PATH is required for signed backend requests.");
 }
 
 /**

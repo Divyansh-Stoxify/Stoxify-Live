@@ -1,36 +1,60 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-import { backendUrls, signedBackendFetch } from "@/lib/admin/backend";
 import { adminCookieNames } from "@/lib/admin/cookies";
+import {
+  clearAdminCookies,
+  readAdminSession,
+  refreshAdminCookies,
+  writeAdminTokenCookies,
+} from "@/lib/admin/server-session";
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   const cookieStore = await cookies();
-  const accessToken = cookieStore.get(adminCookieNames.accessToken)?.value;
+  let accessToken = cookieStore.get(adminCookieNames.accessToken)?.value;
   const deviceId = cookieStore.get(adminCookieNames.deviceId)?.value;
 
-  if (!accessToken || !deviceId) {
+  if (!deviceId) return NextResponse.json({ authenticated: false }, { status: 401 });
+
+  let refreshed: Awaited<ReturnType<typeof refreshAdminCookies>> = null;
+  if (!accessToken) {
+    refreshed = await refreshAdminCookies(request).catch(() => null);
+    accessToken = refreshed?.access_token;
+  }
+
+  if (!accessToken) {
     return NextResponse.json({ authenticated: false }, { status: 401 });
   }
 
-  let adminCheck: Response;
-  try {
-    adminCheck = await signedBackendFetch({
-      baseUrl: backendUrls.user,
-      path: "/admin/dashboard",
-      method: "GET",
-      accessToken,
-      deviceId,
-    });
-  } catch {
+  let session = await readAdminSession({ accessToken, deviceId }).catch(() => null);
+  if ((!session || !session.authenticated) && !refreshed) {
+    refreshed = await refreshAdminCookies(request).catch(() => null);
+    if (refreshed?.access_token) {
+      accessToken = refreshed.access_token;
+      session = await readAdminSession({ accessToken, deviceId }).catch(() => null);
+    }
+  }
+
+  if (!session) {
     return NextResponse.json(
       { authenticated: false, error: "Unable to verify admin session" },
       { status: 503 }
     );
   }
 
-  return NextResponse.json(
-    { authenticated: adminCheck.ok },
-    { status: adminCheck.ok ? 200 : adminCheck.status }
-  );
+  if (!session.authenticated) {
+    const response = NextResponse.json(session, { status: 401 });
+    return clearAdminCookies(response);
+  }
+
+  const response = NextResponse.json(session);
+  if (refreshed) {
+    writeAdminTokenCookies(response, {
+      access_token: refreshed.access_token,
+      refresh_token: refreshed.refresh_token,
+      device_id: deviceId,
+    });
+  }
+  return response;
 }

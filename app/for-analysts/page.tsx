@@ -869,10 +869,9 @@ function Footer() {
         <div className="mb-14 grid grid-cols-[1.8fr_1fr_1fr_1fr] gap-12 max-[860px]:grid-cols-2 max-[860px]:gap-8 max-[560px]:grid-cols-1">
           <div>
             <Link
-              className="mb-3 flex items-center gap-2 font-sans text-xl font-extrabold text-white"
+              className="mb-3 flex items-center font-sans text-xl font-extrabold text-white"
               href="/"
             >
-              <span className="h-2 w-2 rounded-full bg-[var(--brand)]" />
               Stoxify
             </Link>
             <p className="mb-5 text-sm leading-[1.7] text-white/40">

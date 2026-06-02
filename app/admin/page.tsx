@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import type { JSX } from "react";
 
-import { Button } from "@/components/ui/button";
+import { AdminContent } from "@/components/admin/admin-content";
+import { AppShell } from "@/components/app-shell";
 import { backendUrls, signedBackendFetch } from "@/lib/admin/backend";
 import { adminCookieNames, adminCookieOptions } from "@/lib/admin/cookies";
 
@@ -72,18 +73,8 @@ export default async function AdminPage(): Promise<JSX.Element> {
   }
 
   return (
-    <main className="min-h-screen bg-background px-6 py-8">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-wide">Stoxify Admin</h1>
-          <p className="text-muted-foreground">Admin session is active.</p>
-        </div>
-        <form action={logout}>
-          <Button variant="outline" type="submit">
-            Sign out
-          </Button>
-        </form>
-      </div>
-    </main>
+    <AppShell logoutAction={logout}>
+      <AdminContent />
+    </AppShell>
   );
 }

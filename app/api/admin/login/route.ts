@@ -2,29 +2,17 @@ import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
-import { adminCookieNames, adminCookieOptions } from "@/lib/admin/cookies";
+import { adminCookieNames } from "@/lib/admin/cookies";
 import { backendUrls, signedBackendFetch } from "@/lib/admin/backend";
 import { rejectCrossOriginPost } from "@/lib/admin/csrf";
-
-// PROD: per-IP rate limiting MUST be enforced by the edge proxy / WAF before
-// requests reach this handler. The in-memory map below is a best-effort
-// server-instance guard only; it does not survive restarts or scale across
-// multiple instances.
-const ipAttempts = new Map<string, { count: number; windowStart: number }>();
-const WINDOW_MS = 60_000;
-const MAX_ATTEMPTS = 20;
-
-function checkIpThrottle(ip: string): boolean {
-  const now = Date.now();
-  const entry = ipAttempts.get(ip);
-  if (!entry || now - entry.windowStart > WINDOW_MS) {
-    ipAttempts.set(ip, { count: 1, windowStart: now });
-    return true;
-  }
-  entry.count += 1;
-  if (entry.count > MAX_ATTEMPTS) return false;
-  return true;
-}
+import { checkAdminLoginRateLimit } from "@/lib/admin/rate-limit";
+import {
+  clearAdminCookies,
+  clientIpFromRequest,
+  forwardedIpHeaders,
+  readAdminSession,
+  writeAdminTokenCookies,
+} from "@/lib/admin/server-session";
 
 type BackendLoginResponse = {
   access_token?: string;
@@ -32,10 +20,22 @@ type BackendLoginResponse = {
   session_id?: string;
   user?: {
     user_id?: string;
+    email?: string;
+    name?: string;
+    state?: string;
   };
   error?: string;
   message?: string;
   code?: string;
+};
+
+type AdminLoginRequestBody = {
+  device_fingerprint?: Record<string, unknown>;
+  device_id?: string;
+  device_name?: string;
+  device_type?: "WEB";
+  email?: string;
+  password?: string;
 };
 
 const KNOWN_ERROR_CODES = new Set([
@@ -120,16 +120,30 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return csrfRejection;
   }
 
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
-  if (!checkIpThrottle(ip)) {
-    console.warn("[admin-login] Rate limit hit", { ip });
+  const ip = clientIpFromRequest(request);
+
+  const rateLimit = checkAdminLoginRateLimit(ip);
+  if (!rateLimit.ok) {
+    console.warn("[admin-login] Rate limit exceeded", {
+      ip,
+      retryAfterSec: rateLimit.retryAfterSec,
+    });
     return NextResponse.json(
-      { error: "Too many login attempts. Try again later.", code: "RATE_LIMITED" },
-      { status: 429 }
+      {
+        error: "Too many login attempts. Please try again later.",
+        code: "RATE_LIMITED",
+      },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(rateLimit.retryAfterSec),
+          "X-RateLimit-Reset": String(Math.ceil(rateLimit.resetAt / 1000)),
+        },
+      }
     );
   }
 
-  let credentials: { email?: string; password?: string };
+  let credentials: AdminLoginRequestBody;
   try {
     credentials = await request.json();
   } catch {
@@ -145,7 +159,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const cookieStore = await cookies();
   const deviceId =
-    cookieStore.get(adminCookieNames.deviceId)?.value ?? `admin-web-${randomUUID()}`;
+    credentials.device_id?.trim() ||
+    cookieStore.get(adminCookieNames.deviceId)?.value ||
+    `admin-web-${randomUUID()}`;
 
   let loginResponse: Response;
   try {
@@ -157,9 +173,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       body: {
         email: credentials.email.trim(),
         password: credentials.password,
-        device_type: "WEB",
-        device_name: "Stoxify Admin Console",
+        device_fingerprint: credentials.device_fingerprint,
+        device_type: credentials.device_type ?? "WEB",
+        device_name: credentials.device_name ?? "Stoxify Admin Console",
       },
+      extraHeaders: forwardedIpHeaders(request),
     });
   } catch {
     return NextResponse.json(
@@ -181,14 +199,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return safeErrorResponse(loginData, loginResponse.status);
   }
 
-  let adminCheck: Response;
+  let session;
   try {
-    adminCheck = await signedBackendFetch({
-      baseUrl: backendUrls.user,
-      path: "/admin/dashboard",
-      method: "GET",
+    session = await readAdminSession({
       accessToken: loginData.access_token,
       deviceId,
+      userOverride: loginData.user ?? null,
     });
   } catch {
     await signedBackendFetch({
@@ -198,6 +214,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       accessToken: loginData.access_token,
       deviceId,
       body: loginData.refresh_token ? { refresh_token: loginData.refresh_token } : undefined,
+      extraHeaders: forwardedIpHeaders(request),
     }).catch(() => undefined);
 
     return NextResponse.json(
@@ -206,20 +223,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  if (!adminCheck.ok) {
+  if (!session.authenticated || !session.user) {
     console.warn("[admin-login] Admin gate denied", {
       ip,
       email: credentials.email.trim(),
-      dashboardStatus: adminCheck.status,
+      code: session.code,
     });
 
-    await logAdminGateDenied({
-      ip,
-      email: credentials.email.trim(),
-      deviceId,
-      userId: loginData.user?.user_id,
-      dashboardStatus: adminCheck.status,
-    });
+    if (session.code === "ADMIN_ACCESS_REQUIRED") {
+      await logAdminGateDenied({
+        ip,
+        email: credentials.email.trim(),
+        deviceId,
+        userId: loginData.user?.user_id ?? session.user?.user_id,
+        dashboardStatus: 403,
+      });
+    }
 
     await signedBackendFetch({
       baseUrl: backendUrls.auth,
@@ -228,37 +247,32 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       accessToken: loginData.access_token,
       deviceId,
       body: loginData.refresh_token ? { refresh_token: loginData.refresh_token } : undefined,
+      extraHeaders: forwardedIpHeaders(request),
     }).catch(() => undefined);
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
-        error: "This account does not have admin dashboard access.",
-        code: "ADMIN_ACCESS_REQUIRED",
+        error: session.error ?? "This account does not have admin dashboard access.",
+        code: session.code ?? "ADMIN_ACCESS_REQUIRED",
       },
-      { status: 403 }
+      { status: session.code === "RBAC_PERMISSIONS_FAILED" ? 503 : 403 }
     );
+    return clearAdminCookies(response);
   }
 
-  const response = NextResponse.json({ ok: true });
-  response.cookies.set(adminCookieNames.accessToken, loginData.access_token, {
-    ...adminCookieOptions,
-    maxAge: 60 * 60,
+  const response = NextResponse.json({
+    ok: true,
+    authenticated: true,
+    user: session.user,
+    roles: session.roles,
+    powers: session.powers,
+    redirectTo: session.redirectTo ?? "/admin",
   });
-  if (loginData.refresh_token) {
-    response.cookies.set(adminCookieNames.refreshToken, loginData.refresh_token, {
-      ...adminCookieOptions,
-      maxAge: 60 * 60 * 24 * 30,
-    });
-  }
-  if (loginData.session_id) {
-    response.cookies.set(adminCookieNames.sessionId, loginData.session_id, {
-      ...adminCookieOptions,
-      maxAge: 60 * 60 * 24 * 30,
-    });
-  }
-  response.cookies.set(adminCookieNames.deviceId, deviceId, {
-    ...adminCookieOptions,
-    maxAge: 60 * 60 * 24 * 365,
+  writeAdminTokenCookies(response, {
+    access_token: loginData.access_token,
+    refresh_token: loginData.refresh_token,
+    session_id: loginData.session_id,
+    device_id: deviceId,
   });
 
   return response;

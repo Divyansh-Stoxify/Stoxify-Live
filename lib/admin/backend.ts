@@ -4,7 +4,17 @@ import { buildSignedHeaders } from "@/lib/auth/signRequest";
 
 const defaultTimeoutMs = Number(process.env.BACKEND_FETCH_TIMEOUT_MS ?? 10_000);
 
-function getBackendUrl(envName: "AUTH_SERVICE_URL" | "USER_SERVICE_URL", fallback: string) {
+type BackendEnvName =
+  | "AUTH_SERVICE_URL"
+  | "USER_SERVICE_URL"
+  | "TRADE_SERVICE_URL"
+  | "RBAC_SERVICE_URL"
+  | "PLAN_SERVICE_URL"
+  | "MARKET_DATA_SERVICE_URL"
+  | "NOTIFICATION_SERVICE_URL"
+  | "SUBSCRIPTION_SERVICE_URL";
+
+function getBackendUrl(envName: BackendEnvName, fallback: string) {
   const value = process.env[envName];
 
   if (!value && process.env.NODE_ENV !== "development") {
@@ -20,6 +30,24 @@ export const backendUrls = {
   },
   get user() {
     return getBackendUrl("USER_SERVICE_URL", "http://localhost:8002");
+  },
+  get trade() {
+    return getBackendUrl("TRADE_SERVICE_URL", "http://localhost:8003");
+  },
+  get rbac() {
+    return getBackendUrl("RBAC_SERVICE_URL", "http://localhost:8004");
+  },
+  get plan() {
+    return getBackendUrl("PLAN_SERVICE_URL", "http://localhost:8005");
+  },
+  get marketData() {
+    return getBackendUrl("MARKET_DATA_SERVICE_URL", "http://localhost:8006");
+  },
+  get notification() {
+    return getBackendUrl("NOTIFICATION_SERVICE_URL", "http://localhost:8007");
+  },
+  get subscription() {
+    return getBackendUrl("SUBSCRIPTION_SERVICE_URL", "http://localhost:8008");
   },
 };
 
@@ -37,6 +65,7 @@ export async function signedBackendFetch({
   accessToken,
   deviceId,
   query,
+  extraHeaders,
   timeoutMs = defaultTimeoutMs,
 }: {
   baseUrl: string;
@@ -46,6 +75,7 @@ export async function signedBackendFetch({
   accessToken?: string;
   deviceId: string;
   query?: Record<string, string | number | undefined>;
+  extraHeaders?: Record<string, string | undefined>;
   timeoutMs?: number;
 }): Promise<Response> {
   const normalizedMethod = method.toUpperCase();
@@ -63,13 +93,18 @@ export async function signedBackendFetch({
 
   return fetch(`${baseUrl}${fullPath}`, {
     method: normalizedMethod,
-    headers: buildSignedHeaders({
-      method: normalizedMethod,
-      path: fullPath,
-      body: bodyText,
-      deviceId,
-      jwt: accessToken,
-    }),
+    headers: {
+      ...buildSignedHeaders({
+        method: normalizedMethod,
+        path: fullPath,
+        body: bodyText,
+        deviceId,
+        jwt: accessToken,
+      }),
+      ...Object.fromEntries(
+        Object.entries(extraHeaders ?? {}).filter((entry): entry is [string, string] => Boolean(entry[1]))
+      ),
+    },
     body: normalizedMethod === "GET" || normalizedMethod === "HEAD" ? undefined : bodyText,
     cache: "no-store",
     signal: AbortSignal.timeout(timeoutMs),
