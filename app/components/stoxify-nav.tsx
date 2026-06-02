@@ -11,7 +11,7 @@ function cx(...classes: Array<string | false>) {
 
 export function StoxifyNav({
   active = "home",
-  ctaHref = "#",
+  ctaHref = "/signup",
   ctaLabel = "Join Waitlist",
   ctaVariant = "primary",
 }: {
@@ -99,7 +99,7 @@ export function StoxifyNav({
         <div className="ml-auto flex gap-2 max-[860px]:ml-0">
           <Link
             className="inline-flex items-center justify-center gap-2 rounded border border-[var(--line)] bg-transparent px-5 py-[9px] text-[13px] font-medium text-[var(--muted)] transition-colors hover:border-[var(--muted-2)] hover:bg-[var(--line-2)] hover:text-[var(--ink)] max-[860px]:hidden"
-            href="#"
+            href="/login"
           >
             Log In
           </Link>

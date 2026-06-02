@@ -1,38 +1,4 @@
-import type { LucideProps, LucideIcon } from "lucide-react";
-import {
-  ArrowRightIcon,
-  BadgeCheckIcon,
-  BanknoteIcon,
-  BellIcon,
-  ChartBarIcon,
-  ChartLineIcon,
-  CheckIcon,
-  ChevronRightIcon,
-  CreditCardIcon,
-  FileBadgeIcon,
-  FileTextIcon,
-  FlameIcon,
-  FolderIcon,
-  LinkIcon,
-  ListChecksIcon,
-  LockIcon,
-  ReceiptIcon,
-  ScaleIcon,
-  SearchIcon,
-  SendIcon,
-  ShieldCheckIcon,
-  SparklesIcon,
-  StarIcon,
-  StoreIcon,
-  TargetIcon,
-  TimerIcon,
-  TrendingDownIcon,
-  TrendingUpIcon,
-  UsersIcon,
-  WalletIcon,
-  XIcon,
-  ZapIcon,
-} from "lucide-react";
+import type { CSSProperties, HTMLAttributes } from "react";
 
 export type IconName =
   | "arrowRight"
@@ -66,45 +32,79 @@ export type IconName =
   | "users"
   | "wallet"
   | "x"
-  | "zap";
+  | "zap"
+  | "eye"
+  | "eyeOff"
+  | "google"
+  | "apple";
 
-const icons: Record<IconName, LucideIcon> = {
-  arrowRight: ArrowRightIcon,
-  barChart: ChartBarIcon,
-  badge: BadgeCheckIcon,
-  banknote: BanknoteIcon,
-  bell: BellIcon,
-  check: CheckIcon,
-  chevronRight: ChevronRightIcon,
-  creditCard: CreditCardIcon,
-  fileBadge: FileBadgeIcon,
-  fileText: FileTextIcon,
-  folder: FolderIcon,
-  flame: FlameIcon,
-  link: LinkIcon,
-  lineChart: ChartLineIcon,
-  listChecks: ListChecksIcon,
-  lock: LockIcon,
-  receipt: ReceiptIcon,
-  scale: ScaleIcon,
-  search: SearchIcon,
-  send: SendIcon,
-  shieldCheck: ShieldCheckIcon,
-  sparkle: SparklesIcon,
-  star: StarIcon,
-  store: StoreIcon,
-  target: TargetIcon,
-  timer: TimerIcon,
-  trendingDown: TrendingDownIcon,
-  trendingUp: TrendingUpIcon,
-  users: UsersIcon,
-  wallet: WalletIcon,
-  x: XIcon,
-  zap: ZapIcon,
+const icons: Record<IconName, string> = {
+  arrowRight: "fa-solid fa-arrow-right",
+  barChart: "fa-solid fa-chart-column",
+  badge: "fa-solid fa-certificate",
+  banknote: "fa-solid fa-money-bill-wave",
+  bell: "fa-solid fa-bell",
+  check: "fa-solid fa-check",
+  chevronRight: "fa-solid fa-chevron-right",
+  creditCard: "fa-solid fa-credit-card",
+  eye: "fa-solid fa-eye",
+  eyeOff: "fa-solid fa-eye-slash",
+  fileBadge: "fa-solid fa-file-circle-check",
+  fileText: "fa-solid fa-file-lines",
+  flame: "fa-solid fa-fire",
+  folder: "fa-solid fa-folder-open",
+  google: "fa-brands fa-google",
+  apple: "fa-brands fa-apple",
+  link: "fa-solid fa-link",
+  lineChart: "fa-solid fa-chart-line",
+  listChecks: "fa-solid fa-list-check",
+  lock: "fa-solid fa-lock",
+  receipt: "fa-solid fa-receipt",
+  scale: "fa-solid fa-scale-balanced",
+  search: "fa-solid fa-magnifying-glass",
+  send: "fa-solid fa-paper-plane",
+  shieldCheck: "fa-solid fa-shield-halved",
+  sparkle: "fa-solid fa-wand-magic-sparkles",
+  star: "fa-solid fa-star",
+  store: "fa-solid fa-store",
+  target: "fa-solid fa-bullseye",
+  timer: "fa-solid fa-stopwatch",
+  trendingDown: "fa-solid fa-arrow-trend-down",
+  trendingUp: "fa-solid fa-arrow-trend-up",
+  users: "fa-solid fa-users",
+  wallet: "fa-solid fa-wallet",
+  x: "fa-solid fa-xmark",
+  zap: "fa-solid fa-bolt",
 };
 
-export function Icon({ name, strokeWidth = 1.8, ...props }: LucideProps & { name: IconName }) {
-  const LucideIcon = icons[name];
+function getFontSize(className?: string): CSSProperties["fontSize"] {
+  if (!className) return undefined;
 
-  return <LucideIcon aria-hidden="true" strokeWidth={strokeWidth} {...props} />;
+  const arbitraryHeight = className.match(/(?:^|\s)h-\[([^\]]+)\]/);
+  if (arbitraryHeight) return arbitraryHeight[1];
+
+  const spacingHeight = className.match(/(?:^|\s)h-(\d+(?:\.\d+)?)(?:\s|$)/);
+  if (!spacingHeight) return undefined;
+
+  return `${Number(spacingHeight[1]) * 0.25}rem`;
+}
+
+export function Icon({
+  name,
+  className,
+  style,
+  ...props
+}: HTMLAttributes<HTMLSpanElement> & { name: IconName }) {
+  const fontSize = getFontSize(className);
+
+  return (
+    <span
+      aria-hidden="true"
+      className={`inline-flex items-center justify-center leading-none ${className ?? ""}`}
+      style={{ fontSize, ...style }}
+      {...props}
+    >
+      <i className={`${icons[name]} fa-fw`} />
+    </span>
+  );
 }
