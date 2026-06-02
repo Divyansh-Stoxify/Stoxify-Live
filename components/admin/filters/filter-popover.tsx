@@ -50,7 +50,13 @@ export function FilterPopover({ filters, values, onChange }: Props) {
   }
 
   return (
-    <Sheet open={open} onOpenChange={(v) => { if (v) handleOpen(); else setOpen(false); }}>
+    <Sheet
+      open={open}
+      onOpenChange={(v) => {
+        if (v) handleOpen();
+        else setOpen(false);
+      }}
+    >
       <SheetTrigger render={<Button variant="outline" />}>
         <FilterIcon />
         Filters

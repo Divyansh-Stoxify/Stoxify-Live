@@ -15,7 +15,12 @@ type Props = {
   trigger: ReactNode;
 };
 
-export function RefundSubscriptionDialog({ subscriptionId, defaultAmount, refresh, trigger }: Props) {
+export function RefundSubscriptionDialog({
+  subscriptionId,
+  defaultAmount,
+  refresh,
+  trigger,
+}: Props) {
   const [amount, setAmount] = useState(String(defaultAmount ?? ""));
   const [reason, setReason] = useState("");
 
@@ -33,16 +38,26 @@ export function RefundSubscriptionDialog({ subscriptionId, defaultAmount, refres
         if (!reason.trim()) {
           return { ok: false, message: "Reason is required", code: "VALIDATION_ERROR" };
         }
-        const res = await adminFetch(`/api/admin/subscriptions/${encodeURIComponent(subscriptionId)}/refund`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount: parsed, reason }),
-        });
-        const data = await res.json().catch(() => ({})) as Record<string, unknown>;
-        return { ok: res.ok, message: data.message as string | undefined, code: data.code as string | undefined };
+        const res = await adminFetch(
+          `/api/admin/subscriptions/${encodeURIComponent(subscriptionId)}/refund`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ amount: parsed, reason }),
+          }
+        );
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        return {
+          ok: res.ok,
+          message: data.message as string | undefined,
+          code: data.code as string | undefined,
+        };
       }}
       onSuccess={refresh}
-      onClose={() => { setAmount(String(defaultAmount ?? "")); setReason(""); }}
+      onClose={() => {
+        setAmount(String(defaultAmount ?? ""));
+        setReason("");
+      }}
     >
       <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium">Refund amount (INR)</label>

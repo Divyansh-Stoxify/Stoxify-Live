@@ -63,10 +63,26 @@ export function TradesPage() {
       filters={FILTERS}
       mapRow={mapTrade}
       metrics={(data, rows) => [
-        { label: "Total trades", value: formatNumber(totalFrom(data, rows.length)), detail: "Backend reported total" },
-        { label: "Live", value: formatNumber(countRows(rows, "Status", /LIVE/i)), detail: "Loaded live trades" },
-        { label: "Closed", value: formatNumber(countRows(rows, "Status", /CLOSED/i)), detail: "Loaded closed trades" },
-        { label: "Segments", value: formatNumber(new Set(rows.map((row) => row.Segment)).size), detail: "Loaded segment count" },
+        {
+          label: "Total trades",
+          value: formatNumber(totalFrom(data, rows.length)),
+          detail: "Backend reported total",
+        },
+        {
+          label: "Live",
+          value: formatNumber(countRows(rows, "Status", /LIVE/i)),
+          detail: "Loaded live trades",
+        },
+        {
+          label: "Closed",
+          value: formatNumber(countRows(rows, "Status", /CLOSED/i)),
+          detail: "Loaded closed trades",
+        },
+        {
+          label: "Segments",
+          value: formatNumber(new Set(rows.map((row) => row.Segment)).size),
+          detail: "Loaded segment count",
+        },
       ]}
       paginated
       title="Trades"

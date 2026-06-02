@@ -147,7 +147,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     credentials = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid request body", code: "BAD_REQUEST" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body", code: "BAD_REQUEST" },
+      { status: 400 }
+    );
   }
 
   if (!credentials.email || !credentials.password) {

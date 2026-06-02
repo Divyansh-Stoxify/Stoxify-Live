@@ -49,15 +49,25 @@ export function EditAnalystProfileDialog({
         const exp = Number(experienceYears);
         if (experienceYears && !Number.isNaN(exp)) body.experience_years = exp;
         if (specialization) {
-          body.specialization = specialization.split(",").map((s) => s.trim()).filter(Boolean);
+          body.specialization = specialization
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
         }
-        const res = await adminFetch(`/api/admin/analysts/${encodeURIComponent(analystId)}/profile`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        const data = await res.json().catch(() => ({})) as Record<string, unknown>;
-        return { ok: res.ok, message: data.message as string | undefined, code: data.code as string | undefined };
+        const res = await adminFetch(
+          `/api/admin/analysts/${encodeURIComponent(analystId)}/profile`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          }
+        );
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        return {
+          ok: res.ok,
+          message: data.message as string | undefined,
+          code: data.code as string | undefined,
+        };
       }}
       onSuccess={refresh}
       onClose={() => {
@@ -78,7 +88,11 @@ export function EditAnalystProfileDialog({
       </div>
       <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium">Profile picture URL</label>
-        <Input value={profilePicUrl} onChange={(e) => setProfilePicUrl(e.target.value)} placeholder="https://..." />
+        <Input
+          value={profilePicUrl}
+          onChange={(e) => setProfilePicUrl(e.target.value)}
+          placeholder="https://..."
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium">Experience (years)</label>

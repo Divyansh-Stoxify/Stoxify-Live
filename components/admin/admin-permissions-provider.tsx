@@ -53,9 +53,7 @@ export function AdminPermissionsProvider({ children }: { children: ReactNode }) 
   );
 
   return (
-    <AdminPermissionsContext.Provider value={value}>
-      {children}
-    </AdminPermissionsContext.Provider>
+    <AdminPermissionsContext.Provider value={value}>{children}</AdminPermissionsContext.Provider>
   );
 }
 
@@ -82,7 +80,7 @@ export function Gated({
 }) {
   const powers = useAdminStore((state) => state.powers);
   const powerSet = useMemo(() => new Set(powers), [powers]);
-  const requiredAll = power ? [power, ...(allOf ?? [])] : allOf ?? [];
+  const requiredAll = power ? [power, ...(allOf ?? [])] : (allOf ?? []);
   const hasAll = requiredAll.every((item) => powerSet.has(item));
   const hasAny = !anyOf?.length || anyOf.some((item) => powerSet.has(item));
 

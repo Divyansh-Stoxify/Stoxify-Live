@@ -3,7 +3,10 @@ import type { NextConfig } from "next";
 import { adminSecurityHeaders } from "./lib/admin/security-headers";
 
 const ADMIN_PATH = "/admin/:path*";
-const securityHeaders = Object.entries(adminSecurityHeaders).map(([key, value]) => ({ key, value }));
+const securityHeaders = Object.entries(adminSecurityHeaders).map(([key, value]) => ({
+  key,
+  value,
+}));
 
 const nextConfig: NextConfig = {
   output: "standalone",

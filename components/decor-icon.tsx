@@ -21,7 +21,8 @@ const DecorIconVariants = cva(
   }
 );
 
-type DecorIconProps = React.ComponentProps<typeof PlusIcon> & VariantProps<typeof DecorIconVariants>;
+type DecorIconProps = React.ComponentProps<typeof PlusIcon> &
+  VariantProps<typeof DecorIconVariants>;
 
 export function DecorIcon({ position, className, ...props }: DecorIconProps) {
   return (

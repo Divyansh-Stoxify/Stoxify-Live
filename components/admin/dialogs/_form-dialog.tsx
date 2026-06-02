@@ -86,7 +86,12 @@ export function FormDialog({
       >
         {trigger}
       </span>
-      <Sheet open={open} onOpenChange={(v) => { if (!v && !isSubmitting) close(); }}>
+      <Sheet
+        open={open}
+        onOpenChange={(v) => {
+          if (!v && !isSubmitting) close();
+        }}
+      >
         <SheetContent className={wide ? "sm:max-w-2xl" : "sm:max-w-md"}>
           <SheetHeader>
             <SheetTitle>{title}</SheetTitle>

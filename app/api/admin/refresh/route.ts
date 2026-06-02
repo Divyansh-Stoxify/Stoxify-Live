@@ -4,7 +4,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { backendUrls, signedBackendFetch } from "@/lib/admin/backend";
 import { adminCookieNames, adminCookieOptions } from "@/lib/admin/cookies";
 import { rejectCrossOriginPost } from "@/lib/admin/csrf";
-import { forwardedIpHeaders, readAdminSession, writeAdminTokenCookies } from "@/lib/admin/server-session";
+import {
+  forwardedIpHeaders,
+  readAdminSession,
+  writeAdminTokenCookies,
+} from "@/lib/admin/server-session";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const reject = rejectCrossOriginPost(request);
@@ -51,7 +55,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: false, code: "REFRESH_FAILED" }, { status: 401 });
   }
 
-  const session = await readAdminSession({ accessToken: data.access_token, deviceId }).catch(() => null);
+  const session = await readAdminSession({ accessToken: data.access_token, deviceId }).catch(
+    () => null
+  );
   if (!session?.authenticated) {
     return NextResponse.json({ ok: false, code: "ADMIN_ACCESS_REQUIRED" }, { status: 403 });
   }

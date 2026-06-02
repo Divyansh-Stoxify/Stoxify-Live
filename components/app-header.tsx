@@ -69,7 +69,9 @@ export function AppHeader({ logoutAction }: AppHeaderProps) {
           aria-label="Notifications"
           size="icon-sm"
           variant="outline"
-          onClick={() => { window.location.hash = "notifications"; }}
+          onClick={() => {
+            window.location.hash = "notifications";
+          }}
         >
           <BellIcon />
         </Button>

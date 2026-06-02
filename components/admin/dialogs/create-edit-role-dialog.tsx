@@ -62,26 +62,35 @@ export function CreateEditRoleDialog({
       submitLabel={mode === "create" ? "Create role" : "Save changes"}
       disabled={isSystemRole}
       onSubmit={async () => {
-        if (!roleId.trim()) return { ok: false, message: "Role ID is required", code: "VALIDATION_ERROR" };
-        if (!name.trim()) return { ok: false, message: "Name is required", code: "VALIDATION_ERROR" };
+        if (!roleId.trim())
+          return { ok: false, message: "Role ID is required", code: "VALIDATION_ERROR" };
+        if (!name.trim())
+          return { ok: false, message: "Name is required", code: "VALIDATION_ERROR" };
         const body = { role_id: roleId, name, description, power_ids: selectedPowers };
-        const res = mode === "create"
-          ? await adminFetch("/api/admin/rbac/roles", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(body),
-            })
-          : await adminFetch(`/api/admin/rbac/roles/${encodeURIComponent(initialRoleId)}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(body),
-            });
-        const data = await res.json().catch(() => ({})) as Record<string, unknown>;
-        return { ok: res.ok, message: data.message as string | undefined, code: data.code as string | undefined };
+        const res =
+          mode === "create"
+            ? await adminFetch("/api/admin/rbac/roles", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+              })
+            : await adminFetch(`/api/admin/rbac/roles/${encodeURIComponent(initialRoleId)}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+              });
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        return {
+          ok: res.ok,
+          message: data.message as string | undefined,
+          code: data.code as string | undefined,
+        };
       }}
       onSuccess={refresh}
       onClose={() => {
-        setRoleId(initialRoleId); setName(currentName); setDescription(currentDescription);
+        setRoleId(initialRoleId);
+        setName(currentName);
+        setDescription(currentDescription);
         setSelectedPowers(currentPowerIds);
       }}
       wide
@@ -93,21 +102,40 @@ export function CreateEditRoleDialog({
       )}
       <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium">Role ID</label>
-        <Input value={roleId} onChange={(e) => setRoleId(e.target.value)} placeholder="ROLE_ID" disabled={mode === "edit" || isSystemRole} />
+        <Input
+          value={roleId}
+          onChange={(e) => setRoleId(e.target.value)}
+          placeholder="ROLE_ID"
+          disabled={mode === "edit" || isSystemRole}
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium">Name</label>
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Role name" disabled={isSystemRole} />
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Role name"
+          disabled={isSystemRole}
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium">Description</label>
-        <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Role description..." rows={2} disabled={isSystemRole} />
+        <Textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Role description..."
+          rows={2}
+          disabled={isSystemRole}
+        />
       </div>
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium">Powers ({selectedPowers.length} selected)</label>
         <div className="max-h-48 overflow-y-auto rounded-lg border border-input p-2 space-y-1">
           {powers.map((p) => (
-            <label key={p.power_id} className="flex items-center gap-2 text-sm cursor-pointer py-0.5">
+            <label
+              key={p.power_id}
+              className="flex items-center gap-2 text-sm cursor-pointer py-0.5"
+            >
               <input
                 type="checkbox"
                 checked={selectedPowers.includes(p.power_id)}
@@ -119,7 +147,9 @@ export function CreateEditRoleDialog({
               {p.power_name && <span className="text-muted-foreground">{p.power_name}</span>}
             </label>
           ))}
-          {powers.length === 0 && <p className="text-xs text-muted-foreground">Loading powers...</p>}
+          {powers.length === 0 && (
+            <p className="text-xs text-muted-foreground">Loading powers...</p>
+          )}
         </div>
       </div>
     </FormDialog>

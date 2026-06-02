@@ -39,7 +39,11 @@ export function AdminHelpPage() {
       eyebrow="Admin help"
       mapRow={mapDashboardSection}
       metrics={(data, rows) => [
-        { label: "Modules", value: formatNumber(rows.length), detail: "Overview sections returned" },
+        {
+          label: "Modules",
+          value: formatNumber(rows.length),
+          detail: "Overview sections returned",
+        },
         { label: "Generated", value: formatDate(data.generated_at), detail: "Backend timestamp" },
         { label: "Endpoint", value: "Live", detail: "/api/admin/dashboard" },
         { label: "Mode", value: "API", detail: "Backend overview context" },

@@ -54,7 +54,10 @@ function RoleRowActions({ item, refresh }: { item: ApiRecord; refresh: () => voi
         />
       </Gated>
       <Gated allOf={["PWR_ADMIN_ROLE_MANAGE", "PWR_ADMIN_USER_ROLE_ASSIGN"]}>
-        <RevokeRoleDialog roleId={roleId} roleName={field(item, ["role_name"])} refresh={refresh}
+        <RevokeRoleDialog
+          roleId={roleId}
+          roleName={field(item, ["role_name"])}
+          refresh={refresh}
           trigger={
             <Button size="icon-sm" variant="ghost" aria-label="Revoke assignment">
               <UserMinusIcon />
@@ -79,14 +82,32 @@ export function RolesPage() {
       eyebrow="RBAC"
       mapRow={mapRole}
       metrics={(data, rows) => [
-        { label: "Roles", value: formatNumber(data.total ?? rows.length), detail: "Backend reported total" },
-        { label: "System", value: formatNumber(countRows(rows, "Type", /System/i)), detail: "Loaded system roles" },
-        { label: "Custom", value: formatNumber(countRows(rows, "Type", /Custom/i)), detail: "Loaded custom roles" },
-        { label: "Active", value: formatNumber(countRows(rows, "State", /Active/i)), detail: "Loaded active roles" },
+        {
+          label: "Roles",
+          value: formatNumber(data.total ?? rows.length),
+          detail: "Backend reported total",
+        },
+        {
+          label: "System",
+          value: formatNumber(countRows(rows, "Type", /System/i)),
+          detail: "Loaded system roles",
+        },
+        {
+          label: "Custom",
+          value: formatNumber(countRows(rows, "Type", /Custom/i)),
+          detail: "Loaded custom roles",
+        },
+        {
+          label: "Active",
+          value: formatNumber(countRows(rows, "State", /Active/i)),
+          detail: "Loaded active roles",
+        },
       ]}
       primaryAction={(refresh) => (
         <Gated power="PWR_ADMIN_ROLE_MANAGE">
-          <CreateEditRoleDialog mode="create" refresh={refresh}
+          <CreateEditRoleDialog
+            mode="create"
+            refresh={refresh}
             trigger={
               <Button>
                 <PlusIcon />

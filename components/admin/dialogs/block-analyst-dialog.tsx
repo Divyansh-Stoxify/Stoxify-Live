@@ -23,7 +23,11 @@ export function BlockAnalystDialog({ analystId, currentState, refresh, trigger }
     <ConfirmDialog
       trigger={trigger}
       title={isBlocked ? "Unblock analyst" : "Block analyst"}
-      description={isBlocked ? "Remove the block on this analyst account." : "This will prevent the analyst from creating signals."}
+      description={
+        isBlocked
+          ? "Remove the block on this analyst account."
+          : "This will prevent the analyst from creating signals."
+      }
       confirmLabel={action}
       destructive={!isBlocked}
       onConfirm={async () => {
@@ -32,8 +36,12 @@ export function BlockAnalystDialog({ analystId, currentState, refresh, trigger }
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action, reason }),
         });
-        const data = await res.json().catch(() => ({})) as Record<string, unknown>;
-        return { ok: res.ok, message: data.message as string | undefined, code: data.code as string | undefined };
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        return {
+          ok: res.ok,
+          message: data.message as string | undefined,
+          code: data.code as string | undefined,
+        };
       }}
       onSuccess={refresh}
       onClose={() => setReason("")}

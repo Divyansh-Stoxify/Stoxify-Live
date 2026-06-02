@@ -30,7 +30,10 @@ function RoleAssignmentRowActions({ item, refresh }: { item: ApiRecord; refresh:
   return (
     <div className="flex items-center justify-end gap-1">
       <Gated allOf={["PWR_ADMIN_ROLE_MANAGE", "PWR_ADMIN_USER_ROLE_ASSIGN"]}>
-        <RevokeRoleDialog roleId={roleId} roleName={field(item, ["role_name"])} refresh={refresh}
+        <RevokeRoleDialog
+          roleId={roleId}
+          roleName={field(item, ["role_name"])}
+          refresh={refresh}
           trigger={
             <Button size="icon-sm" variant="ghost" aria-label="Revoke">
               <UserMinusIcon />
@@ -55,14 +58,19 @@ export function RoleAssignmentsPage() {
       eyebrow="RBAC"
       mapRow={mapAssignableRole}
       metrics={(data, rows) => [
-        { label: "Assignable roles", value: formatNumber(data.total ?? rows.length), detail: "Roles available for assignment" },
+        {
+          label: "Assignable roles",
+          value: formatNumber(data.total ?? rows.length),
+          detail: "Roles available for assignment",
+        },
         { label: "Assign route", value: "POST", detail: "/api/admin/rbac/assign-role" },
         { label: "Revoke route", value: "POST", detail: "/api/admin/rbac/revoke-role" },
         { label: "Gap", value: "No list API", detail: "Backend can add assignment history later" },
       ]}
       primaryAction={(refresh) => (
         <Gated allOf={["PWR_ADMIN_ROLE_MANAGE", "PWR_ADMIN_USER_ROLE_ASSIGN"]}>
-          <AssignRoleDialog refresh={refresh}
+          <AssignRoleDialog
+            refresh={refresh}
             trigger={
               <Button>
                 <PlusIcon />

@@ -76,7 +76,10 @@ export async function proxyAdminRequest({
   const deviceId = cookieStore.get(adminCookieNames.deviceId)?.value;
 
   if (!accessToken || !deviceId) {
-    return NextResponse.json({ error: "Admin session required", code: "NO_SESSION" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Admin session required", code: "NO_SESSION" },
+      { status: 401 }
+    );
   }
 
   let response: Response;

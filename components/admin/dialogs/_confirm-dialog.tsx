@@ -80,9 +80,7 @@ export function ConfirmDialog({
   }
 
   const confirmDisabled =
-    isSubmitting ||
-    disabled ||
-    (!!requireConfirmText && confirmInput !== requireConfirmText);
+    isSubmitting || disabled || (!!requireConfirmText && confirmInput !== requireConfirmText);
 
   return (
     <>
@@ -97,7 +95,12 @@ export function ConfirmDialog({
       >
         {trigger}
       </span>
-      <Dialog open={open} onOpenChange={(v) => { if (!v && !isSubmitting) close(); }}>
+      <Dialog
+        open={open}
+        onOpenChange={(v) => {
+          if (!v && !isSubmitting) close();
+        }}
+      >
         <DialogContent showCloseButton={!isSubmitting}>
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
@@ -110,9 +113,8 @@ export function ConfirmDialog({
             {requireConfirmText && (
               <div className="flex flex-col gap-1.5">
                 <p className="text-sm text-muted-foreground">
-                  Type{" "}
-                  <span className="font-mono font-semibold">{requireConfirmText}</span>{" "}
-                  to confirm
+                  Type <span className="font-mono font-semibold">{requireConfirmText}</span> to
+                  confirm
                 </p>
                 <Input
                   value={confirmInput}

@@ -64,9 +64,7 @@ function KpiTile({
           </p>
         )}
       </CardContent>
-      {sub && (
-        <CardFooter className="pt-0 text-muted-foreground text-xs">{sub}</CardFooter>
-      )}
+      {sub && <CardFooter className="pt-0 text-muted-foreground text-xs">{sub}</CardFooter>}
     </Card>
   );
 }
@@ -83,7 +81,9 @@ function fmt(value: string | number) {
 function SectionHeader({ label }: { label: string }) {
   return (
     <div className="col-span-full border-b bg-muted/40 px-4 py-1.5">
-      <span className="font-medium text-muted-foreground text-xs uppercase tracking-widest">{label}</span>
+      <span className="font-medium text-muted-foreground text-xs uppercase tracking-widest">
+        {label}
+      </span>
     </div>
   );
 }
@@ -135,11 +135,21 @@ export function Dashboard() {
         if (!active) return;
 
         if (!dashRes.ok) {
-          setState({ dashboard: null, analytics: null, error: "Dashboard API returned an error. Check service health.", loadedFor: reloadKey });
+          setState({
+            dashboard: null,
+            analytics: null,
+            error: "Dashboard API returned an error. Check service health.",
+            loadedFor: reloadKey,
+          });
           return;
         }
 
-        setState({ dashboard: dashData, analytics: analyticsData, error: null, loadedFor: reloadKey });
+        setState({
+          dashboard: dashData,
+          analytics: analyticsData,
+          error: null,
+          loadedFor: reloadKey,
+        });
       } catch (err) {
         if (!active) return;
         setState({
@@ -151,7 +161,9 @@ export function Dashboard() {
       }
     })();
 
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [reloadKey]);
 
   const retry = () => setReloadKey((k) => k + 1);
@@ -181,15 +193,27 @@ export function Dashboard() {
             <SectionHeader label="Analysts" />
             <KpiTile label="Total analysts" value={d?.analysts?.total} isLoading={isLoading} />
             <KpiTile label="Active analysts" value={d?.analysts?.active} isLoading={isLoading} />
-            <KpiTile label="Pending verification" value={d?.analysts?.pending_verification} isLoading={isLoading} />
+            <KpiTile
+              label="Pending verification"
+              value={d?.analysts?.pending_verification}
+              isLoading={isLoading}
+            />
 
             <SectionHeader label="Trades" />
             <KpiTile label="Total trades" value={d?.trades?.total} isLoading={isLoading} />
             <KpiTile label="Live trades" value={d?.trades?.live} isLoading={isLoading} />
 
             <SectionHeader label="Subscriptions" />
-            <KpiTile label="Total subscriptions" value={d?.subscriptions?.total} isLoading={isLoading} />
-            <KpiTile label="Active subscriptions" value={d?.subscriptions?.active} isLoading={isLoading} />
+            <KpiTile
+              label="Total subscriptions"
+              value={d?.subscriptions?.total}
+              isLoading={isLoading}
+            />
+            <KpiTile
+              label="Active subscriptions"
+              value={d?.subscriptions?.active}
+              isLoading={isLoading}
+            />
 
             <SectionHeader label="Plans" />
             <KpiTile label="Total plans" value={d?.plans?.total} isLoading={isLoading} />
@@ -200,8 +224,16 @@ export function Dashboard() {
                 <SectionHeader label={`Activity (last ${a?.period?.days ?? 30} days)`} />
                 <KpiTile label="New users" value={a?.users?.new} isLoading={isLoading} />
                 <KpiTile label="New analysts" value={a?.analysts?.new} isLoading={isLoading} />
-                <KpiTile label="New subscriptions" value={a?.subscriptions?.new} isLoading={isLoading} />
-                <KpiTile label="Cancelled subscriptions" value={a?.subscriptions?.cancelled} isLoading={isLoading} />
+                <KpiTile
+                  label="New subscriptions"
+                  value={a?.subscriptions?.new}
+                  isLoading={isLoading}
+                />
+                <KpiTile
+                  label="Cancelled subscriptions"
+                  value={a?.subscriptions?.cancelled}
+                  isLoading={isLoading}
+                />
                 <KpiTile label="New trades" value={a?.trades?.new} isLoading={isLoading} />
                 <KpiTile label="Closed trades" value={a?.trades?.closed} isLoading={isLoading} />
               </>

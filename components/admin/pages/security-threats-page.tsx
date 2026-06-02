@@ -59,8 +59,16 @@ export function SecurityThreatsPage() {
       filters={FILTERS}
       mapRow={mapThreatBucket}
       metrics={(data, rows) => [
-        { label: "Incidents", value: formatNumber(data.total_incidents), detail: "Window total from auth-service" },
-        { label: "Buckets", value: formatNumber(rows.length), detail: "Loaded type and IP buckets" },
+        {
+          label: "Incidents",
+          value: formatNumber(data.total_incidents),
+          detail: "Window total from auth-service",
+        },
+        {
+          label: "Buckets",
+          value: formatNumber(rows.length),
+          detail: "Loaded type and IP buckets",
+        },
         { label: "Since", value: formatDate(data.since), detail: "Threat window start" },
         { label: "Mode", value: "Live", detail: "No simulated threats" },
       ]}

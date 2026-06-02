@@ -124,7 +124,10 @@ export function ApiAdminPage({
   // Keep hash in sync — skip the very first render
   const isFirstRender = useRef(true);
   useEffect(() => {
-    if (isFirstRender.current) { isFirstRender.current = false; return; }
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     const params = new URLSearchParams();
     if (searchable && search) params.set("q", search);
     for (const [k, v] of Object.entries(filterValues)) {
@@ -202,9 +205,15 @@ export function ApiAdminPage({
     () => normalizeItems(selectItems ? selectItems(data) : pickCollection(data, collectionKeys)),
     [collectionKeys, data, selectItems]
   );
-  const rows = useMemo(() => items.map((item, index) => mapRow(item, index, data)), [data, items, mapRow]);
+  const rows = useMemo(
+    () => items.map((item, index) => mapRow(item, index, data)),
+    [data, items, mapRow]
+  );
 
-  const total = useMemo(() => asNumber(data.total) ?? asNumber(data.count) ?? rows.length, [data, rows.length]);
+  const total = useMemo(
+    () => asNumber(data.total) ?? asNumber(data.count) ?? rows.length,
+    [data, rows.length]
+  );
 
   const pageMetrics = useMemo(() => {
     if (isLoading) return loadingMetrics(title);
@@ -281,10 +290,18 @@ function errorMetrics(error: string): AdminMetric[] {
 
 function defaultMetrics(data: ApiRecord, rows: AdminRow[]): AdminMetric[] {
   return [
-    { label: "Total", value: formatNumber(totalFrom(data, rows.length)), detail: "Backend reported total" },
+    {
+      label: "Total",
+      value: formatNumber(totalFrom(data, rows.length)),
+      detail: "Backend reported total",
+    },
     { label: "Loaded", value: formatNumber(rows.length), detail: "Rows in current response" },
     { label: "Page", value: asText(data.page) ?? "1", detail: "Current backend page" },
-    { label: "Limit", value: asText(data.limit ?? data.offset) ?? "-", detail: "Backend pagination" },
+    {
+      label: "Limit",
+      value: asText(data.limit ?? data.offset) ?? "-",
+      detail: "Backend pagination",
+    },
   ];
 }
 
@@ -397,7 +414,13 @@ export function formatDate(value: unknown) {
 }
 
 export function formatList(value: unknown) {
-  if (Array.isArray(value)) return value.map((item) => asText(item)).filter(Boolean).join(", ") || "-";
+  if (Array.isArray(value))
+    return (
+      value
+        .map((item) => asText(item))
+        .filter(Boolean)
+        .join(", ") || "-"
+    );
   return asText(value) ?? "-";
 }
 

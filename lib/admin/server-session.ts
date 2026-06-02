@@ -42,7 +42,11 @@ export function decodeJwtPayload(token: string): JwtPayload | null {
 }
 
 export function clientIpFromRequest(request: NextRequest) {
-  return request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || "unknown";
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown"
+  );
 }
 
 export function forwardedIpHeaders(request: NextRequest) {
@@ -168,12 +172,17 @@ export async function readAdminSession({
     };
   }
 
-  const permissions = (await permissionsResponse.json().catch(() => ({}))) as BackendPermissionsResponse;
+  const permissions = (await permissionsResponse
+    .json()
+    .catch(() => ({}))) as BackendPermissionsResponse;
   const roles =
     permissions.roles
       ?.map((role) => role.role_id ?? role.role_name)
       .filter((role): role is string => Boolean(role)) ?? tokenRoles;
-  const powers = permissions.powers?.map((power) => power.power_id).filter((power): power is string => Boolean(power)) ?? [];
+  const powers =
+    permissions.powers
+      ?.map((power) => power.power_id)
+      .filter((power): power is string => Boolean(power)) ?? [];
 
   if (!roles.some(isAdminConsoleRole)) {
     return {

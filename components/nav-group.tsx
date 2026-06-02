@@ -14,10 +14,7 @@ import {
 import type { SidebarNavGroup } from "@/components/app-shared";
 import { ChevronRightIcon } from "lucide-react";
 
-function handleHashNavigation(
-  event: MouseEvent<HTMLAnchorElement>,
-  path: string | undefined
-) {
+function handleHashNavigation(event: MouseEvent<HTMLAnchorElement>, path: string | undefined) {
   if (!path) {
     return;
   }
@@ -39,10 +36,7 @@ function NavItem({ item }: { item: SidebarNavGroup["items"][number] }) {
         <SidebarMenuButton
           isActive={item.isActive}
           render={
-            <a
-              href={item.path}
-              onClick={(event) => handleHashNavigation(event, item.path)}
-            />
+            <a href={item.path} onClick={(event) => handleHashNavigation(event, item.path)} />
           }
         >
           {item.icon}

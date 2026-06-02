@@ -21,7 +21,9 @@ export function NavUser({ logoutAction }: NavUserProps) {
   const isLoading = useAdminStore((state) => state.isLoading);
   const isHydrated = useAdminStore((state) => state.isHydrated);
 
-  const displayName = storeUser?.name ?? (storeUser?.user_id ? storeUser.user_id : isHydrated && !isLoading ? "Admin" : "Loading…");
+  const displayName =
+    storeUser?.name ??
+    (storeUser?.user_id ? storeUser.user_id : isHydrated && !isLoading ? "Admin" : "Loading…");
   const displayEmail = storeUser?.email ?? storeUser?.user_id ?? "";
   const avatarFallback = storeUser?.name ? storeUser.name.charAt(0).toUpperCase() : "A";
 
@@ -55,13 +57,17 @@ export function NavUser({ logoutAction }: NavUserProps) {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem
-            onClick={() => { window.location.hash = "profile"; }}
+            onClick={() => {
+              window.location.hash = "profile";
+            }}
           >
             <UserIcon />
             Account
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => { window.location.hash = "system-config"; }}
+            onClick={() => {
+              window.location.hash = "system-config";
+            }}
           >
             <SettingsIcon />
             Settings

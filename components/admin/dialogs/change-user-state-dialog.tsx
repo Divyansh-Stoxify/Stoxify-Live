@@ -7,13 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDialog } from "./_confirm-dialog";
 import { adminFetch } from "@/lib/admin/client-api";
 
-const USER_STATES = [
-  "UNVERIFIED",
-  "KYC_PENDING",
-  "ACTIVE",
-  "SUSPENDED",
-  "BLOCKED",
-] as const;
+const USER_STATES = ["UNVERIFIED", "KYC_PENDING", "ACTIVE", "SUSPENDED", "BLOCKED"] as const;
 
 type Props = {
   userId: string;
@@ -38,11 +32,18 @@ export function ChangeUserStateDialog({ userId, currentState, refresh, trigger }
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ state: newState, reason }),
         });
-        const data = await res.json().catch(() => ({})) as Record<string, unknown>;
-        return { ok: res.ok, message: data.message as string | undefined, code: data.code as string | undefined };
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        return {
+          ok: res.ok,
+          message: data.message as string | undefined,
+          code: data.code as string | undefined,
+        };
       }}
       onSuccess={refresh}
-      onClose={() => { setNewState(currentState ?? "ACTIVE"); setReason(""); }}
+      onClose={() => {
+        setNewState(currentState ?? "ACTIVE");
+        setReason("");
+      }}
     >
       <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium">New state</label>

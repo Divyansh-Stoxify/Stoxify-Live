@@ -6,5 +6,9 @@ type RouteContext = { params: Promise<{ userId: string }> };
 
 export async function POST(request: NextRequest, context: RouteContext) {
   const { userId } = await context.params;
-  return proxyAdminRequest({ request, backend: "user", path: `/users/${encodeURIComponent(userId)}/block` });
+  return proxyAdminRequest({
+    request,
+    backend: "user",
+    path: `/users/${encodeURIComponent(userId)}/block`,
+  });
 }

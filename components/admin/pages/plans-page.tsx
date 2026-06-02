@@ -57,9 +57,16 @@ function PlanRowActions({ item, refresh }: { item: ApiRecord; refresh: () => voi
   return (
     <div className="flex items-center justify-end gap-1">
       <Gated power="PWR_PLAN_ACTIVATE_DEACTIVATE">
-        <PlanStatusDialog planId={planId} isActive={isActive} refresh={refresh}
+        <PlanStatusDialog
+          planId={planId}
+          isActive={isActive}
+          refresh={refresh}
           trigger={
-            <Button size="icon-sm" variant="ghost" aria-label={isActive ? "Deactivate" : "Activate"}>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              aria-label={isActive ? "Deactivate" : "Activate"}
+            >
               <PowerIcon />
             </Button>
           }
@@ -82,7 +89,9 @@ function PlanRowActions({ item, refresh }: { item: ApiRecord; refresh: () => voi
         />
       </Gated>
       <Gated power="PWR_PLAN_DELETE">
-        <DeletePlanDialog planId={planId} refresh={refresh}
+        <DeletePlanDialog
+          planId={planId}
+          refresh={refresh}
           trigger={
             <Button size="icon-sm" variant="ghost" aria-label="Delete plan">
               <Trash2Icon />
@@ -108,10 +117,26 @@ export function PlansPage() {
       filters={FILTERS}
       mapRow={mapPlan}
       metrics={(data, rows) => [
-        { label: "Total plans", value: formatNumber(totalFrom(data, rows.length)), detail: "Backend reported total" },
-        { label: "Active", value: formatNumber(countRows(rows, "Status", /Active/i)), detail: "Loaded active plans" },
-        { label: "Inactive", value: formatNumber(countRows(rows, "Status", /Inactive/i)), detail: "Loaded inactive plans" },
-        { label: "Segments", value: formatNumber(new Set(rows.map((row) => row.Segment)).size), detail: "Loaded segment count" },
+        {
+          label: "Total plans",
+          value: formatNumber(totalFrom(data, rows.length)),
+          detail: "Backend reported total",
+        },
+        {
+          label: "Active",
+          value: formatNumber(countRows(rows, "Status", /Active/i)),
+          detail: "Loaded active plans",
+        },
+        {
+          label: "Inactive",
+          value: formatNumber(countRows(rows, "Status", /Inactive/i)),
+          detail: "Loaded inactive plans",
+        },
+        {
+          label: "Segments",
+          value: formatNumber(new Set(rows.map((row) => row.Segment)).size),
+          detail: "Loaded segment count",
+        },
       ]}
       paginated
       rowActions={(item, refresh) => <PlanRowActions item={item} refresh={refresh} />}
