@@ -16,6 +16,15 @@ interface FormErrors {
   password?: string;
 }
 
+interface SubmittedSignupData {
+  role: Role;
+  name: string;
+  email: string;
+  phone: string;
+  sebi?: string;
+  password?: string;
+}
+
 export default function SignupPage() {
   const [role, setRole] = useState<Role>("analyst");
   const [formData, setFormData] = useState({
@@ -28,7 +37,7 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submittedData, setSubmittedData] = useState<any>(null);
+  const [submittedData, setSubmittedData] = useState<SubmittedSignupData | null>(null);
 
   // Field change handler
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,8 +127,7 @@ export default function SignupPage() {
       <div className="flex h-full flex-col justify-between overflow-y-auto bg-white px-6 py-12 min-[860px]:px-16 min-[1100px]:px-24">
         {/* Top Spacer or Small Mobile Header */}
         <div className="flex justify-between items-center min-[860px]:hidden mb-8">
-          <Link className="flex items-center gap-2 font-sans text-xl font-extrabold tracking-[-0.5px] text-[var(--ink)]" href="/">
-            <span className="h-2 w-2 rounded-full bg-[var(--brand)]" />
+          <Link className="flex items-center font-sans text-xl font-extrabold tracking-[-0.5px] text-[var(--ink)]" href="/">
             Stoxify
           </Link>
           <Link className="text-xs font-semibold text-[var(--brand)]" href="/login">

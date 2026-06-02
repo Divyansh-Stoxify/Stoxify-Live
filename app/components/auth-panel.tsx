@@ -36,29 +36,11 @@ export function AuthPanel() {
 
   return (
     <div className="relative hidden h-full flex-col justify-between overflow-hidden bg-[#141b23] p-12 text-white select-none min-[860px]:flex">
-      {/* 1. BACKGROUND GEOMETRIC CURVES (SVG)
-          We use absolute positioning, absolute width/height, and pointer-events-none 
-          so the background doesn't block interactions. The curves are drawn with thin,
-          semi-transparent strokes (white/0.05 and brand/0.1) to create depth. */}
+      {/* 1. BACKGROUND GEOMETRIC CURVES */}
       <div className="pointer-events-none absolute inset-0 z-0 opacity-40">
-        <svg className="h-full w-full" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M-100 100 C 300 200, 200 600, 800 400"
-            stroke="rgba(255, 255, 255, 0.04)"
-            strokeWidth="2"
-          />
-          <path
-            d="M-50 200 C 400 300, 100 800, 900 600"
-            stroke="rgba(31, 122, 224, 0.08)"
-            strokeWidth="1.5"
-          />
-          <path
-            d="M200 -50 C 100 400, 800 300, 600 1000"
-            stroke="rgba(31, 122, 224, 0.05)"
-            strokeWidth="2"
-          />
-          <circle cx="80%" cy="20%" r="250" fill="radial-gradient(circle, rgba(31,122,224,0.08) 0%, transparent 70%)" />
-        </svg>
+        <div className="absolute left-[-170px] top-[120px] h-[540px] w-[820px] rotate-[18deg] rounded-[50%] border border-white/[0.07]" />
+        <div className="absolute left-[-110px] top-[210px] h-[590px] w-[920px] rotate-[28deg] rounded-[50%] border border-[rgba(31,122,224,0.14)]" />
+        <div className="absolute left-[210px] top-[-110px] h-[800px] w-[520px] rotate-[-24deg] rounded-[50%] border border-[rgba(31,122,224,0.09)]" />
         {/* Subtle blur overlay for depth */}
         <div className="absolute right-[10%] top-[10%] h-[300px] w-[300px] rounded-full bg-[var(--brand)]/10 blur-[80px]" />
         <div className="absolute bottom-[20%] left-[-10%] h-[400px] w-[400px] rounded-full bg-[rgba(249,115,22,0.05)] blur-[100px]" />
@@ -66,8 +48,7 @@ export function AuthPanel() {
 
       {/* 2. LOGO / BRANDING (Z-1 to stay above background) */}
       <div className="relative z-10">
-        <Link className="inline-flex items-center gap-2 font-sans text-[22px] font-extrabold tracking-[-0.5px] text-white" href="/">
-          <span className="h-2.5 w-2.5 rounded-full bg-[var(--brand)]" />
+        <Link className="inline-flex items-center font-sans text-[22px] font-extrabold tracking-[-0.5px] text-white" href="/">
           Stoxify
         </Link>
       </div>

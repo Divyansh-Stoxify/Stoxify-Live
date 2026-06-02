@@ -11,6 +11,11 @@ interface FormErrors {
   password?: string;
 }
 
+interface SubmittedLoginData {
+  email: string;
+  password: string;
+}
+
 export default function LoginPage() {
   const [formData, setFormData] = useState({
     email: "",
@@ -19,7 +24,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submittedData, setSubmittedData] = useState<any>(null);
+  const [submittedData, setSubmittedData] = useState<SubmittedLoginData | null>(null);
 
   // Field change handler
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,8 +86,7 @@ export default function LoginPage() {
       <div className="flex h-full flex-col justify-between overflow-y-auto bg-white px-6 py-12 min-[860px]:px-16 min-[1100px]:px-24">
         {/* Top Spacer or Small Mobile Header */}
         <div className="flex justify-between items-center min-[860px]:hidden mb-8">
-          <Link className="flex items-center gap-2 font-sans text-xl font-extrabold tracking-[-0.5px] text-[var(--ink)]" href="/">
-            <span className="h-2 w-2 rounded-full bg-[var(--brand)]" />
+          <Link className="flex items-center font-sans text-xl font-extrabold tracking-[-0.5px] text-[var(--ink)]" href="/">
             Stoxify
           </Link>
           <Link className="text-xs font-semibold text-[var(--brand)]" href="/signup">
@@ -220,7 +224,7 @@ export default function LoginPage() {
 
         {/* BOTTOM FOOTER LINK */}
         <div className="mt-8 text-center text-[13px] text-[var(--muted)]">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link className="font-semibold text-[var(--brand)] hover:underline" href="/signup">
             Sign up
           </Link>
