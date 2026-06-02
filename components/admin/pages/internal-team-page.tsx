@@ -51,9 +51,21 @@ export function InternalTeamPage() {
       filters={FILTERS}
       mapRow={mapMember}
       metrics={(data, rows) => [
-        { label: "Team members", value: formatNumber(totalFrom(data, rows.length)), detail: "Backend reported total" },
-        { label: "Active", value: formatNumber(countRows(rows, "State", /ACTIVE/i)), detail: "Loaded active members" },
-        { label: "Blocked", value: formatNumber(countRows(rows, "State", /BLOCKED/i)), detail: "Loaded blocked members" },
+        {
+          label: "Team members",
+          value: formatNumber(totalFrom(data, rows.length)),
+          detail: "Backend reported total",
+        },
+        {
+          label: "Active",
+          value: formatNumber(countRows(rows, "State", /ACTIVE/i)),
+          detail: "Loaded active members",
+        },
+        {
+          label: "Blocked",
+          value: formatNumber(countRows(rows, "State", /BLOCKED/i)),
+          detail: "Loaded blocked members",
+        },
         { label: "Loaded", value: formatNumber(rows.length), detail: "Visible rows" },
       ]}
       paginated

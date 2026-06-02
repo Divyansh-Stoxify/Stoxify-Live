@@ -14,7 +14,9 @@ function getPrivateKey() {
     return readFileSync(process.env.ECDSA_PRIVATE_KEY_PATH, "utf8");
   }
 
-  throw new Error("ECDSA_PRIVATE_KEY or ECDSA_PRIVATE_KEY_PATH is required for signed backend requests.");
+  throw new Error(
+    "ECDSA_PRIVATE_KEY or ECDSA_PRIVATE_KEY_PATH is required for signed backend requests."
+  );
 }
 
 /**

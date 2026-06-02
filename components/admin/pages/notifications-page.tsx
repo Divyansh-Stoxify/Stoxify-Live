@@ -41,15 +41,28 @@ export function NotificationsPage() {
       eyebrow="Messaging"
       mapRow={mapNotification}
       metrics={(data, rows) => [
-        { label: "Notifications", value: formatNumber(totalFrom(data, rows.length)), detail: "Backend reported total" },
+        {
+          label: "Notifications",
+          value: formatNumber(totalFrom(data, rows.length)),
+          detail: "Backend reported total",
+        },
         { label: "Loaded", value: formatNumber(rows.length), detail: "Visible notifications" },
-        { label: "Unread", value: formatNumber(rows.filter((row) => row.Status !== "Read").length), detail: "Loaded delivered rows" },
-        { label: "Types", value: formatNumber(new Set(rows.map((row) => row.Type)).size), detail: "Loaded notification types" },
+        {
+          label: "Unread",
+          value: formatNumber(rows.filter((row) => row.Status !== "Read").length),
+          detail: "Loaded delivered rows",
+        },
+        {
+          label: "Types",
+          value: formatNumber(new Set(rows.map((row) => row.Type)).size),
+          detail: "Loaded notification types",
+        },
       ]}
       paginated
       primaryAction={(refresh) => (
         <Gated power="PWR_NOTIFICATION_SEND_BROADCAST">
-          <BroadcastNotificationDialog refresh={refresh}
+          <BroadcastNotificationDialog
+            refresh={refresh}
             trigger={
               <Button>
                 <MegaphoneIcon />

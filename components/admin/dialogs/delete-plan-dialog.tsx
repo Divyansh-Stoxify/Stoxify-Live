@@ -24,8 +24,12 @@ export function DeletePlanDialog({ planId, refresh, trigger }: Props) {
         const res = await adminFetch(`/api/admin/plans/${encodeURIComponent(planId)}`, {
           method: "DELETE",
         });
-        const data = await res.json().catch(() => ({})) as Record<string, unknown>;
-        return { ok: res.ok, message: data.message as string | undefined, code: data.code as string | undefined };
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        return {
+          ok: res.ok,
+          message: data.message as string | undefined,
+          code: data.code as string | undefined,
+        };
       }}
       onSuccess={refresh}
     />

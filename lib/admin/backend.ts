@@ -102,7 +102,9 @@ export async function signedBackendFetch({
         jwt: accessToken,
       }),
       ...Object.fromEntries(
-        Object.entries(extraHeaders ?? {}).filter((entry): entry is [string, string] => Boolean(entry[1]))
+        Object.entries(extraHeaders ?? {}).filter((entry): entry is [string, string] =>
+          Boolean(entry[1])
+        )
       ),
     },
     body: normalizedMethod === "GET" || normalizedMethod === "HEAD" ? undefined : bodyText,

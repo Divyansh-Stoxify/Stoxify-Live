@@ -23,13 +23,20 @@ export function VerifyAnalystDialog({ analystId, refresh, trigger }: Props) {
       description="Approve this analyst's SEBI license and onboarding application."
       confirmLabel="Approve"
       onConfirm={async () => {
-        const res = await adminFetch(`/api/admin/analysts/${encodeURIComponent(analystId)}/verify`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ decision: "APPROVE", notes: notes || undefined }),
-        });
-        const data = await res.json().catch(() => ({})) as Record<string, unknown>;
-        return { ok: res.ok, message: data.message as string | undefined, code: data.code as string | undefined };
+        const res = await adminFetch(
+          `/api/admin/analysts/${encodeURIComponent(analystId)}/verify`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ decision: "APPROVE", notes: notes || undefined }),
+          }
+        );
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        return {
+          ok: res.ok,
+          message: data.message as string | undefined,
+          code: data.code as string | undefined,
+        };
       }}
       onSuccess={refresh}
       onClose={() => setNotes("")}

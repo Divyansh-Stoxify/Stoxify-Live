@@ -38,22 +38,34 @@ export function AssignRoleDialog({ refresh, trigger }: Props) {
       description="Assign an admin role to a user."
       submitLabel="Assign role"
       onSubmit={async () => {
-        if (!userId.trim()) return { ok: false, message: "User ID is required", code: "VALIDATION_ERROR" };
+        if (!userId.trim())
+          return { ok: false, message: "User ID is required", code: "VALIDATION_ERROR" };
         if (!roleId) return { ok: false, message: "Select a role", code: "VALIDATION_ERROR" };
         const res = await adminFetch("/api/admin/rbac/assign-role", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ user_id: userId, role_id: roleId }),
         });
-        const data = await res.json().catch(() => ({})) as Record<string, unknown>;
-        return { ok: res.ok, message: data.message as string | undefined, code: data.code as string | undefined };
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        return {
+          ok: res.ok,
+          message: data.message as string | undefined,
+          code: data.code as string | undefined,
+        };
       }}
       onSuccess={refresh}
-      onClose={() => { setUserId(""); setRoleId(roles[0]?.role_id ?? ""); }}
+      onClose={() => {
+        setUserId("");
+        setRoleId(roles[0]?.role_id ?? "");
+      }}
     >
       <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium">User ID</label>
-        <Input value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="user_id or email" />
+        <Input
+          value={userId}
+          onChange={(e) => setUserId(e.target.value)}
+          placeholder="user_id or email"
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium">Role</label>
@@ -63,7 +75,9 @@ export function AssignRoleDialog({ refresh, trigger }: Props) {
           onChange={(e) => setRoleId(e.target.value)}
         >
           {roles.map((r) => (
-            <option key={r.role_id} value={r.role_id}>{r.role_name ?? r.role_id}</option>
+            <option key={r.role_id} value={r.role_id}>
+              {r.role_name ?? r.role_id}
+            </option>
           ))}
         </select>
       </div>

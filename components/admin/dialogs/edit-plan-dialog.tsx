@@ -55,13 +55,20 @@ export function EditPlanDialog({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
-        const data = await res.json().catch(() => ({})) as Record<string, unknown>;
-        return { ok: res.ok, message: data.message as string | undefined, code: data.code as string | undefined };
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        return {
+          ok: res.ok,
+          message: data.message as string | undefined,
+          code: data.code as string | undefined,
+        };
       }}
       onSuccess={refresh}
       onClose={() => {
-        setName(currentName); setDays(String(currentDays ?? "")); setPrice(String(currentPrice ?? ""));
-        setSegment(currentSegment); setDescription(currentDescription);
+        setName(currentName);
+        setDays(String(currentDays ?? ""));
+        setPrice(String(currentPrice ?? ""));
+        setSegment(currentSegment);
+        setDescription(currentDescription);
       }}
     >
       <div className="flex flex-col gap-1.5">
@@ -71,11 +78,23 @@ export function EditPlanDialog({
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium">Days</label>
-          <Input type="number" value={days} onChange={(e) => setDays(e.target.value)} placeholder="30" min={1} />
+          <Input
+            type="number"
+            value={days}
+            onChange={(e) => setDays(e.target.value)}
+            placeholder="30"
+            min={1}
+          />
         </div>
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium">Price (INR)</label>
-          <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="999" min={0} />
+          <Input
+            type="number"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            placeholder="999"
+            min={0}
+          />
         </div>
       </div>
       <div className="flex flex-col gap-1.5">
@@ -84,7 +103,12 @@ export function EditPlanDialog({
       </div>
       <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium">Description</label>
-        <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Plan description..." rows={3} />
+        <Textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Plan description..."
+          rows={3}
+        />
       </div>
     </FormDialog>
   );

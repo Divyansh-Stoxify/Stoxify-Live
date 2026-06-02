@@ -52,9 +52,16 @@ function AnalystRowActions({ item, refresh }: { item: ApiRecord; refresh: () => 
   return (
     <div className="flex items-center justify-end gap-1">
       <Gated power="PWR_ANALYST_BLOCK">
-        <BlockAnalystDialog analystId={analystId} currentState={state} refresh={refresh}
+        <BlockAnalystDialog
+          analystId={analystId}
+          currentState={state}
+          refresh={refresh}
           trigger={
-            <Button size="icon-sm" variant="ghost" aria-label={/BLOCKED/i.test(state) ? "Unblock" : "Block"}>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              aria-label={/BLOCKED/i.test(state) ? "Unblock" : "Block"}
+            >
               <ShieldOffIcon />
             </Button>
           }
@@ -66,7 +73,9 @@ function AnalystRowActions({ item, refresh }: { item: ApiRecord; refresh: () => 
           currentName={field(item, ["name"])}
           currentPhone={field(item, ["phone"])}
           currentProfilePicUrl={field(item, ["profile_pic_url"])}
-          currentExperienceYears={typeof item.experience_years === "number" ? item.experience_years : undefined}
+          currentExperienceYears={
+            typeof item.experience_years === "number" ? item.experience_years : undefined
+          }
           currentSpecialization={spec}
           refresh={refresh}
           trigger={
@@ -94,10 +103,26 @@ export function AnalystsPage() {
       filters={FILTERS}
       mapRow={mapAnalyst}
       metrics={(data, rows) => [
-        { label: "Total analysts", value: formatNumber(totalFrom(data, rows.length)), detail: "Backend reported total" },
-        { label: "Active", value: formatNumber(countRows(rows, "State", /ACTIVE/i)), detail: "Loaded active analysts" },
-        { label: "Pending", value: formatNumber(countRows(rows, "State", /PENDING|ONGOING/i)), detail: "Loaded verification queue" },
-        { label: "Blocked", value: formatNumber(countRows(rows, "State", /BLOCKED/i)), detail: "Loaded blocked analysts" },
+        {
+          label: "Total analysts",
+          value: formatNumber(totalFrom(data, rows.length)),
+          detail: "Backend reported total",
+        },
+        {
+          label: "Active",
+          value: formatNumber(countRows(rows, "State", /ACTIVE/i)),
+          detail: "Loaded active analysts",
+        },
+        {
+          label: "Pending",
+          value: formatNumber(countRows(rows, "State", /PENDING|ONGOING/i)),
+          detail: "Loaded verification queue",
+        },
+        {
+          label: "Blocked",
+          value: formatNumber(countRows(rows, "State", /BLOCKED/i)),
+          detail: "Loaded blocked analysts",
+        },
       ]}
       paginated
       rowActions={(item, refresh) => <AnalystRowActions item={item} refresh={refresh} />}

@@ -66,7 +66,9 @@ function ConfigRowActions({ item, refresh }: { item: ApiRecord; refresh: () => v
         />
       </Gated>
       <Gated power="PWR_ADMIN_SYSTEM_CONFIG">
-        <DeleteSystemConfigDialog configKey={key} refresh={refresh}
+        <DeleteSystemConfigDialog
+          configKey={key}
+          refresh={refresh}
           trigger={
             <Button size="icon-sm" variant="ghost" aria-label="Delete key">
               <Trash2Icon />
@@ -91,20 +93,42 @@ export function SystemConfigPage() {
       eyebrow="System config"
       filters={FILTERS}
       insights={(data, rows) => [
-        { label: "Config keys", value: formatNumber(data.total ?? rows.length), detail: "Backend reported total" },
-        { label: "Categories", value: formatNumber(new Set(rows.map((row) => row.Category)).size), detail: "Loaded categories" },
-        { label: "Uncategorized", value: formatNumber(countRows(rows, "Category", /^-$/)), detail: "Keys without category" },
+        {
+          label: "Config keys",
+          value: formatNumber(data.total ?? rows.length),
+          detail: "Backend reported total",
+        },
+        {
+          label: "Categories",
+          value: formatNumber(new Set(rows.map((row) => row.Category)).size),
+          detail: "Loaded categories",
+        },
+        {
+          label: "Uncategorized",
+          value: formatNumber(countRows(rows, "Category", /^-$/)),
+          detail: "Keys without category",
+        },
       ]}
       mapRow={mapConfig}
       metrics={(data, rows) => [
-        { label: "Config keys", value: formatNumber(data.total ?? rows.length), detail: "Backend reported total" },
+        {
+          label: "Config keys",
+          value: formatNumber(data.total ?? rows.length),
+          detail: "Backend reported total",
+        },
         { label: "Loaded", value: formatNumber(rows.length), detail: "Visible keys" },
-        { label: "Categories", value: formatNumber(new Set(rows.map((row) => row.Category)).size), detail: "Loaded categories" },
+        {
+          label: "Categories",
+          value: formatNumber(new Set(rows.map((row) => row.Category)).size),
+          detail: "Loaded categories",
+        },
         { label: "Mode", value: "Live", detail: "Backend keys only" },
       ]}
       primaryAction={(refresh) => (
         <Gated power="PWR_ADMIN_SYSTEM_CONFIG">
-          <SetSystemConfigDialog mode="create" refresh={refresh}
+          <SetSystemConfigDialog
+            mode="create"
+            refresh={refresh}
             trigger={
               <Button>
                 <PlusIcon />

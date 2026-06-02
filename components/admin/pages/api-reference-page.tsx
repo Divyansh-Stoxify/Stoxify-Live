@@ -32,10 +32,26 @@ export function ApiReferencePage() {
       eyebrow="Reference"
       mapRow={mapReferencePower}
       metrics={(data, rows) => [
-        { label: "Powers", value: formatNumber(data.total ?? rows.length), detail: "RBAC catalog total" },
-        { label: "System", value: formatNumber(countRows(rows, "Type", /System/i)), detail: "Seeded backend powers" },
-        { label: "Custom", value: formatNumber(countRows(rows, "Type", /Custom/i)), detail: "Admin-created powers" },
-        { label: "Categories", value: formatNumber(new Set(rows.map((row) => row.Category)).size), detail: "Power groups" },
+        {
+          label: "Powers",
+          value: formatNumber(data.total ?? rows.length),
+          detail: "RBAC catalog total",
+        },
+        {
+          label: "System",
+          value: formatNumber(countRows(rows, "Type", /System/i)),
+          detail: "Seeded backend powers",
+        },
+        {
+          label: "Custom",
+          value: formatNumber(countRows(rows, "Type", /Custom/i)),
+          detail: "Admin-created powers",
+        },
+        {
+          label: "Categories",
+          value: formatNumber(new Set(rows.map((row) => row.Category)).size),
+          detail: "Power groups",
+        },
       ]}
       title="API Reference"
       variant="reference"

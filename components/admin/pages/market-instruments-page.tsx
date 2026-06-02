@@ -56,7 +56,11 @@ export function MarketInstrumentsPage() {
       filters={FILTERS}
       mapRow={mapInstrument}
       metrics={(data, rows) => [
-        { label: "Tracked symbols", value: formatNumber(totalFrom(data, rows.length)), detail: "Backend reported count" },
+        {
+          label: "Tracked symbols",
+          value: formatNumber(totalFrom(data, rows.length)),
+          detail: "Backend reported count",
+        },
         { label: "Loaded", value: formatNumber(rows.length), detail: "Visible symbols" },
         { label: "Source", value: "Live", detail: "market-data-service" },
         { label: "Mode", value: "Tracked", detail: "Active instruments" },

@@ -66,15 +66,28 @@ export function SecurityLogsPage() {
       filters={FILTERS}
       mapRow={mapSecurityLog}
       metrics={(data, rows) => [
-        { label: "Logs", value: formatNumber(totalFrom(data, rows.length)), detail: "Backend reported total" },
-        { label: "Critical", value: formatNumber(countRows(rows, "Severity", /CRITICAL/i)), detail: "Loaded critical rows" },
-        { label: "High", value: formatNumber(countRows(rows, "Severity", /HIGH/i)), detail: "Loaded high rows" },
+        {
+          label: "Logs",
+          value: formatNumber(totalFrom(data, rows.length)),
+          detail: "Backend reported total",
+        },
+        {
+          label: "Critical",
+          value: formatNumber(countRows(rows, "Severity", /CRITICAL/i)),
+          detail: "Loaded critical rows",
+        },
+        {
+          label: "High",
+          value: formatNumber(countRows(rows, "Severity", /HIGH/i)),
+          detail: "Loaded high rows",
+        },
         { label: "Loaded", value: formatNumber(rows.length), detail: "Visible logs" },
       ]}
       paginated
       primaryAction={(refresh) => (
         <Gated power="PWR_ADMIN_LOGS_DELETE">
-          <DeleteLogsDialog refresh={refresh}
+          <DeleteLogsDialog
+            refresh={refresh}
             trigger={
               <Button variant="destructive">
                 <Trash2Icon />

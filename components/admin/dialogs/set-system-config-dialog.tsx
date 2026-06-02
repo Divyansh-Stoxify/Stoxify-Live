@@ -56,25 +56,39 @@ export function SetSystemConfigDialog({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ key, value: parsed, description, category }),
         });
-        const data = await res.json().catch(() => ({})) as Record<string, unknown>;
-        return { ok: res.ok, message: data.message as string | undefined, code: data.code as string | undefined };
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        return {
+          ok: res.ok,
+          message: data.message as string | undefined,
+          code: data.code as string | undefined,
+        };
       }}
       onSuccess={refresh}
       onClose={() => {
         setKey(currentKey);
         setValue(currentValue !== undefined ? JSON.stringify(currentValue, null, 2) : "");
-        setDescription(currentDescription); setCategory(currentCategory); setParseError(null);
+        setDescription(currentDescription);
+        setCategory(currentCategory);
+        setParseError(null);
       }}
     >
       <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium">Key</label>
-        <Input value={key} onChange={(e) => setKey(e.target.value)} placeholder="feature.flag.name" disabled={mode === "edit"} />
+        <Input
+          value={key}
+          onChange={(e) => setKey(e.target.value)}
+          placeholder="feature.flag.name"
+          disabled={mode === "edit"}
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium">Value (JSON)</label>
         <Textarea
           value={value}
-          onChange={(e) => { setValue(e.target.value); setParseError(null); }}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setParseError(null);
+          }}
           placeholder='"string" or 42 or true or {"key":"val"}'
           rows={4}
           className={parseError ? "aria-invalid" : ""}
@@ -83,11 +97,20 @@ export function SetSystemConfigDialog({
       </div>
       <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium">Category (optional)</label>
-        <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="feature-flags" />
+        <Input
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          placeholder="feature-flags"
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium">Description (optional)</label>
-        <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What does this key control?" rows={2} />
+        <Textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="What does this key control?"
+          rows={2}
+        />
       </div>
     </FormDialog>
   );

@@ -27,13 +27,20 @@ export function CancelSubscriptionDialog({ subscriptionId, refresh, trigger }: P
         if (!reason.trim()) {
           return { ok: false, message: "Reason is required", code: "VALIDATION_ERROR" };
         }
-        const res = await adminFetch(`/api/admin/subscriptions/${encodeURIComponent(subscriptionId)}/cancel`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ reason }),
-        });
-        const data = await res.json().catch(() => ({})) as Record<string, unknown>;
-        return { ok: res.ok, message: data.message as string | undefined, code: data.code as string | undefined };
+        const res = await adminFetch(
+          `/api/admin/subscriptions/${encodeURIComponent(subscriptionId)}/cancel`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reason }),
+          }
+        );
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        return {
+          ok: res.ok,
+          message: data.message as string | undefined,
+          code: data.code as string | undefined,
+        };
       }}
       onSuccess={refresh}
       onClose={() => setReason("")}

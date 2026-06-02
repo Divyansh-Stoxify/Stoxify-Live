@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { ShieldIcon, UserIcon, KeyRoundIcon, LogOutIcon, MonitorSmartphoneIcon } from "lucide-react";
+import {
+  ShieldIcon,
+  UserIcon,
+  KeyRoundIcon,
+  LogOutIcon,
+  MonitorSmartphoneIcon,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,7 +33,9 @@ export function ProfilePage() {
     try {
       const sessionsRes = await adminFetch("/api/admin/security/sessions");
       if (!sessionsRes.ok) throw new Error("Failed to load sessions");
-      const sessionsData = (await sessionsRes.json()) as { sessions?: Array<{ session_id?: string; _id?: string }> };
+      const sessionsData = (await sessionsRes.json()) as {
+        sessions?: Array<{ session_id?: string; _id?: string }>;
+      };
       const sessions = sessionsData.sessions ?? [];
 
       await Promise.allSettled(
@@ -52,7 +60,9 @@ export function ProfilePage() {
         </div>
         <div>
           <h1 className="font-semibold text-lg">My Profile</h1>
-          <p className="text-muted-foreground text-sm">Your admin session details and granted access.</p>
+          <p className="text-muted-foreground text-sm">
+            Your admin session details and granted access.
+          </p>
         </div>
       </div>
 
@@ -81,14 +91,18 @@ export function ProfilePage() {
         <CardContent>
           {loading ? (
             <div className="flex flex-wrap gap-2">
-              {[1, 2].map((i) => <Skeleton key={i} className="h-5 w-20 rounded-full" />)}
+              {[1, 2].map((i) => (
+                <Skeleton key={i} className="h-5 w-20 rounded-full" />
+              ))}
             </div>
           ) : roles.length === 0 ? (
             <p className="text-muted-foreground text-sm">No roles assigned.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {roles.map((role) => (
-                <Badge key={role} variant="outline">{role}</Badge>
+                <Badge key={role} variant="outline">
+                  {role}
+                </Badge>
               ))}
             </div>
           )}
@@ -105,14 +119,18 @@ export function ProfilePage() {
         <CardContent>
           {loading ? (
             <div className="flex flex-wrap gap-2">
-              {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-5 w-32 rounded-full" />)}
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-5 w-32 rounded-full" />
+              ))}
             </div>
           ) : powers.length === 0 ? (
             <p className="text-muted-foreground text-sm">No powers granted.</p>
           ) : (
             <div className="flex flex-wrap gap-1.5">
               {powers.map((power) => (
-                <Badge key={power} variant="secondary" className="font-mono text-xs">{power}</Badge>
+                <Badge key={power} variant="secondary" className="font-mono text-xs">
+                  {power}
+                </Badge>
               ))}
             </div>
           )}
@@ -124,7 +142,9 @@ export function ProfilePage() {
       <div className="flex flex-col gap-3 sm:flex-row">
         <Button
           variant="outline"
-          onClick={() => { window.location.hash = "security-sessions"; }}
+          onClick={() => {
+            window.location.hash = "security-sessions";
+          }}
         >
           <MonitorSmartphoneIcon className="size-4" />
           Manage devices
@@ -138,14 +158,16 @@ export function ProfilePage() {
           {revokeState === "loading"
             ? "Signing out…"
             : revokeState === "done"
-            ? "Signed out everywhere"
-            : revokeState === "error"
-            ? "Retry sign out everywhere"
-            : "Sign out everywhere"}
+              ? "Signed out everywhere"
+              : revokeState === "error"
+                ? "Retry sign out everywhere"
+                : "Sign out everywhere"}
         </Button>
       </div>
       {revokeState === "error" && (
-        <p className="text-destructive text-sm">Failed to revoke sessions. Try again or contact a FOUNDER admin.</p>
+        <p className="text-destructive text-sm">
+          Failed to revoke sessions. Try again or contact a FOUNDER admin.
+        </p>
       )}
     </div>
   );

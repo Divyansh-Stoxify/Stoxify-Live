@@ -47,7 +47,9 @@ function SessionRowActions({ item, refresh }: { item: ApiRecord; refresh: () => 
 
   return (
     <Gated power="PWR_SECURITY_DEVICE_REVOKE">
-      <RevokeSessionDialog sessionId={sessionId} refresh={refresh}
+      <RevokeSessionDialog
+        sessionId={sessionId}
+        refresh={refresh}
         trigger={
           <Button size="icon-sm" variant="ghost" aria-label="Revoke session">
             <ShieldOffIcon />
@@ -72,9 +74,21 @@ export function SecuritySessionsPage() {
       filters={FILTERS}
       mapRow={mapSession}
       metrics={(data, rows) => [
-        { label: "Sessions", value: formatNumber(totalFrom(data, rows.length)), detail: "Backend reported total" },
-        { label: "Active", value: formatNumber(countRows(rows, "Status", /Active/i)), detail: "Loaded active sessions" },
-        { label: "Revoked", value: formatNumber(countRows(rows, "Status", /Revoked/i)), detail: "Loaded revoked sessions" },
+        {
+          label: "Sessions",
+          value: formatNumber(totalFrom(data, rows.length)),
+          detail: "Backend reported total",
+        },
+        {
+          label: "Active",
+          value: formatNumber(countRows(rows, "Status", /Active/i)),
+          detail: "Loaded active sessions",
+        },
+        {
+          label: "Revoked",
+          value: formatNumber(countRows(rows, "Status", /Revoked/i)),
+          detail: "Loaded revoked sessions",
+        },
         { label: "Loaded", value: formatNumber(rows.length), detail: "Visible sessions" },
       ]}
       paginated

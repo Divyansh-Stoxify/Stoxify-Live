@@ -126,13 +126,7 @@ export function AdminPageLayout({ page }: { page: AdminPageConfig }) {
   );
 }
 
-function PageHeader({
-  page,
-  variant,
-}: {
-  page: AdminPageConfig;
-  variant: AdminPageVariant;
-}) {
+function PageHeader({ page, variant }: { page: AdminPageConfig; variant: AdminPageVariant }) {
   return (
     <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
       <div className="min-w-0">
@@ -177,7 +171,11 @@ function AnalyticsLayout({ page }: { page: AdminPageConfig }) {
       </div>
       <div className="grid gap-4 xl:grid-cols-[1.4fr_0.8fr]">
         <DataPanel page={page} subtitle="Segment performance" />
-        {page.insights?.length ? <SignalPanel items={page.insights} /> : <StackedMetrics metrics={page.metrics} />}
+        {page.insights?.length ? (
+          <SignalPanel items={page.insights} />
+        ) : (
+          <StackedMetrics metrics={page.metrics} />
+        )}
       </div>
     </>
   );
@@ -369,7 +367,11 @@ function AccessRail({ metrics }: { metrics: AdminMetric[] }) {
         <div className="bg-background p-4" key={metric.label}>
           <div className="flex items-center gap-2">
             <div className="flex size-7 items-center justify-center border">
-              {index === 0 ? <CheckCircle2Icon className="size-3.5" /> : <SlidersHorizontalIcon className="size-3.5" />}
+              {index === 0 ? (
+                <CheckCircle2Icon className="size-3.5" />
+              ) : (
+                <SlidersHorizontalIcon className="size-3.5" />
+              )}
             </div>
             <p className="text-xs text-muted-foreground">{metric.label}</p>
           </div>
@@ -413,9 +415,7 @@ function ReviewCard({
             <span className="font-medium">{value}</span>
           </div>
         ))}
-        {rowActions && rawItem ? (
-          rowActions(rawItem, refresh ?? (() => {}))
-        ) : null}
+        {rowActions && rawItem ? rowActions(rawItem, refresh ?? (() => {})) : null}
       </CardContent>
     </Card>
   );
@@ -441,9 +441,7 @@ function SignalPanel({ items }: { items: AdminMetric[] }) {
 function DataPanel({ page, subtitle }: { page: AdminPageConfig; subtitle: string }) {
   const hasActions = !!page.rowActions;
   const { pagination } = page;
-  const totalPages = pagination
-    ? Math.max(1, Math.ceil(pagination.total / pagination.limit))
-    : 1;
+  const totalPages = pagination ? Math.max(1, Math.ceil(pagination.total / pagination.limit)) : 1;
 
   return (
     <Card className="rounded-none bg-background shadow-none ring-1 ring-border">
@@ -525,20 +523,13 @@ function DataPanel({ page, subtitle }: { page: AdminPageConfig; subtitle: string
                       );
                     return (
                       <TableCell key={column}>
-                        {isState ? (
-                          <Badge variant={statusVariant(value)}>{value}</Badge>
-                        ) : (
-                          value
-                        )}
+                        {isState ? <Badge variant={statusVariant(value)}>{value}</Badge> : value}
                       </TableCell>
                     );
                   })}
                   {hasActions && (
                     <TableCell className="text-right">
-                      {page.rowActions!(
-                        page.items?.[index] ?? {},
-                        page.onAction ?? (() => {})
-                      )}
+                      {page.rowActions!(page.items?.[index] ?? {}, page.onAction ?? (() => {}))}
                     </TableCell>
                   )}
                 </TableRow>

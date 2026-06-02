@@ -10,10 +10,7 @@ import { FloatingPaths } from "@/components/floating-paths";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
-import {
-  collectAdminDeviceFingerprint,
-  describeAdminDevice,
-} from "@/lib/admin/device-fingerprint";
+import { collectAdminDeviceFingerprint, describeAdminDevice } from "@/lib/admin/device-fingerprint";
 import { useAdminStore } from "@/lib/admin/store";
 import type { AdminSessionPayload } from "@/lib/admin/session-shared";
 

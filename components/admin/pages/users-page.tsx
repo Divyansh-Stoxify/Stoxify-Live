@@ -49,7 +49,11 @@ function mapUser(user: ApiRecord): AdminRow {
     User: field(user, ["name", "email", "user_id"]),
     Type: field(user, ["user_type"]),
     State: stateLabel(user.state),
-    KYC: kyc?.aadhaar_verified ? "Verified" : stateLabel(user.state) === "KYC PENDING" ? "Pending" : "-",
+    KYC: kyc?.aadhaar_verified
+      ? "Verified"
+      : stateLabel(user.state) === "KYC PENDING"
+        ? "Pending"
+        : "-",
     Created: formatDate(user.created_at),
   };
 }
@@ -61,16 +65,26 @@ function UserRowActions({ item, refresh }: { item: ApiRecord; refresh: () => voi
   return (
     <div className="flex items-center justify-end gap-1">
       <Gated power="PWR_USER_BLOCK">
-        <BlockUserDialog userId={userId} currentState={state} refresh={refresh}
+        <BlockUserDialog
+          userId={userId}
+          currentState={state}
+          refresh={refresh}
           trigger={
-            <Button size="icon-sm" variant="ghost" aria-label={/BLOCKED/i.test(state) ? "Unblock" : "Block"}>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              aria-label={/BLOCKED/i.test(state) ? "Unblock" : "Block"}
+            >
               <ShieldOffIcon />
             </Button>
           }
         />
       </Gated>
       <Gated power="PWR_USER_STATE_CHANGE">
-        <ChangeUserStateDialog userId={userId} currentState={state} refresh={refresh}
+        <ChangeUserStateDialog
+          userId={userId}
+          currentState={state}
+          refresh={refresh}
           trigger={
             <Button size="icon-sm" variant="ghost" aria-label="Change state">
               <SlidersHorizontalIcon />
@@ -110,10 +124,26 @@ export function UsersPage() {
       filters={FILTERS}
       mapRow={mapUser}
       metrics={(data, rows) => [
-        { label: "Total users", value: formatNumber(totalFrom(data, rows.length)), detail: "Backend reported total" },
-        { label: "Active", value: formatNumber(countRows(rows, "State", /ACTIVE/i)), detail: "Loaded active rows" },
-        { label: "Blocked", value: formatNumber(countRows(rows, "State", /BLOCKED/i)), detail: "Loaded blocked rows" },
-        { label: "KYC pending", value: formatNumber(countRows(rows, "KYC", /Pending/i)), detail: "Loaded pending rows" },
+        {
+          label: "Total users",
+          value: formatNumber(totalFrom(data, rows.length)),
+          detail: "Backend reported total",
+        },
+        {
+          label: "Active",
+          value: formatNumber(countRows(rows, "State", /ACTIVE/i)),
+          detail: "Loaded active rows",
+        },
+        {
+          label: "Blocked",
+          value: formatNumber(countRows(rows, "State", /BLOCKED/i)),
+          detail: "Loaded blocked rows",
+        },
+        {
+          label: "KYC pending",
+          value: formatNumber(countRows(rows, "KYC", /Pending/i)),
+          detail: "Loaded pending rows",
+        },
       ]}
       paginated
       rowActions={(item, refresh) => <UserRowActions item={item} refresh={refresh} />}

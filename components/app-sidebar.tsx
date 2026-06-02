@@ -75,7 +75,9 @@ export function AppSidebar() {
                 }));
               return {
                 ...item,
-                isActive: isActivePath(item.path, activePath) || subItems?.some((subItem) => subItem.isActive),
+                isActive:
+                  isActivePath(item.path, activePath) ||
+                  subItems?.some((subItem) => subItem.isActive),
                 subItems,
               };
             }),

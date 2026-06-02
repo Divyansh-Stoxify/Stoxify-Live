@@ -38,12 +38,26 @@ export function SecurityOverviewPage() {
       mapRow={mapThreatLog}
       metrics={(data, rows) => {
         const severity = Array.isArray(data.by_severity) ? data.by_severity : [];
-        const high = severity.find((item) => field(item as ApiRecord, ["severity"]).match(/HIGH|CRITICAL/i));
+        const high = severity.find((item) =>
+          field(item as ApiRecord, ["severity"]).match(/HIGH|CRITICAL/i)
+        );
 
         return [
-          { label: "Incidents", value: formatNumber(data.total_incidents), detail: "Window total from auth-service" },
-          { label: "High severity", value: formatNumber(nested((high ?? {}) as ApiRecord, "count")), detail: "High or critical bucket" },
-          { label: "Recent", value: formatNumber(rows.length), detail: "Loaded investigation rows" },
+          {
+            label: "Incidents",
+            value: formatNumber(data.total_incidents),
+            detail: "Window total from auth-service",
+          },
+          {
+            label: "High severity",
+            value: formatNumber(nested((high ?? {}) as ApiRecord, "count")),
+            detail: "High or critical bucket",
+          },
+          {
+            label: "Recent",
+            value: formatNumber(rows.length),
+            detail: "Loaded investigation rows",
+          },
           { label: "Since", value: formatDate(data.since), detail: "Threat window start" },
         ];
       }}

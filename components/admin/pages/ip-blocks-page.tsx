@@ -43,7 +43,9 @@ function IpBlockRowActions({ item, refresh }: { item: ApiRecord; refresh: () => 
   const ip = field(item, ["ip_address"]);
   return (
     <Gated power="PWR_SECURITY_IP_BLOCK">
-      <RemoveIpBlockDialog ipAddress={ip} refresh={refresh}
+      <RemoveIpBlockDialog
+        ipAddress={ip}
+        refresh={refresh}
         trigger={
           <Button size="icon-sm" variant="ghost" aria-label="Remove block">
             <Trash2Icon />
@@ -68,15 +70,28 @@ export function IpBlocksPage() {
       filters={FILTERS}
       mapRow={mapIpBlock}
       metrics={(data, rows) => [
-        { label: "IP blocks", value: formatNumber(totalFrom(data, rows.length)), detail: "Backend reported total" },
-        { label: "Active", value: formatNumber(countRows(rows, "Status", /Active/i)), detail: "Loaded active blocks" },
-        { label: "Inactive", value: formatNumber(countRows(rows, "Status", /Inactive/i)), detail: "Loaded inactive blocks" },
+        {
+          label: "IP blocks",
+          value: formatNumber(totalFrom(data, rows.length)),
+          detail: "Backend reported total",
+        },
+        {
+          label: "Active",
+          value: formatNumber(countRows(rows, "Status", /Active/i)),
+          detail: "Loaded active blocks",
+        },
+        {
+          label: "Inactive",
+          value: formatNumber(countRows(rows, "Status", /Inactive/i)),
+          detail: "Loaded inactive blocks",
+        },
         { label: "Loaded", value: formatNumber(rows.length), detail: "Visible IP blocks" },
       ]}
       paginated
       primaryAction={(refresh) => (
         <Gated power="PWR_SECURITY_IP_BLOCK">
-          <AddIpBlockDialog refresh={refresh}
+          <AddIpBlockDialog
+            refresh={refresh}
             trigger={
               <Button>
                 <PlusIcon />

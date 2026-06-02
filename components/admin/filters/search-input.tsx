@@ -12,7 +12,12 @@ type Props = {
   isLoading?: boolean;
 };
 
-export function SearchInput({ onSearch, initialValue = "", placeholder = "Search", isLoading }: Props) {
+export function SearchInput({
+  onSearch,
+  initialValue = "",
+  placeholder = "Search",
+  isLoading,
+}: Props) {
   const [value, setValue] = useState(initialValue);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

@@ -27,13 +27,20 @@ export function RejectAnalystDialog({ analystId, refresh, trigger }: Props) {
         if (!reason.trim()) {
           return { ok: false, message: "Reason is required", code: "VALIDATION_ERROR" };
         }
-        const res = await adminFetch(`/api/admin/analysts/${encodeURIComponent(analystId)}/verify`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ decision: "REJECT", reason }),
-        });
-        const data = await res.json().catch(() => ({})) as Record<string, unknown>;
-        return { ok: res.ok, message: data.message as string | undefined, code: data.code as string | undefined };
+        const res = await adminFetch(
+          `/api/admin/analysts/${encodeURIComponent(analystId)}/verify`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ decision: "REJECT", reason }),
+          }
+        );
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        return {
+          ok: res.ok,
+          message: data.message as string | undefined,
+          code: data.code as string | undefined,
+        };
       }}
       onSuccess={refresh}
       onClose={() => setReason("")}

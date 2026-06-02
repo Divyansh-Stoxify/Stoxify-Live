@@ -53,10 +53,26 @@ export function PowersPage() {
       filters={FILTERS}
       mapRow={mapPower}
       metrics={(data, rows) => [
-        { label: "Powers", value: formatNumber(data.total ?? rows.length), detail: "Backend reported total" },
-        { label: "System", value: formatNumber(countRows(rows, "Type", /System/i)), detail: "Loaded system powers" },
-        { label: "Custom", value: formatNumber(countRows(rows, "Type", /Custom/i)), detail: "Loaded custom powers" },
-        { label: "Categories", value: formatNumber(new Set(rows.map((row) => row.Category)).size), detail: "Loaded categories" },
+        {
+          label: "Powers",
+          value: formatNumber(data.total ?? rows.length),
+          detail: "Backend reported total",
+        },
+        {
+          label: "System",
+          value: formatNumber(countRows(rows, "Type", /System/i)),
+          detail: "Loaded system powers",
+        },
+        {
+          label: "Custom",
+          value: formatNumber(countRows(rows, "Type", /Custom/i)),
+          detail: "Loaded custom powers",
+        },
+        {
+          label: "Categories",
+          value: formatNumber(new Set(rows.map((row) => row.Category)).size),
+          detail: "Loaded categories",
+        },
       ]}
       title="Powers"
       variant="access"

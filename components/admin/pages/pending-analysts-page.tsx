@@ -34,7 +34,9 @@ function PendingAnalystCardActions({ item, refresh }: { item: ApiRecord; refresh
   return (
     <div className="flex gap-2 pt-1">
       <Gated power="PWR_ANALYST_VERIFY">
-        <VerifyAnalystDialog analystId={analystId} refresh={refresh}
+        <VerifyAnalystDialog
+          analystId={analystId}
+          refresh={refresh}
           trigger={
             <Button size="sm" className="flex-1" variant="default">
               <CheckIcon />
@@ -44,7 +46,9 @@ function PendingAnalystCardActions({ item, refresh }: { item: ApiRecord; refresh
         />
       </Gated>
       <Gated power="PWR_ANALYST_VERIFY">
-        <RejectAnalystDialog analystId={analystId} refresh={refresh}
+        <RejectAnalystDialog
+          analystId={analystId}
+          refresh={refresh}
           trigger={
             <Button size="sm" className="flex-1" variant="destructive">
               <XIcon />
@@ -70,9 +74,21 @@ export function PendingAnalystsPage() {
       eyebrow="Verification queue"
       mapRow={mapPendingAnalyst}
       metrics={(data, rows) => [
-        { label: "Queue total", value: formatNumber(totalFrom(data, rows.length)), detail: "Backend reported total" },
-        { label: "Pending", value: formatNumber(countRows(rows, "State", /PENDING/i)), detail: "Loaded pending rows" },
-        { label: "Ongoing", value: formatNumber(countRows(rows, "State", /ONGOING/i)), detail: "Loaded active reviews" },
+        {
+          label: "Queue total",
+          value: formatNumber(totalFrom(data, rows.length)),
+          detail: "Backend reported total",
+        },
+        {
+          label: "Pending",
+          value: formatNumber(countRows(rows, "State", /PENDING/i)),
+          detail: "Loaded pending rows",
+        },
+        {
+          label: "Ongoing",
+          value: formatNumber(countRows(rows, "State", /ONGOING/i)),
+          detail: "Loaded active reviews",
+        },
         { label: "Loaded", value: formatNumber(rows.length), detail: "Visible applications" },
       ]}
       rowActions={(item, refresh) => <PendingAnalystCardActions item={item} refresh={refresh} />}

@@ -48,15 +48,18 @@ function SubscriptionRowActions({ item, refresh }: { item: ApiRecord; refresh: (
   const subId = field(item, ["subscription_id", "_id"]);
   const status = String(item.status ?? "");
   const isActive = /ACTIVE/i.test(status);
-  const amount = typeof nested(item, "payment.amount") === "number"
-    ? nested(item, "payment.amount") as number
-    : undefined;
+  const amount =
+    typeof nested(item, "payment.amount") === "number"
+      ? (nested(item, "payment.amount") as number)
+      : undefined;
 
   return (
     <div className="flex items-center justify-end gap-1">
       {isActive && (
         <Gated power="PWR_SUBSCRIPTION_CANCEL_ALL">
-          <CancelSubscriptionDialog subscriptionId={subId} refresh={refresh}
+          <CancelSubscriptionDialog
+            subscriptionId={subId}
+            refresh={refresh}
             trigger={
               <Button size="icon-sm" variant="ghost" aria-label="Cancel subscription">
                 <BanIcon />
@@ -66,7 +69,10 @@ function SubscriptionRowActions({ item, refresh }: { item: ApiRecord; refresh: (
         </Gated>
       )}
       <Gated power="PWR_SUBSCRIPTION_REFUND">
-        <RefundSubscriptionDialog subscriptionId={subId} defaultAmount={amount} refresh={refresh}
+        <RefundSubscriptionDialog
+          subscriptionId={subId}
+          defaultAmount={amount}
+          refresh={refresh}
           trigger={
             <Button size="icon-sm" variant="ghost" aria-label="Refund">
               <RotateCcwIcon />
@@ -92,10 +98,26 @@ export function SubscriptionsPage() {
       filters={FILTERS}
       mapRow={mapSubscription}
       metrics={(data, rows) => [
-        { label: "Total subscriptions", value: formatNumber(totalFrom(data, rows.length)), detail: "Backend reported total" },
-        { label: "Active", value: formatNumber(countRows(rows, "Status", /ACTIVE/i)), detail: "Loaded active rows" },
-        { label: "Cancelled", value: formatNumber(countRows(rows, "Status", /CANCELLED/i)), detail: "Loaded cancelled rows" },
-        { label: "Refunded", value: formatNumber(countRows(rows, "Status", /REFUNDED/i)), detail: "Loaded refunded rows" },
+        {
+          label: "Total subscriptions",
+          value: formatNumber(totalFrom(data, rows.length)),
+          detail: "Backend reported total",
+        },
+        {
+          label: "Active",
+          value: formatNumber(countRows(rows, "Status", /ACTIVE/i)),
+          detail: "Loaded active rows",
+        },
+        {
+          label: "Cancelled",
+          value: formatNumber(countRows(rows, "Status", /CANCELLED/i)),
+          detail: "Loaded cancelled rows",
+        },
+        {
+          label: "Refunded",
+          value: formatNumber(countRows(rows, "Status", /REFUNDED/i)),
+          detail: "Loaded refunded rows",
+        },
       ]}
       paginated
       rowActions={(item, refresh) => <SubscriptionRowActions item={item} refresh={refresh} />}
