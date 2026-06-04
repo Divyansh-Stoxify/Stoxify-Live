@@ -1,9 +1,41 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Icon } from "./stoxify-icon";
+
+type NavUser = { name: string; email: string } | null;
+
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+function useNavUser(): NavUser {
+  const [user, setUser] = useState<NavUser>(null);
+  useEffect(() => {
+    const raw = document.cookie
+      .split("; ")
+      .find((r) => r.startsWith("stoxify_user_info="))
+      ?.split("=")
+      .slice(1)
+      .join("=");
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(decodeURIComponent(raw)) as NavUser;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (parsed?.email) setUser(parsed);
+    } catch {
+      // ignore malformed cookie
+    }
+  }, []);
+  return user;
+}
 
 function cx(...classes: Array<string | false>) {
   return classes.filter(Boolean).join(" ");
@@ -21,6 +53,7 @@ export function StoxifyNav({
   ctaVariant?: "primary" | "orange";
 }) {
   const [open, setOpen] = useState(false);
+  const navUser = useNavUser();
 
   const closeMenu = () => setOpen(false);
   const activeLink =
@@ -96,15 +129,25 @@ export function StoxifyNav({
           />
         </button>
 
-        <div className="ml-auto flex gap-2 max-[860px]:ml-0">
-          <Link
-            className="inline-flex items-center justify-center gap-2 rounded border border-[var(--line)] bg-transparent px-5 py-[9px] text-[13px] font-medium text-[var(--muted)] transition-colors hover:border-[var(--muted-2)] hover:bg-[var(--line-2)] hover:text-[var(--ink)] max-[860px]:hidden"
-            href="/login"
-          >
-            Log In
-          </Link>
-          <Link className={ctaClass} href={ctaHref}>
-            {ctaLabel}
+        <div className="ml-auto flex items-center gap-2 max-[860px]:ml-0">
+          {navUser ? (
+            <Link
+              href="/dashboard"
+              title={navUser.name || navUser.email}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--brand)] text-[11px] font-extrabold text-white hover:opacity-90 transition-opacity select-none max-[860px]:hidden"
+            >
+              {getInitials(navUser.name || navUser.email)}
+            </Link>
+          ) : (
+            <Link
+              className="inline-flex items-center justify-center gap-2 rounded border border-[var(--line)] bg-transparent px-5 py-[9px] text-[13px] font-medium text-[var(--muted)] transition-colors hover:border-[var(--muted-2)] hover:bg-[var(--line-2)] hover:text-[var(--ink)] max-[860px]:hidden"
+              href="/login"
+            >
+              Log In
+            </Link>
+          )}
+          <Link className={ctaClass} href={navUser ? "/dashboard" : ctaHref}>
+            {navUser ? "Dashboard" : ctaLabel}
             <Icon className="h-3.5 w-3.5" name="arrowRight" />
           </Link>
         </div>
