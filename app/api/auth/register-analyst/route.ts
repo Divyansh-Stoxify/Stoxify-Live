@@ -2,11 +2,7 @@ import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
-import {
-  backendUrls,
-  forwardedIpHeaders,
-  signedBackendFetch,
-} from "@/lib/backend/index";
+import { backendUrls, forwardedIpHeaders, signedBackendFetch } from "@/lib/backend/index";
 import { rejectCrossOriginPost } from "@/lib/auth/csrf";
 import { userCookieNames } from "@/lib/auth/cookies";
 
