@@ -15,7 +15,9 @@ interface FormErrors {
 
 // Accepts either a 10-digit Indian mobile (with or without +91/91/0) or an
 // email. Returns the canonical value to send to the BFF.
-function normalizeIdentifier(raw: string): { ok: true; value: string } | { ok: false; error: string } {
+function normalizeIdentifier(
+  raw: string
+): { ok: true; value: string } | { ok: false; error: string } {
   const trimmed = raw.trim();
   if (!trimmed) return { ok: false, error: "Phone number or email is required" };
   if (trimmed.includes("@")) {

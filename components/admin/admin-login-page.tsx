@@ -167,8 +167,8 @@ export function AdminLoginPage() {
           </div>
           <h1 className="text-3xl font-bold tracking-wide">Stoxify Control Console</h1>
           <p className="mt-3 text-muted-foreground">
-            Sign in with your admin email. Authentication stays on the current backend flow and
-            the admin session is granted only after the RBAC gate passes.
+            Sign in with your admin email. Authentication stays on the current backend flow and the
+            admin session is granted only after the RBAC gate passes.
           </p>
         </div>
       </section>

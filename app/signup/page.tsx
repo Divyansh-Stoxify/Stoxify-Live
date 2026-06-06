@@ -235,9 +235,7 @@ export default function SignupPage() {
   // Both resend and verify use the unified passwordless login OTP endpoints.
   // The first successful verify also promotes the user out of UNVERIFIED.
   const identifierForOtp = () =>
-    role === "analyst"
-      ? formData.email.trim().toLowerCase()
-      : `+91${formData.phone.trim()}`;
+    role === "analyst" ? formData.email.trim().toLowerCase() : `+91${formData.phone.trim()}`;
 
   const handleResendOtp = async () => {
     setIsResending(true);

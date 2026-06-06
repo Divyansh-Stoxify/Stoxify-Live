@@ -115,10 +115,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const email = credentials.email?.trim().toLowerCase();
   if (!email) {
-    return NextResponse.json(
-      { error: "Email is required", code: "BAD_REQUEST" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Email is required", code: "BAD_REQUEST" }, { status: 400 });
   }
 
   const cookieStore = await cookies();

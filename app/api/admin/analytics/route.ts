@@ -136,7 +136,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const analystRecords = analysts?.analysts ?? [];
   const subscriptionRecords = subscriptions?.subscriptions ?? [];
   const tradeRecords = trades?.trades ?? [];
-  const closedTradeRecords = tradeRecords.filter((trade) => trade.status && trade.status !== "LIVE");
+  const closedTradeRecords = tradeRecords.filter(
+    (trade) => trade.status && trade.status !== "LIVE"
+  );
   const closedTradesInWindow = closedTradeRecords.filter((trade) =>
     isWithinWindow(trade.exit_timestamp, sinceMs)
   );
@@ -159,7 +161,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       ).length,
     },
     trades: {
-      created: tradeRecords.filter((trade) => isWithinWindow(trade.entry_timestamp, sinceMs)).length,
+      created: tradeRecords.filter((trade) => isWithinWindow(trade.entry_timestamp, sinceMs))
+        .length,
       closed: closedTradesInWindow.length,
       avg_pnl_percent: avgPnlPercent,
       win_rate:

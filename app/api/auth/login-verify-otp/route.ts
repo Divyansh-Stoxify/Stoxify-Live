@@ -30,8 +30,7 @@ type BackendVerifyResponse = {
 };
 
 const ERROR_MAP: Record<string, string> = {
-  INVALID_OTP:
-    "Invalid or expired code. If you haven't signed up yet, create an account first.",
+  INVALID_OTP: "Invalid or expired code. If you haven't signed up yet, create an account first.",
   ACCOUNT_INACTIVE: "This account is suspended. Contact support.",
   RATE_LIMITED: "Too many attempts. Please try again later.",
 };
@@ -118,10 +117,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!backendResponse.ok || !data.access_token) {
     const code = data.code ?? "";
     const message = ERROR_MAP[code] ?? data.error ?? "Unable to sign in";
-    return NextResponse.json(
-      { error: message, code },
-      { status: backendResponse.status || 401 }
-    );
+    return NextResponse.json({ error: message, code }, { status: backendResponse.status || 401 });
   }
 
   const response = NextResponse.json({

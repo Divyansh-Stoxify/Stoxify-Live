@@ -15,7 +15,13 @@ type NavUser = {
 } | null;
 
 function getUserLabel(user: Exclude<NavUser, null>): string {
-  return user.name?.trim() || user.email?.trim() || user.phone?.trim() || user.user_id?.trim() || "Account";
+  return (
+    user.name?.trim() ||
+    user.email?.trim() ||
+    user.phone?.trim() ||
+    user.user_id?.trim() ||
+    "Account"
+  );
 }
 
 function getInitials(value: string): string {
