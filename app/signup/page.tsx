@@ -59,7 +59,7 @@ export default function SignupPage() {
   // Validation logic
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
-    
+
     if (!formData.name.trim()) {
       newErrors.name = "Full name is required";
     }
@@ -110,9 +110,11 @@ export default function SignupPage() {
         name: formData.name,
         email: formData.email,
         phone: `+91${formData.phone}`,
-        ...(role === "analyst" ? { sebi: formData.sebi.toUpperCase() } : { password: formData.password }),
+        ...(role === "analyst"
+          ? { sebi: formData.sebi.toUpperCase() }
+          : { password: formData.password }),
       };
-      
+
       console.log("Signup form submitted successfully:", output);
       setSubmittedData(output);
     }, 1500);
@@ -127,7 +129,10 @@ export default function SignupPage() {
       <div className="flex h-full flex-col justify-between overflow-y-auto bg-white px-6 py-12 min-[860px]:px-16 min-[1100px]:px-24">
         {/* Top Spacer or Small Mobile Header */}
         <div className="flex justify-between items-center min-[860px]:hidden mb-8">
-          <Link className="flex items-center font-sans text-xl font-extrabold tracking-[-0.5px] text-[var(--ink)]" href="/">
+          <Link
+            className="flex items-center font-sans text-xl font-extrabold tracking-[-0.5px] text-[var(--ink)]"
+            href="/"
+          >
             Stoxify
           </Link>
           <Link className="text-xs font-semibold text-[var(--brand)]" href="/login">
@@ -182,7 +187,8 @@ export default function SignupPage() {
                 <span>Signup Simulated Successfully!</span>
               </div>
               <p className="text-[12px] opacity-90 leading-relaxed mb-2.5">
-                Check the browser developer console to view the payload. Next, we will connect this form to the backend auth endpoint.
+                Check the browser developer console to view the payload. Next, we will connect this
+                form to the backend auth endpoint.
               </p>
               <div className="bg-white/50 p-2.5 rounded font-mono text-[11px] text-[var(--ink)] overflow-x-auto whitespace-pre">
                 {JSON.stringify(submittedData, null, 2)}
@@ -194,7 +200,10 @@ export default function SignupPage() {
           <form className="space-y-4" onSubmit={handleSubmit}>
             {/* Full Name */}
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.05em] text-[var(--muted)]" htmlFor="name">
+              <label
+                className="mb-1.5 block text-xs font-bold uppercase tracking-[0.05em] text-[var(--muted)]"
+                htmlFor="name"
+              >
                 Full Name
               </label>
               <input
@@ -210,13 +219,18 @@ export default function SignupPage() {
                 type="text"
                 value={formData.name}
               />
-              {errors.name && <p className="mt-1 text-[11px] text-[var(--red)] font-medium">{errors.name}</p>}
+              {errors.name && (
+                <p className="mt-1 text-[11px] text-[var(--red)] font-medium">{errors.name}</p>
+              )}
             </div>
 
             {/* SEBI Registration Code (Analyst Tab Only) */}
             {role === "analyst" && (
               <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.05em] text-[var(--muted)]" htmlFor="sebi">
+                <label
+                  className="mb-1.5 block text-xs font-bold uppercase tracking-[0.05em] text-[var(--muted)]"
+                  htmlFor="sebi"
+                >
                   SEBI Registration Number
                 </label>
                 <input
@@ -232,13 +246,18 @@ export default function SignupPage() {
                   type="text"
                   value={formData.sebi}
                 />
-                {errors.sebi && <p className="mt-1 text-[11px] text-[var(--red)] font-medium">{errors.sebi}</p>}
+                {errors.sebi && (
+                  <p className="mt-1 text-[11px] text-[var(--red)] font-medium">{errors.sebi}</p>
+                )}
               </div>
             )}
 
             {/* Phone Number with fixed +91 prefix container inside input visually */}
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.05em] text-[var(--muted)]" htmlFor="phone">
+              <label
+                className="mb-1.5 block text-xs font-bold uppercase tracking-[0.05em] text-[var(--muted)]"
+                htmlFor="phone"
+              >
                 Phone Number
               </label>
               <div className="relative flex rounded-lg">
@@ -259,12 +278,17 @@ export default function SignupPage() {
                   value={formData.phone}
                 />
               </div>
-              {errors.phone && <p className="mt-1 text-[11px] text-[var(--red)] font-medium">{errors.phone}</p>}
+              {errors.phone && (
+                <p className="mt-1 text-[11px] text-[var(--red)] font-medium">{errors.phone}</p>
+              )}
             </div>
 
             {/* Email Address */}
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.05em] text-[var(--muted)]" htmlFor="email">
+              <label
+                className="mb-1.5 block text-xs font-bold uppercase tracking-[0.05em] text-[var(--muted)]"
+                htmlFor="email"
+              >
                 Email Address
               </label>
               <input
@@ -280,13 +304,18 @@ export default function SignupPage() {
                 type="email"
                 value={formData.email}
               />
-              {errors.email && <p className="mt-1 text-[11px] text-[var(--red)] font-medium">{errors.email}</p>}
+              {errors.email && (
+                <p className="mt-1 text-[11px] text-[var(--red)] font-medium">{errors.email}</p>
+              )}
             </div>
 
             {/* Password (Trader Tab Only) */}
             {role === "trader" && (
               <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.05em] text-[var(--muted)]" htmlFor="password">
+                <label
+                  className="mb-1.5 block text-xs font-bold uppercase tracking-[0.05em] text-[var(--muted)]"
+                  htmlFor="password"
+                >
                   Password
                 </label>
                 <div className="relative">
@@ -311,7 +340,11 @@ export default function SignupPage() {
                     <Icon className="h-4 w-4" name={showPassword ? "eyeOff" : "eye"} />
                   </button>
                 </div>
-                {errors.password && <p className="mt-1 text-[11px] text-[var(--red)] font-medium">{errors.password}</p>}
+                {errors.password && (
+                  <p className="mt-1 text-[11px] text-[var(--red)] font-medium">
+                    {errors.password}
+                  </p>
+                )}
               </div>
             )}
 
@@ -326,8 +359,10 @@ export default function SignupPage() {
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                   Processing...
                 </>
+              ) : role === "analyst" ? (
+                "Verify SEBI Details"
               ) : (
-                role === "analyst" ? "Verify SEBI Details" : "Create Account"
+                "Create Account"
               )}
             </button>
           </form>
@@ -335,7 +370,9 @@ export default function SignupPage() {
           {/* SOCIAL LOGIN DIVIDER */}
           <div className="my-6 flex items-center justify-center gap-3">
             <span className="h-[1px] flex-1 bg-[var(--line)]" />
-            <span className="text-[9.5px] font-extrabold uppercase tracking-[0.1em] text-[var(--muted-2)]">Or Continue With</span>
+            <span className="text-[9.5px] font-extrabold uppercase tracking-[0.1em] text-[var(--muted-2)]">
+              Or Continue With
+            </span>
             <span className="h-[1px] flex-1 bg-[var(--line)]" />
           </div>
 

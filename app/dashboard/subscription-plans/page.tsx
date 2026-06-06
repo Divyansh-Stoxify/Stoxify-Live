@@ -9,7 +9,7 @@ import { useDashboard } from "@/app/components/dashboard/dashboard-context";
 import { useSubscriptionPlans, useSubscriptionPlansStats } from "@/app/lib/hooks/use-plans";
 import { updateMockPlanStatus } from "@/app/lib/mock-data";
 import { PlanModal } from "@/app/components/dashboard/plan-modal";
-import type { SubscriptionPlan, PlanBillingCycle } from "@/app/lib/types";
+import type { SubscriptionPlan } from "@/app/lib/types";
 
 // Helper to format currency in Indian numbering system (Lakh/Crore)
 function formatCurrency(amount: number): string {
@@ -156,9 +156,7 @@ export default function SubscriptionPlansPage() {
 
         {/* ─── Manage Plans Section Header ─── */}
         <div className="flex items-center justify-between mt-2">
-          <h2 className="text-[18px] font-bold text-[var(--ink)] tracking-tight">
-            Manage Plans
-          </h2>
+          <h2 className="text-[18px] font-bold text-[var(--ink)] tracking-tight">Manage Plans</h2>
           <button
             className="flex items-center gap-1.5 rounded-lg bg-[var(--brand)] px-4 py-2 text-[12.5px] font-bold text-white hover:bg-[var(--brand-dark)] shadow-md shadow-[var(--brand)]/15 transition-all cursor-pointer"
             onClick={handleOpenCreateModal}
@@ -177,7 +175,7 @@ export default function SubscriptionPlansPage() {
           </div>
         ) : plans.length === 0 ? (
           <div className="rounded-xl border border-[var(--line)] bg-white p-12 text-center text-[var(--muted-2)] text-[14px]">
-            No subscription plans found. Click "Create New Plan" to get started.
+            No subscription plans found. Click &quot;Create New Plan&quot; to get started.
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-6 max-[1120px]:grid-cols-2 max-[768px]:grid-cols-1">
@@ -267,10 +265,7 @@ export default function SubscriptionPlansPage() {
                       }`}
                       onClick={() => handleToggleStatus(plan.plan_id, plan.status, plan.name)}
                     >
-                      <Icon
-                        className="h-3.5 w-3.5"
-                        name={isActive ? "ban" : "power"}
-                      />
+                      <Icon className="h-3.5 w-3.5" name={isActive ? "ban" : "power"} />
                       <span>{isActive ? "Deactivate" : "Activate"}</span>
                     </button>
                   </div>

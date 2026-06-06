@@ -9,11 +9,15 @@ import { Icon } from "@/app/components/stoxify-icon";
 // ─── Nav Config ───────────────────────────────────────────────────────────────
 
 const MAIN_NAV_ITEMS = [
-  { href: "/dashboard",                    label: "Dashboard",          icon: "layoutDashboard" as const },
-  { href: "/dashboard/live-trades",        label: "Live Trades",        icon: "activity" as const },
-  { href: "/dashboard/subscribers",        label: "Subscribers",        icon: "users" as const },
-  { href: "/dashboard/subscription-plans", label: "Subscription Plans", icon: "creditCard" as const },
-  { href: "/dashboard/performance",        label: "Performance",        icon: "barChart" as const },
+  { href: "/dashboard", label: "Dashboard", icon: "layoutDashboard" as const },
+  { href: "/dashboard/live-trades", label: "Live Trades", icon: "activity" as const },
+  { href: "/dashboard/subscribers", label: "Subscribers", icon: "users" as const },
+  {
+    href: "/dashboard/subscription-plans",
+    label: "Subscription Plans",
+    icon: "creditCard" as const,
+  },
+  { href: "/dashboard/performance", label: "Performance", icon: "barChart" as const },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -25,9 +29,7 @@ export function Sidebar() {
   // A nav item is "active" if the current path exactly matches it,
   // or if we're on a sub-path
   const isActive = (href: string) =>
-    href === "/dashboard"
-      ? pathname === "/dashboard"
-      : pathname.startsWith(href);
+    href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
 
   const handleLogout = () => {
     clearAuthToken();
@@ -62,9 +64,10 @@ export function Sidebar() {
                   className={`
                     flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13.5px] font-semibold
                     transition-colors duration-150
-                    ${active
-                      ? "bg-[var(--brand)] text-white"
-                      : "text-white/60 hover:bg-white/5 hover:text-white"
+                    ${
+                      active
+                        ? "bg-[var(--brand)] text-white"
+                        : "text-white/60 hover:bg-white/5 hover:text-white"
                     }
                   `}
                   href={item.href}
@@ -94,9 +97,10 @@ export function Sidebar() {
           className={`
             flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13.5px] font-semibold
             transition-colors duration-150
-            ${isActive("/dashboard/profile")
-              ? "bg-[#1a2c42] text-white" // Highlighted dark navy active item background
-              : "text-white/60 hover:bg-white/5 hover:text-white"
+            ${
+              isActive("/dashboard/profile")
+                ? "bg-[#1a2c42] text-white" // Highlighted dark navy active item background
+                : "text-white/60 hover:bg-white/5 hover:text-white"
             }
           `}
           href="/dashboard/profile"

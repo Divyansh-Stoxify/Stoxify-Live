@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Icon } from "@/app/components/stoxify-icon";
 import { createMockPlan, updateMockPlan } from "@/app/lib/mock-data";
 import type { SubscriptionPlan, PlanBillingCycle, PlanStatus } from "@/app/lib/types";
@@ -21,24 +21,16 @@ export function PlanModal({ plan, onClose, onSave }: PlanModalProps) {
   const isEditMode = !!plan;
 
   // Form states
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [billingCycle, setBillingCycle] = useState<PlanBillingCycle>("MONTH");
-  const [status, setStatus] = useState<PlanStatus>("ACTIVE");
+  const [name, setName] = useState(plan?.name ?? "");
+  const [price, setPrice] = useState(plan?.price?.toString() ?? "");
+  const [billingCycle, setBillingCycle] = useState<PlanBillingCycle>(
+    plan?.billing_cycle ?? "MONTH"
+  );
+  const [status, setStatus] = useState<PlanStatus>(plan?.status ?? "ACTIVE");
 
   // Error state
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Populate form if in edit mode
-  useEffect(() => {
-    if (plan) {
-      setName(plan.name);
-      setPrice(plan.price.toString());
-      setBillingCycle(plan.billing_cycle);
-      setStatus(plan.status);
-    }
-  }, [plan]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,7 +113,9 @@ export function PlanModal({ plan, onClose, onSave }: PlanModalProps) {
             </label>
             <input
               className={`w-full rounded-lg border bg-[var(--surface)] px-3 py-2 text-[13.5px] font-medium text-[var(--ink)] outline-none transition-all focus:border-[var(--brand)] focus:bg-white focus:ring-1 focus:ring-[var(--brand)]/20 ${
-                errors.name ? "border-[var(--red)] focus:border-[var(--red)]" : "border-[var(--line)]"
+                errors.name
+                  ? "border-[var(--red)] focus:border-[var(--red)]"
+                  : "border-[var(--line)]"
               }`}
               placeholder="e.g. Monthly Pro, Annual Premium"
               type="text"
@@ -147,7 +141,9 @@ export function PlanModal({ plan, onClose, onSave }: PlanModalProps) {
               </span>
               <input
                 className={`w-full rounded-lg border bg-[var(--surface)] pl-8 pr-3 py-2 text-[13.5px] font-medium text-[var(--ink)] outline-none transition-all focus:border-[var(--brand)] focus:bg-white focus:ring-1 focus:ring-[var(--brand)]/20 ${
-                  errors.price ? "border-[var(--red)] focus:border-[var(--red)]" : "border-[var(--line)]"
+                  errors.price
+                    ? "border-[var(--red)] focus:border-[var(--red)]"
+                    : "border-[var(--line)]"
                 }`}
                 placeholder="e.g. 2500"
                 type="number"
@@ -215,8 +211,20 @@ export function PlanModal({ plan, onClose, onSave }: PlanModalProps) {
               {isSubmitting ? (
                 <>
                   <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
                   </svg>
                   <span>Saving...</span>
                 </>

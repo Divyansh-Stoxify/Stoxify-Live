@@ -27,12 +27,8 @@ export function SuccessToast({ title, message, onClose }: SuccessToastProps) {
 
       {/* Content */}
       <div className="flex-1 pr-6">
-        <h3 className="text-[13.5px] font-bold text-[var(--ink)] leading-tight">
-          {title}
-        </h3>
-        <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--muted)]">
-          {message}
-        </p>
+        <h3 className="text-[13.5px] font-bold text-[var(--ink)] leading-tight">{title}</h3>
+        <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--muted)]">{message}</p>
       </div>
 
       {/* Close Button */}

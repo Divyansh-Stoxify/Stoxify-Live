@@ -43,16 +43,16 @@ export interface Trade {
   symbol: string;
   /** Short descriptive segment label e.g. "EQUITY" or "FNO - OPTIONS" */
   segment: TradeSegment;
-  segment_label?: string;   // e.g. "FNO - OPTIONS"
-  expiry?: string;          // For FNO trades e.g. "EXP 24 NOV"
+  segment_label?: string; // e.g. "FNO - OPTIONS"
+  expiry?: string; // For FNO trades e.g. "EXP 24 NOV"
   trade_type: TradeType;
-  trade_subtype?: TradeSubtype;  // SWING | INTRADAY | POSITIONAL
+  trade_subtype?: TradeSubtype; // SWING | INTRADAY | POSITIONAL
   direction: TradeDirection;
   entry_price: number;
   /** Optional support/resistance zone e.g. "2935 - 2945" */
   zone?: string;
-  target_price: number;       // First (primary) target
-  target_2_price?: number;    // Second target
+  target_price: number; // First (primary) target
+  target_2_price?: number; // Second target
   stop_loss_price: number;
   /** Current live market price */
   ltp?: number;
@@ -156,11 +156,11 @@ export interface DashboardMetrics {
     change_pct: number;
   };
   win_rate: {
-    value: number;       // Percentage e.g. 78.5
+    value: number; // Percentage e.g. 78.5
     change_pct: number;
   };
   monthly_revenue: {
-    value: number;       // In INR
+    value: number; // In INR
     change_pct: number;
   };
 }

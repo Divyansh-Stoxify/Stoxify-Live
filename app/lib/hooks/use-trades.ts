@@ -15,7 +15,7 @@ export function useActiveTrades(limit = 10) {
     `/trades/?status=ACTIVE&limit=${limit}`,
     swrFetcher,
     {
-      refreshInterval: 30_000,    // Poll every 30s for live price updates
+      refreshInterval: 30_000, // Poll every 30s for live price updates
       revalidateOnFocus: true,
     }
   );

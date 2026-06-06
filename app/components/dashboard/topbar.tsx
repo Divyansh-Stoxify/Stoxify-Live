@@ -25,22 +25,30 @@ interface TopbarProps {
  *
  * Sits 200px from the left to clear the fixed sidebar.
  */
-export function Topbar({ title, showSebiVerified = false, showUserProfile = false, actions }: TopbarProps) {
+export function Topbar({
+  title,
+  showSebiVerified = false,
+  showUserProfile = false,
+  actions,
+}: TopbarProps) {
   const { profile } = useAnalystProfile();
   const { openCreateTrade } = useDashboard();
 
   /** Returns initials from a full name: "Rohan Mehta" → "RM" */
   const initials = profile?.name
-    ? profile.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+    ? profile.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
     : "?";
 
   return (
     <header className="sticky top-0 z-[90] flex h-[60px] items-center border-b border-[var(--line)] bg-white/95 px-7 backdrop-blur-md">
       {/* ── Left: Title + Badge ── */}
       <div className="flex items-center gap-3">
-        <h1 className="text-[20px] font-bold tracking-[-0.3px] text-[var(--ink)]">
-          {title}
-        </h1>
+        <h1 className="text-[20px] font-bold tracking-[-0.3px] text-[var(--ink)]">{title}</h1>
 
         {/* SEBI Verified badge — matches the green pill in the Figma */}
         {showSebiVerified && (
@@ -87,7 +95,12 @@ export function Topbar({ title, showSebiVerified = false, showUserProfile = fals
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--brand)] text-[11px] font-extrabold text-white overflow-hidden">
               {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt={profile.name} className="h-full w-full object-cover" />
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={profile.avatar_url}
+                  alt={profile.name}
+                  className="h-full w-full object-cover"
+                />
               ) : (
                 initials
               )}

@@ -14,8 +14,8 @@ import type { Trade, Subscriber } from "@/app/lib/types";
 /** Formats a number as Indian currency: 450000 → ₹4.5L */
 function formatRevenue(value: number): string {
   if (value >= 10_00_000) return `₹${(value / 10_00_000).toFixed(1)}Cr`;
-  if (value >= 1_00_000)  return `₹${(value / 1_00_000).toFixed(1)}L`;
-  if (value >= 1_000)     return `₹${(value / 1_000).toFixed(1)}K`;
+  if (value >= 1_00_000) return `₹${(value / 1_00_000).toFixed(1)}L`;
+  if (value >= 1_000) return `₹${(value / 1_000).toFixed(1)}K`;
   return `₹${value}`;
 }
 
@@ -25,14 +25,19 @@ function relativeTime(isoDate: string): string {
   const mins = Math.floor(diff / 60_000);
   const hours = Math.floor(mins / 60);
   const days = Math.floor(hours / 24);
-  if (mins < 60)  return `${mins} min${mins !== 1 ? "s" : ""} ago`;
+  if (mins < 60) return `${mins} min${mins !== 1 ? "s" : ""} ago`;
   if (hours < 24) return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
   return `${days} day${days !== 1 ? "s" : ""} ago`;
 }
 
 /** Returns initials from a full name: "Priya Desai" → "PD" */
 function getInitials(name: string): string {
-  return name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 }
 
 /** Deterministic gradient for subscriber avatars based on name */
@@ -108,7 +113,9 @@ function TradeRow({ trade }: { trade: Trade }) {
       {/* Target / SL stacked */}
       <td className="py-4 px-4 text-[13px] text-[var(--ink)]">
         <div className="font-medium">{trade.target_price.toLocaleString("en-IN")}</div>
-        <div className="text-[11px] text-[var(--muted-2)]">{trade.stop_loss_price.toLocaleString("en-IN")}</div>
+        <div className="text-[11px] text-[var(--muted-2)]">
+          {trade.stop_loss_price.toLocaleString("en-IN")}
+        </div>
       </td>
 
       {/* PNL pill */}
@@ -165,8 +172,8 @@ function SubscriberRow({ subscriber }: { subscriber: Subscriber }) {
     subscriber.plan_name === "Premium"
       ? "bg-[#8B5CF6]"
       : subscriber.plan_name === "Pro"
-      ? "bg-[var(--brand)]"
-      : "bg-[var(--muted-2)]";
+        ? "bg-[var(--brand)]"
+        : "bg-[var(--muted-2)]";
 
   return (
     <div className="flex items-center gap-3 py-3 border-b border-[var(--line)] last:border-0">
@@ -222,7 +229,6 @@ export default function DashboardPage() {
 
       {/* ── Page body ── */}
       <div className="flex-1 p-6">
-
         {/* ── KPI Cards Row ── */}
         <div className="mb-6 grid grid-cols-4 gap-4 max-[1100px]:grid-cols-2 max-[640px]:grid-cols-1">
           {metricsLoading || !metrics ? (
@@ -275,7 +281,6 @@ export default function DashboardPage() {
 
         {/* ── Bottom row: Trades table + Recent Subscribers ── */}
         <div className="flex gap-4 max-[960px]:flex-col">
-
           {/* ── Left: Active Live Trades table ── */}
           <div className="flex-1 overflow-hidden rounded-xl border border-[var(--line)] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
             {/* Table header */}
@@ -337,9 +342,7 @@ export default function DashboardPage() {
                       </td>
                     </tr>
                   ) : (
-                    trades.map((trade) => (
-                      <TradeRow key={trade.trade_id} trade={trade} />
-                    ))
+                    trades.map((trade) => <TradeRow key={trade.trade_id} trade={trade} />)
                   )}
                 </tbody>
               </table>
@@ -364,7 +367,10 @@ export default function DashboardPage() {
               {subsLoading ? (
                 // Skeleton rows
                 Array.from({ length: 4 }).map((_, i) => (
-                  <div className="flex items-center gap-3 py-3 border-b border-[var(--line)] last:border-0" key={i}>
+                  <div
+                    className="flex items-center gap-3 py-3 border-b border-[var(--line)] last:border-0"
+                    key={i}
+                  >
                     <div className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-[var(--line)]" />
                     <div className="flex-1 space-y-1.5">
                       <div className="h-3 w-24 animate-pulse rounded bg-[var(--line)]" />

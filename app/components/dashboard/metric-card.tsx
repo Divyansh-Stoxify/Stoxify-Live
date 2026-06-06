@@ -55,10 +55,7 @@ export function MetricCard({
                 : "bg-[var(--red-light)] text-[var(--red)]"
             }`}
           >
-            <Icon
-              className="h-[9px] w-[9px]"
-              name={isPositive ? "trendingUp" : "trendingDown"}
-            />
+            <Icon className="h-[9px] w-[9px]" name={isPositive ? "trendingUp" : "trendingDown"} />
             {isPositive ? "+" : ""}
             {changePct}%
           </span>

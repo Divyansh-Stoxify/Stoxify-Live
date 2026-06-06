@@ -56,20 +56,11 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
       {/* Global Overlay Modal */}
       {isCreateTradeOpen && (
-        <CreateTradeModal
-          onClose={closeCreateTrade}
-          onSuccess={showSuccessToast}
-        />
+        <CreateTradeModal onClose={closeCreateTrade} onSuccess={showSuccessToast} />
       )}
 
       {/* Global Success Toast */}
-      {toast && (
-        <SuccessToast
-          message={toast.message}
-          onClose={closeToast}
-          title={toast.title}
-        />
-      )}
+      {toast && <SuccessToast message={toast.message} onClose={closeToast} title={toast.title} />}
     </DashboardContext.Provider>
   );
 }

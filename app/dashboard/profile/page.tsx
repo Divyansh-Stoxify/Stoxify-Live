@@ -9,10 +9,10 @@ import { Icon } from "@/app/components/stoxify-icon";
 
 const TABS = [
   { name: "Profile Information", icon: "user" as const },
-  { name: "SEBI Verification",    icon: "shieldCheck" as const },
-  { name: "Security",            icon: "lock" as const },
-  { name: "Notifications",       icon: "bell" as const },
-  { name: "Bank & Payouts",      icon: "bank" as const },
+  { name: "SEBI Verification", icon: "shieldCheck" as const },
+  { name: "Security", icon: "lock" as const },
+  { name: "Notifications", icon: "bell" as const },
+  { name: "Bank & Payouts", icon: "bank" as const },
 ];
 
 // Seed collection of beautiful avatar images to cycle through when user clicks "Change Avatar"
@@ -42,12 +42,14 @@ export default function ProfilePage() {
   useEffect(() => {
     if (profile) {
       const parts = profile.name.split(" ");
+      /* eslint-disable react-hooks/set-state-in-effect */
       setFirstName(parts[0] || "");
       setLastName(parts.slice(1).join(" ") || "");
       setBio(profile.bio || "");
       setTwitterUrl(profile.twitter_url || "");
       setLinkedinUrl(profile.linkedin_url || "");
       setAvatarUrl(profile.avatar_url || "");
+      /* eslint-enable react-hooks/set-state-in-effect */
     }
   }, [profile]);
 
@@ -164,6 +166,7 @@ export default function ProfilePage() {
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-full overflow-hidden bg-[var(--brand)] flex items-center justify-center text-white text-[18px] font-bold shadow-sm border border-slate-100">
                   {avatarUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
                     <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
                     initials
@@ -192,7 +195,10 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* First Name */}
                 <div>
-                  <label htmlFor="firstName" className="text-[12.5px] font-bold text-slate-700 mb-1.5 block">
+                  <label
+                    htmlFor="firstName"
+                    className="text-[12.5px] font-bold text-slate-700 mb-1.5 block"
+                  >
                     First Name
                   </label>
                   <input
@@ -206,7 +212,10 @@ export default function ProfilePage() {
 
                 {/* Last Name */}
                 <div>
-                  <label htmlFor="lastName" className="text-[12.5px] font-bold text-slate-700 mb-1.5 block">
+                  <label
+                    htmlFor="lastName"
+                    className="text-[12.5px] font-bold text-slate-700 mb-1.5 block"
+                  >
                     Last Name
                   </label>
                   <input
@@ -221,7 +230,10 @@ export default function ProfilePage() {
 
               {/* Email Address */}
               <div>
-                <label htmlFor="email" className="text-[12.5px] font-bold text-slate-700 mb-1.5 block">
+                <label
+                  htmlFor="email"
+                  className="text-[12.5px] font-bold text-slate-700 mb-1.5 block"
+                >
                   Email Address
                 </label>
                 <input
@@ -238,7 +250,10 @@ export default function ProfilePage() {
 
               {/* Bio */}
               <div>
-                <label htmlFor="bio" className="text-[12.5px] font-bold text-slate-700 mb-1.5 block">
+                <label
+                  htmlFor="bio"
+                  className="text-[12.5px] font-bold text-slate-700 mb-1.5 block"
+                >
                   Professional Bio
                 </label>
                 <textarea
@@ -254,7 +269,10 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* Twitter */}
                 <div>
-                  <label htmlFor="twitter" className="text-[12.5px] font-bold text-slate-700 mb-1.5 block">
+                  <label
+                    htmlFor="twitter"
+                    className="text-[12.5px] font-bold text-slate-700 mb-1.5 block"
+                  >
                     Twitter/X Profile URL
                   </label>
                   <input
@@ -269,7 +287,10 @@ export default function ProfilePage() {
 
                 {/* LinkedIn */}
                 <div>
-                  <label htmlFor="linkedin" className="text-[12.5px] font-bold text-slate-700 mb-1.5 block">
+                  <label
+                    htmlFor="linkedin"
+                    className="text-[12.5px] font-bold text-slate-700 mb-1.5 block"
+                  >
                     LinkedIn Profile URL
                   </label>
                   <input
@@ -472,8 +493,12 @@ export default function ProfilePage() {
                       <Icon className="h-5 w-5" name="bank" />
                     </div>
                     <div>
-                      <div className="text-[14px] font-bold text-slate-800 leading-tight">HDFC Bank Ltd.</div>
-                      <div className="text-[11.5px] text-slate-400 mt-0.5">Primary Receiving Account</div>
+                      <div className="text-[14px] font-bold text-slate-800 leading-tight">
+                        HDFC Bank Ltd.
+                      </div>
+                      <div className="text-[11.5px] text-slate-400 mt-0.5">
+                        Primary Receiving Account
+                      </div>
                     </div>
                   </div>
                   <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-[10.5px] font-bold text-green-600">
@@ -485,7 +510,9 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 text-[13px]">
                   <div>
                     <span className="text-slate-400 block mb-0.5">Account Holder Name</span>
-                    <span className="font-bold text-slate-800">{profile?.name || "Rohan Mehta"}</span>
+                    <span className="font-bold text-slate-800">
+                      {profile?.name || "Rohan Mehta"}
+                    </span>
                   </div>
                   <div>
                     <span className="text-slate-400 block mb-0.5">Account Number</span>
@@ -518,7 +545,10 @@ export default function ProfilePage() {
                   </button>
                   <button
                     onClick={() =>
-                      showSuccessToast("Request Sent", "Account removal request submitted to support.")
+                      showSuccessToast(
+                        "Request Sent",
+                        "Account removal request submitted to support."
+                      )
                     }
                     className="px-3 py-1.5 text-red-500 text-[12.5px] font-bold hover:text-red-600 transition-colors cursor-pointer bg-transparent border-none"
                     type="button"
@@ -536,8 +566,12 @@ export default function ProfilePage() {
                       <Icon className="h-5 w-5" name="fileText" />
                     </div>
                     <div>
-                      <div className="text-[14px] font-bold text-slate-800 leading-tight">Tax Information</div>
-                      <div className="text-[11.5px] text-slate-400 mt-0.5">PAN & TDS Details for statutory compliance</div>
+                      <div className="text-[14px] font-bold text-slate-800 leading-tight">
+                        Tax Information
+                      </div>
+                      <div className="text-[11.5px] text-slate-400 mt-0.5">
+                        PAN & TDS Details for statutory compliance
+                      </div>
                     </div>
                   </div>
                   <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-[10.5px] font-bold text-green-600">
@@ -553,7 +587,9 @@ export default function ProfilePage() {
                   </div>
                   <div>
                     <span className="text-slate-400 block mb-0.5">Name on PAN</span>
-                    <span className="font-bold text-slate-800">{profile?.name || "Rohan Mehta"}</span>
+                    <span className="font-bold text-slate-800">
+                      {profile?.name || "Rohan Mehta"}
+                    </span>
                   </div>
                 </div>
               </div>

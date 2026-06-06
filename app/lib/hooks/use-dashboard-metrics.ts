@@ -14,7 +14,7 @@ export function useDashboardMetrics() {
     "/analytics/dashboard/metrics",
     swrFetcher,
     {
-      refreshInterval: 60_000,  // Refresh every minute
+      refreshInterval: 60_000, // Refresh every minute
       revalidateOnFocus: true,
     }
   );
@@ -35,14 +35,10 @@ export function useDashboardMetrics() {
  * Backend endpoint: GET /users/me
  */
 export function useAnalystProfile() {
-  const { data, error, isLoading, mutate } = useSWR<AnalystProfile>(
-    "/users/me",
-    swrFetcher,
-    {
-      // Profile rarely changes — don't revalidate on every focus
-      revalidateOnFocus: false,
-    }
-  );
+  const { data, error, isLoading, mutate } = useSWR<AnalystProfile>("/users/me", swrFetcher, {
+    // Profile rarely changes — don't revalidate on every focus
+    revalidateOnFocus: false,
+  });
 
   return {
     profile: data ?? null,

@@ -1,4 +1,12 @@
-import type { AnalystProfile, DashboardMetrics, LiveTradesStats, Trade, Subscriber, SubscriptionPlan, SubscriptionPlansStats } from "./types";
+import type {
+  AnalystProfile,
+  DashboardMetrics,
+  LiveTradesStats,
+  Trade,
+  Subscriber,
+  SubscriptionPlan,
+  SubscriptionPlansStats,
+} from "./types";
 
 // ─── Mock Profile ─────────────────────────────────────────────────────────────
 
@@ -7,7 +15,8 @@ export let MOCK_PROFILE: AnalystProfile = {
   name: "Rohan Mehta",
   email: "rohan.mehta@stoxify.in",
   phone: "+91 98765 43210",
-  avatar_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200", // Smiling man with glasses headshot
+  avatar_url:
+    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200", // Smiling man with glasses headshot
   sebi_registration_number: "INH000008123",
   sebi_verified: true,
   user_type: "ANALYST",
@@ -114,18 +123,18 @@ export let MOCK_TRADES: Trade[] = [
     trade_type: "SIMPLE",
     trade_subtype: "SWING",
     direction: "LONG",
-    entry_price: 2940.50,
+    entry_price: 2940.5,
     zone: "2935 - 2945",
-    target_price: 3050.00,
-    target_2_price: 3120.00,
-    stop_loss_price: 2890.00,
-    ltp: 2985.20,
+    target_price: 3050.0,
+    target_2_price: 3120.0,
+    stop_loss_price: 2890.0,
+    ltp: 2985.2,
     ltp_change_pct: 1.52,
     risk_pct: 1.7,
     reward_pct: 3.7,
     reward_2_pct: 6.1,
     pnl_pct: 1.52,
-    pnl_per_unit: 44.70,
+    pnl_per_unit: 44.7,
     pnl_unit: "share",
     status: "ACTIVE",
     note: "Breaking above major resistance. Keep holding with trailing SL.",
@@ -142,17 +151,17 @@ export let MOCK_TRADES: Trade[] = [
     trade_type: "SIMPLE",
     trade_subtype: "INTRADAY",
     direction: "BUY",
-    entry_price: 320.00,
-    target_price: 420.00,
-    target_2_price: 500.00,
-    stop_loss_price: 260.00,
-    ltp: 295.50,
+    entry_price: 320.0,
+    target_price: 420.0,
+    target_2_price: 500.0,
+    stop_loss_price: 260.0,
+    ltp: 295.5,
     ltp_change_pct: -7.65,
     risk_pct: 18.7, // (320 - 260) / 320 = 18.75%
     reward_pct: 31.25,
     reward_2_pct: 56.25,
     pnl_pct: -7.65,
-    pnl_per_unit: -24.50,
+    pnl_per_unit: -24.5,
     pnl_unit: "lot",
     status: "ACTIVE",
     note: "Market reacting to RBI commentary. Volatility expected, maintain strict SL.",
@@ -169,18 +178,18 @@ export let MOCK_TRADES: Trade[] = [
     trade_type: "SIMPLE",
     trade_subtype: "INTRADAY",
     direction: "SHORT",
-    entry_price: 1425.00,
+    entry_price: 1425.0,
     zone: "1422 - 1428",
-    target_price: 1390.00,
-    target_2_price: 1375.00,
-    stop_loss_price: 1440.00,
-    ltp: 1412.30,
+    target_price: 1390.0,
+    target_2_price: 1375.0,
+    stop_loss_price: 1440.0,
+    ltp: 1412.3,
     ltp_change_pct: 0.89, // Short entry -> positive return as LTP drops
     risk_pct: 1.05,
     reward_pct: 2.4,
     reward_2_pct: 3.5,
     pnl_pct: 0.89,
-    pnl_per_unit: 12.70,
+    pnl_per_unit: 12.7,
     pnl_unit: "share",
     status: "ACTIVE",
     note: "Weak structure on 15m timeframe. Volume confirming the downward move.",
@@ -197,17 +206,17 @@ export let MOCK_TRADES: Trade[] = [
     trade_type: "SIMPLE",
     trade_subtype: "SWING",
     direction: "LONG",
-    entry_price: 1650.00,
-    target_price: 1750.00,
-    target_2_price: 1820.00,
-    stop_loss_price: 1590.00,
-    ltp: 1652.10,
+    entry_price: 1650.0,
+    target_price: 1750.0,
+    target_2_price: 1820.0,
+    stop_loss_price: 1590.0,
+    ltp: 1652.1,
     ltp_change_pct: 0.12,
     risk_pct: 3.63,
     reward_pct: 6.06,
     reward_2_pct: 10.3,
     pnl_pct: 0.12,
-    pnl_per_unit: 2.10,
+    pnl_per_unit: 2.1,
     pnl_unit: "share",
     status: "ACTIVE",
     note: "Consolidating near entry point. IT sector looks strong overall.",
@@ -225,12 +234,12 @@ export const MOCK_CLOSED_TRADES: Trade[] = [
     segment: "EQUITY",
     trade_type: "SIMPLE",
     direction: "LONG",
-    entry_price: 3850.00,
-    target_price: 4000.00,
-    stop_loss_price: 3780.00,
-    ltp: 4015.00,
-    pnl_pct: 3.90,
-    pnl_per_unit: 165.00,
+    entry_price: 3850.0,
+    target_price: 4000.0,
+    stop_loss_price: 3780.0,
+    ltp: 4015.0,
+    pnl_pct: 3.9,
+    pnl_per_unit: 165.0,
     pnl_unit: "share",
     status: "TARGET_HIT",
     created_at: new Date(Date.now() - 86400_000 * 5).toISOString(),
@@ -243,12 +252,12 @@ export const MOCK_CLOSED_TRADES: Trade[] = [
     segment_label: "FNO - OPTIONS",
     trade_type: "SIMPLE",
     direction: "BUY",
-    entry_price: 120.00,
-    target_price: 200.00,
-    stop_loss_price: 80.00,
-    ltp: 80.00,
+    entry_price: 120.0,
+    target_price: 200.0,
+    stop_loss_price: 80.0,
+    ltp: 80.0,
     pnl_pct: -33.33,
-    pnl_per_unit: -40.00,
+    pnl_per_unit: -40.0,
     pnl_unit: "lot",
     status: "SL_HIT",
     created_at: new Date(Date.now() - 86400_000 * 2).toISOString(),
@@ -257,7 +266,7 @@ export const MOCK_CLOSED_TRADES: Trade[] = [
 ];
 
 // Helper to match API paths to mock data returns
-export function getMockResponse(path: string): any {
+export function getMockResponse(path: string): unknown {
   const cleanPath = path.split("?")[0];
 
   if (cleanPath === "/users/me") {
@@ -377,9 +386,7 @@ export function getMockPlansStats(): SubscriptionPlansStats {
 }
 
 export function updateMockPlanStatus(planId: string, status: "ACTIVE" | "INACTIVE"): void {
-  MOCK_PLANS = MOCK_PLANS.map((plan) =>
-    plan.plan_id === planId ? { ...plan, status } : plan
-  );
+  MOCK_PLANS = MOCK_PLANS.map((plan) => (plan.plan_id === planId ? { ...plan, status } : plan));
 }
 
 export function createMockPlan(plan: Omit<SubscriptionPlan, "plan_id" | "created_at">): void {
@@ -391,9 +398,11 @@ export function createMockPlan(plan: Omit<SubscriptionPlan, "plan_id" | "created
   MOCK_PLANS = [...MOCK_PLANS, newPlan];
 }
 
-export function updateMockPlan(planId: string, planData: Partial<Omit<SubscriptionPlan, "plan_id">>): void {
+export function updateMockPlan(
+  planId: string,
+  planData: Partial<Omit<SubscriptionPlan, "plan_id">>
+): void {
   MOCK_PLANS = MOCK_PLANS.map((plan) =>
     plan.plan_id === planId ? { ...plan, ...planData } : plan
   );
 }
-

@@ -16,11 +16,7 @@ export const metadata = {
   title: "Dashboard — Stoxify",
 };
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <DashboardProvider>
       <div className="flex min-h-screen bg-[var(--surface)]">
@@ -32,9 +28,7 @@ export default function DashboardLayout({
          * The topbar and page content are rendered inside each page via
          * the Topbar component so the title can be dynamic per-page.
          */}
-        <main className="ml-[200px] flex min-h-screen flex-1 flex-col">
-          {children}
-        </main>
+        <main className="ml-[200px] flex min-h-screen flex-1 flex-col">{children}</main>
       </div>
     </DashboardProvider>
   );

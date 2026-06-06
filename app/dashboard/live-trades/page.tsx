@@ -25,14 +25,20 @@ function formatCreatedTime(isoDate: string): string {
   const d = new Date(isoDate);
   const now = new Date();
   const isToday = d.toDateString() === now.toDateString();
-  const timeStr = d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+  const timeStr = d.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
   return isToday ? timeStr : `Yesterday, ${timeStr}`;
 }
 
 /** Color class for direction/subtype badges */
 function directionBadgeClass(dir: string): string {
-  if (dir === "LONG" || dir === "BUY") return "bg-[var(--green-light)] text-[var(--green)] border border-[var(--green)]/20";
-  if (dir === "SHORT" || dir === "SELL") return "bg-[var(--red-light)] text-[var(--red)] border border-[var(--red)]/20";
+  if (dir === "LONG" || dir === "BUY")
+    return "bg-[var(--green-light)] text-[var(--green)] border border-[var(--green)]/20";
+  if (dir === "SHORT" || dir === "SELL")
+    return "bg-[var(--red-light)] text-[var(--red)] border border-[var(--red)]/20";
   return "bg-[var(--brand-light)] text-[var(--brand)] border border-[var(--brand)]/20";
 }
 
@@ -60,7 +66,9 @@ function StatStrip({
   return (
     <div className="flex-1 rounded-xl border border-[var(--line)] bg-white px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
       <div className="mb-1 text-[11.5px] font-medium text-[var(--muted)]">{label}</div>
-      <div className={`text-[22px] font-extrabold leading-tight tracking-[-0.5px] ${valueClass}`}>{value}</div>
+      <div className={`text-[22px] font-extrabold leading-tight tracking-[-0.5px] ${valueClass}`}>
+        {value}
+      </div>
       {sub && <div className="mt-1 text-[11px] font-semibold text-[var(--green)]">{sub}</div>}
     </div>
   );
@@ -83,11 +91,12 @@ function TradeCard({ trade }: { trade: Trade }) {
 
   return (
     <div className="rounded-xl border border-[var(--line)] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)] overflow-hidden">
-
       {/* ── Card Header: symbol + badges + live indicator ── */}
       <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[var(--line)]">
         {/* Symbol */}
-        <span className="text-[14px] font-extrabold tracking-tight text-[var(--ink)]">{trade.symbol}</span>
+        <span className="text-[14px] font-extrabold tracking-tight text-[var(--ink)]">
+          {trade.symbol}
+        </span>
 
         {/* Segment label */}
         <span className="text-[11px] font-semibold text-[var(--muted-2)]">
@@ -95,13 +104,17 @@ function TradeCard({ trade }: { trade: Trade }) {
         </span>
 
         {/* Direction badge: LONG / SHORT / BUY / SELL */}
-        <span className={`inline-flex items-center rounded px-2 py-0.5 text-[10.5px] font-bold uppercase ${directionBadgeClass(trade.direction)}`}>
+        <span
+          className={`inline-flex items-center rounded px-2 py-0.5 text-[10.5px] font-bold uppercase ${directionBadgeClass(trade.direction)}`}
+        >
           {trade.direction}
         </span>
 
         {/* Subtype badge: SWING / INTRADAY / POSITIONAL */}
         {trade.trade_subtype && (
-          <span className={`inline-flex items-center rounded px-2 py-0.5 text-[10.5px] font-bold uppercase ${subtypeBadgeClass(trade.trade_subtype)}`}>
+          <span
+            className={`inline-flex items-center rounded px-2 py-0.5 text-[10.5px] font-bold uppercase ${subtypeBadgeClass(trade.trade_subtype)}`}
+          >
             {trade.trade_subtype}
           </span>
         )}
@@ -128,7 +141,6 @@ function TradeCard({ trade }: { trade: Trade }) {
 
       {/* ── Card Body: 5-column price grid ── */}
       <div className="grid grid-cols-5 gap-0 px-5 py-4 max-[900px]:grid-cols-2 max-[900px]:gap-4">
-
         {/* Col 1: Entry Price */}
         <div>
           <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.07em] text-[var(--muted-2)]">
@@ -148,12 +160,17 @@ function TradeCard({ trade }: { trade: Trade }) {
           <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.07em] text-[var(--muted-2)]">
             Live CMP
           </div>
-          <div className={`text-[15px] font-bold ${ltpUp ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
+          <div
+            className={`text-[15px] font-bold ${ltpUp ? "text-[var(--green)]" : "text-[var(--red)]"}`}
+          >
             {inr(trade.ltp)}
           </div>
           {trade.ltp_change_pct !== undefined && (
-            <div className={`mt-0.5 text-[11px] font-semibold ${trade.ltp_change_pct >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
-              {trade.ltp_change_pct >= 0 ? "+" : ""}{trade.ltp_change_pct.toFixed(2)}%
+            <div
+              className={`mt-0.5 text-[11px] font-semibold ${trade.ltp_change_pct >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}
+            >
+              {trade.ltp_change_pct >= 0 ? "+" : ""}
+              {trade.ltp_change_pct.toFixed(2)}%
             </div>
           )}
         </div>
@@ -163,9 +180,13 @@ function TradeCard({ trade }: { trade: Trade }) {
           <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.07em] text-[var(--muted-2)]">
             Stop Loss
           </div>
-          <div className="text-[15px] font-bold text-[var(--ink)]">{inr(trade.stop_loss_price)}</div>
+          <div className="text-[15px] font-bold text-[var(--ink)]">
+            {inr(trade.stop_loss_price)}
+          </div>
           {trade.risk_pct !== undefined && (
-            <div className="mt-0.5 text-[11px] text-[var(--muted-2)]">Risk: {trade.risk_pct.toFixed(1)}%</div>
+            <div className="mt-0.5 text-[11px] text-[var(--muted-2)]">
+              Risk: {trade.risk_pct.toFixed(1)}%
+            </div>
           )}
         </div>
 
@@ -176,14 +197,11 @@ function TradeCard({ trade }: { trade: Trade }) {
           </div>
           <div className="text-[15px] font-bold text-[var(--ink)]">
             {inr(trade.target_price, 0)}
-            {trade.target_2_price && (
-              <> / {inr(trade.target_2_price, 0)}</>
-            )}
+            {trade.target_2_price && <> / {inr(trade.target_2_price, 0)}</>}
           </div>
           {(trade.reward_pct !== undefined || trade.reward_2_pct !== undefined) && (
             <div className="mt-0.5 text-[11px] text-[var(--muted-2)]">
-              Reward:{" "}
-              {trade.reward_pct?.toFixed(1)}%
+              Reward: {trade.reward_pct?.toFixed(1)}%
               {trade.reward_2_pct !== undefined && ` / ${trade.reward_2_pct.toFixed(1)}%`}
             </div>
           )}
@@ -196,8 +214,11 @@ function TradeCard({ trade }: { trade: Trade }) {
           </div>
           {trade.pnl_per_unit !== undefined ? (
             <>
-              <div className={`text-[15px] font-bold ${pnlUp ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
-                {pnlUp ? "+" : ""}₹{Math.abs(trade.pnl_per_unit).toFixed(2)} / {trade.pnl_unit ?? "share"}
+              <div
+                className={`text-[15px] font-bold ${pnlUp ? "text-[var(--green)]" : "text-[var(--red)]"}`}
+              >
+                {pnlUp ? "+" : ""}₹{Math.abs(trade.pnl_per_unit).toFixed(2)} /{" "}
+                {trade.pnl_unit ?? "share"}
               </div>
               {/* Thin progress bar */}
               <div className="mt-2 h-1 w-full rounded-full bg-[var(--line)]">
@@ -223,10 +244,11 @@ function TradeCard({ trade }: { trade: Trade }) {
             type="checkbox"
           />
           <span className="truncate">
-            {trade.note
-              ? `Note: ${trade.note}`
-              : <span className="italic text-[var(--muted-2)]">No note added</span>
-            }
+            {trade.note ? (
+              `Note: ${trade.note}`
+            ) : (
+              <span className="italic text-[var(--muted-2)]">No note added</span>
+            )}
           </span>
         </label>
 
@@ -293,29 +315,40 @@ function ClosedTradeRow({ trade }: { trade: Trade }) {
     <tr className="border-b border-[var(--line)] last:border-0 hover:bg-[var(--surface)] transition-colors">
       <td className="py-3.5 pl-5 text-[13px] font-bold text-[var(--ink)]">{trade.symbol}</td>
       <td className="py-3.5 px-4">
-        <span className={`inline-flex rounded px-2 py-0.5 text-[10.5px] font-bold ${directionBadgeClass(trade.direction)}`}>
+        <span
+          className={`inline-flex rounded px-2 py-0.5 text-[10.5px] font-bold ${directionBadgeClass(trade.direction)}`}
+        >
           {trade.direction}
         </span>
       </td>
       <td className="py-3.5 px-4 text-[13px] text-[var(--ink)]">{inr(trade.entry_price)}</td>
       <td className="py-3.5 px-4 text-[13px] text-[var(--ink)]">{inr(trade.ltp)}</td>
       <td className="py-3.5 px-4">
-        <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${pnlUp ? "bg-[var(--green-light)] text-[var(--green)]" : "bg-[var(--red-light)] text-[var(--red)]"}`}>
-          {pnlUp ? "+" : ""}{trade.pnl_pct?.toFixed(2) ?? "0.00"}%
+        <span
+          className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${pnlUp ? "bg-[var(--green-light)] text-[var(--green)]" : "bg-[var(--red-light)] text-[var(--red)]"}`}
+        >
+          {pnlUp ? "+" : ""}
+          {trade.pnl_pct?.toFixed(2) ?? "0.00"}%
         </span>
       </td>
       <td className="py-3.5 px-4 text-[11px] text-[var(--muted-2)]">
         {new Date(trade.updated_at).toLocaleDateString("en-IN")}
       </td>
       <td className="py-3.5 pr-5">
-        <span className={`text-[11px] font-semibold ${
-          trade.status === "TARGET_HIT" ? "text-[var(--green)]" :
-          trade.status === "SL_HIT"     ? "text-[var(--red)]" :
-          "text-[var(--muted)]"
-        }`}>
-          {trade.status === "TARGET_HIT" ? "Target Hit" :
-           trade.status === "SL_HIT"     ? "SL Hit" :
-           "Manually Closed"}
+        <span
+          className={`text-[11px] font-semibold ${
+            trade.status === "TARGET_HIT"
+              ? "text-[var(--green)]"
+              : trade.status === "SL_HIT"
+                ? "text-[var(--red)]"
+                : "text-[var(--muted)]"
+          }`}
+        >
+          {trade.status === "TARGET_HIT"
+            ? "Target Hit"
+            : trade.status === "SL_HIT"
+              ? "SL Hit"
+              : "Manually Closed"}
         </span>
       </td>
     </tr>
@@ -329,14 +362,23 @@ export default function LiveTradesPage() {
   const { openCreateTrade } = useDashboard();
 
   const { stats, isLoading: statsLoading } = useLiveTradesStats();
-  const { trades: activeTrades, total: activeTotal, isLoading: activeLoading, isError: activeError } = useActiveTrades(20);
-  const { trades: pendingTrades, total: pendingTotal, isLoading: pendingLoading } = usePendingTrades();
+  const {
+    trades: activeTrades,
+    total: activeTotal,
+    isLoading: activeLoading,
+    isError: activeError,
+  } = useActiveTrades(20);
+  const {
+    trades: pendingTrades,
+    total: pendingTotal,
+    isLoading: pendingLoading,
+  } = usePendingTrades();
   const { trades: closedTrades, isLoading: closedLoading } = useClosedTrades();
 
   const TAB_OPTIONS: { id: TabId; label: string; count?: number }[] = [
-    { id: "active",  label: "Active",        count: activeTotal },
-    { id: "pending", label: "Pending",        count: pendingTotal },
-    { id: "closed",  label: "Closed History" },
+    { id: "active", label: "Active", count: activeTotal },
+    { id: "pending", label: "Pending", count: pendingTotal },
+    { id: "closed", label: "Closed History" },
   ];
 
   return (
@@ -346,7 +388,6 @@ export default function LiveTradesPage() {
 
       {/* ── Page body ── */}
       <div className="flex-1 p-6">
-
         {/* ── Page header: title + subtitle + Create Trade button ── */}
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
@@ -378,10 +419,7 @@ export default function LiveTradesPage() {
             </>
           ) : (
             <>
-              <StatStrip
-                label="Total Active Trades"
-                value={String(stats.total_active)}
-              />
+              <StatStrip label="Total Active Trades" value={String(stats.total_active)} />
               <StatStrip
                 label="Avg. Win Rate (Monthly)"
                 value={`${stats.avg_win_rate_monthly}%`}
@@ -416,11 +454,13 @@ export default function LiveTradesPage() {
             >
               {tab.label}
               {tab.count !== undefined && (
-                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                  activeTab === tab.id
-                    ? "bg-[var(--brand-light)] text-[var(--brand)]"
-                    : "bg-[var(--line)] text-[var(--muted)]"
-                }`}>
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                    activeTab === tab.id
+                      ? "bg-[var(--brand-light)] text-[var(--brand)]"
+                      : "bg-[var(--line)] text-[var(--muted)]"
+                  }`}
+                >
                   {tab.count}
                 </span>
               )}
@@ -456,9 +496,7 @@ export default function LiveTradesPage() {
                 </p>
               </div>
             ) : (
-              activeTrades.map((trade) => (
-                <TradeCard key={trade.trade_id} trade={trade} />
-              ))
+              activeTrades.map((trade) => <TradeCard key={trade.trade_id} trade={trade} />)
             )}
           </div>
         )}
@@ -476,9 +514,7 @@ export default function LiveTradesPage() {
                 </p>
               </div>
             ) : (
-              pendingTrades.map((trade) => (
-                <TradeCard key={trade.trade_id} trade={trade} />
-              ))
+              pendingTrades.map((trade) => <TradeCard key={trade.trade_id} trade={trade} />)
             )}
           </div>
         )}
@@ -489,42 +525,46 @@ export default function LiveTradesPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--line)]">
-                  {["Symbol", "Direction", "Entry", "Exit CMP", "PNL", "Date", "Outcome"].map((col) => (
-                    <th
-                      className="py-3 pl-5 pr-4 text-left text-[10.5px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]"
-                      key={col}
-                    >
-                      {col}
-                    </th>
-                  ))}
+                  {["Symbol", "Direction", "Entry", "Exit CMP", "PNL", "Date", "Outcome"].map(
+                    (col) => (
+                      <th
+                        className="py-3 pl-5 pr-4 text-left text-[10.5px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]"
+                        key={col}
+                      >
+                        {col}
+                      </th>
+                    )
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {closedLoading ? (
                   <tr>
-                    <td className="px-5 py-8 text-center text-[13px] text-[var(--muted-2)]" colSpan={7}>
+                    <td
+                      className="px-5 py-8 text-center text-[13px] text-[var(--muted-2)]"
+                      colSpan={7}
+                    >
                       Loading history…
                     </td>
                   </tr>
                 ) : closedTrades.length === 0 ? (
                   <tr>
                     <td className="px-5 py-12 text-center" colSpan={7}>
-                      <div className="text-[14px] font-semibold text-[var(--ink)]">No closed trades yet</div>
+                      <div className="text-[14px] font-semibold text-[var(--ink)]">
+                        No closed trades yet
+                      </div>
                       <p className="mt-1 text-[12.5px] text-[var(--muted-2)]">
                         Trades you close will appear here with their outcome.
                       </p>
                     </td>
                   </tr>
                 ) : (
-                  closedTrades.map((trade) => (
-                    <ClosedTradeRow key={trade.trade_id} trade={trade} />
-                  ))
+                  closedTrades.map((trade) => <ClosedTradeRow key={trade.trade_id} trade={trade} />)
                 )}
               </tbody>
             </table>
           </div>
         )}
-
       </div>
     </>
   );

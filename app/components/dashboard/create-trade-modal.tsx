@@ -64,7 +64,7 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
     s.symbol.toLowerCase().includes(symbolQuery.toLowerCase())
   );
 
-  const handleSelectSymbol = (item: typeof POPULAR_SYMBOLS[0]) => {
+  const handleSelectSymbol = (item: (typeof POPULAR_SYMBOLS)[0]) => {
     setSymbolQuery(item.symbol);
     setSegment(item.segment as "EQUITY" | "FNO");
     setShowAutocomplete(false);
@@ -194,7 +194,6 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
   return (
     <div className="fixed inset-0 z-[9990] flex items-center justify-center bg-black/45 backdrop-blur-[2px] p-4 animate-[fadeIn_0.2s_ease-out]">
       <div className="relative w-[520px] max-w-full rounded-2xl bg-white shadow-[0_24px_64px_rgba(0,0,0,0.15)] border border-[var(--line)] overflow-hidden">
-        
         {/* Header */}
         <div className="px-6 py-4.5 flex items-center justify-between border-b border-dashed border-[#1f7ae0]/25">
           <h2 className="text-[16.5px] font-bold text-[var(--ink)] tracking-[-0.2px]">
@@ -213,17 +212,21 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
         {/* Form */}
         <form onSubmit={handleSubmit}>
           <div className="p-6 flex flex-col gap-4">
-            
             {/* Instrument Symbol Search */}
             <div className="relative" ref={autocompleteRef}>
               <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em] mb-1.5">
                 Instrument Symbol
               </label>
               <div className="relative">
-                <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-2)] h-4 w-4" name="search" />
+                <Icon
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-2)] h-4 w-4"
+                  name="search"
+                />
                 <input
                   className={`w-full rounded-lg border bg-white py-2.5 pl-10 pr-4 text-[13px] text-[var(--ink)] transition-all placeholder:text-[var(--muted-2)] focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
-                    errors.symbol ? "border-[var(--red)] ring-[var(--red)]/20" : "border-[var(--line)]"
+                    errors.symbol
+                      ? "border-[var(--red)] ring-[var(--red)]/20"
+                      : "border-[var(--line)]"
                   }`}
                   onFocus={() => setShowAutocomplete(true)}
                   onChange={(e) => {
@@ -374,7 +377,10 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
                     <option value="INTRADAY">Intraday</option>
                     <option value="SWING">Swing</option>
                   </select>
-                  <Icon className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-2)] pointer-events-none h-3 w-3" name="chevronDown" />
+                  <Icon
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-2)] pointer-events-none h-3 w-3"
+                    name="chevronDown"
+                  />
                 </div>
               </div>
             </div>
@@ -476,7 +482,6 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
                 value={notes}
               />
             </div>
-
           </div>
 
           {/* Footer Actions */}
@@ -505,7 +510,6 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
             </button>
           </div>
         </form>
-
       </div>
 
       {/* Local animation keyframe defined inside style */}
