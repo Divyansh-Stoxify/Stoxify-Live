@@ -3,37 +3,93 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { userCookieNames } from "@/lib/auth/cookies";
+
 import { Icon } from "./stoxify-icon";
 
-type NavUser = { name: string; email: string } | null;
+type NavUser = {
+  user_id?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+} | null;
 
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((w) => w[0])
+function getUserLabel(user: Exclude<NavUser, null>): string {
+  return user.name?.trim() || user.email?.trim() || user.phone?.trim() || user.user_id?.trim() || "Account";
+}
+
+function getInitials(value: string): string {
+  const parts = value.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "A";
+  if (parts.length === 1) {
+    const compact = parts[0].replace(/[^a-zA-Z0-9]/g, "");
+    return (compact || parts[0]).slice(0, 2).toUpperCase();
+  }
+  return parts
+    .slice(0, 2)
+    .map((part) => part[0])
     .join("")
-    .toUpperCase()
-    .slice(0, 2);
+    .toUpperCase();
+}
+
+function normalizeNavUser(value: unknown): Exclude<NavUser, null> | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Record<string, unknown>;
+  const user = {
+    user_id: typeof candidate.user_id === "string" ? candidate.user_id : "",
+    name: typeof candidate.name === "string" ? candidate.name : "",
+    email: typeof candidate.email === "string" ? candidate.email : "",
+    phone: typeof candidate.phone === "string" ? candidate.phone : "",
+  };
+  return user.name || user.email || user.phone || user.user_id ? user : null;
+}
+
+function readCookieNavUser(): Exclude<NavUser, null> | null {
+  if (typeof document === "undefined") return null;
+  const raw = document.cookie
+    .split("; ")
+    .find((r) => r.startsWith(`${userCookieNames.userInfo}=`))
+    ?.split("=")
+    .slice(1)
+    .join("=");
+
+  if (!raw) return null;
+
+  try {
+    return normalizeNavUser(JSON.parse(decodeURIComponent(raw)));
+  } catch {
+    return null;
+  }
 }
 
 function useNavUser(): NavUser {
-  const [user, setUser] = useState<NavUser>(null);
+  const [user, setUser] = useState<NavUser>(() => readCookieNavUser());
+
   useEffect(() => {
-    const raw = document.cookie
-      .split("; ")
-      .find((r) => r.startsWith("stoxify_user_info="))
-      ?.split("=")
-      .slice(1)
-      .join("=");
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(decodeURIComponent(raw)) as NavUser;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (parsed?.email) setUser(parsed);
-    } catch {
-      // ignore malformed cookie
-    }
-  }, []);
+    if (user) return;
+
+    const controller = new AbortController();
+
+    void fetch("/api/auth/me", {
+      credentials: "same-origin",
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return (await response.json().catch(() => null)) as { user?: unknown } | null;
+      })
+      .then((data) => {
+        const parsed = normalizeNavUser(data?.user);
+        if (parsed) setUser(parsed);
+      })
+      .catch(() => {
+        // ignore missing/expired sessions
+      });
+
+    return () => controller.abort();
+  }, [user]);
+
   return user;
 }
 
@@ -54,6 +110,7 @@ export function StoxifyNav({
 }) {
   const [open, setOpen] = useState(false);
   const navUser = useNavUser();
+  const navUserLabel = navUser ? getUserLabel(navUser) : "";
 
   const closeMenu = () => setOpen(false);
   const activeLink =
@@ -133,10 +190,10 @@ export function StoxifyNav({
           {navUser ? (
             <Link
               href="/dashboard"
-              title={navUser.name || navUser.email}
+              title={navUserLabel}
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--brand)] text-[11px] font-extrabold text-white hover:opacity-90 transition-opacity select-none max-[860px]:hidden"
             >
-              {getInitials(navUser.name || navUser.email)}
+              {getInitials(navUserLabel)}
             </Link>
           ) : (
             <Link
