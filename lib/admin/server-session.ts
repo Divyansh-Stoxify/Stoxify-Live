@@ -3,9 +3,13 @@ import "server-only";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
-import { backendUrls, signedBackendFetch } from "@/lib/admin/backend";
+import { backendUrls, signedBackendFetch } from "@/lib/backend/index";
+import { clientIpFromRequest, forwardedIpHeaders } from "@/lib/backend/index";
 import { adminCookieNames, adminCookieOptions } from "@/lib/admin/cookies";
 import type { AdminSessionPayload, AdminUser } from "@/lib/admin/session-shared";
+
+// Re-export so existing admin route imports don't need to change.
+export { clientIpFromRequest, forwardedIpHeaders };
 
 type JwtPayload = {
   user_id?: string;
@@ -39,22 +43,6 @@ export function decodeJwtPayload(token: string): JwtPayload | null {
   } catch {
     return null;
   }
-}
-
-export function clientIpFromRequest(request: NextRequest) {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
-    request.headers.get("x-real-ip") ||
-    "unknown"
-  );
-}
-
-export function forwardedIpHeaders(request: NextRequest) {
-  const ip = clientIpFromRequest(request);
-  return {
-    "X-Forwarded-For": ip,
-    "X-Real-IP": ip,
-  };
 }
 
 export async function clearAdminCookies(response: NextResponse) {
