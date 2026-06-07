@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Icon } from "@/app/components/stoxify-icon";
 import { useAnalystProfile } from "@/app/lib/hooks/use-dashboard-metrics";
 import { useDashboard } from "@/app/components/dashboard/dashboard-context";
@@ -95,10 +96,11 @@ export function Topbar({
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--brand)] text-[11px] font-extrabold text-white overflow-hidden">
               {profile?.avatar_url ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
+                <Image
                   src={profile.avatar_url}
                   alt={profile.name}
+                  width={36}
+                  height={36}
                   className="h-full w-full object-cover"
                 />
               ) : (

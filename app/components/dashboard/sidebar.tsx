@@ -24,7 +24,7 @@ const MAIN_NAV_ITEMS = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { total: activeTradesCount } = useActiveTrades();
+  const { total: activeTradesCount } = useActiveTrades(9999);
 
   // A nav item is "active" if the current path exactly matches it,
   // or if we're on a sub-path

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { adminCookieNames } from "@/lib/admin/cookies";
 import { adminSecurityHeaders } from "@/lib/admin/security-headers";
+import { jwtVerify } from "jose";
+
+const MOCK_SECRET = new TextEncoder().encode("mock_stoxify_secret_key_123!");
 
 function withAdminHeaders(response: NextResponse): NextResponse {
   for (const [key, value] of Object.entries(adminSecurityHeaders)) {
@@ -23,7 +26,7 @@ function withAdminHeaders(response: NextResponse): NextResponse {
  *     validated by the backend on every API request via Bearer token.
  *   - On logout, both localStorage entry and cookie are cleared.
  */
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Admin route protection
@@ -44,6 +47,20 @@ export function middleware(request: NextRequest) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("next", pathname);
       return NextResponse.redirect(loginUrl);
+    }
+
+    try {
+      await jwtVerify(token, MOCK_SECRET);
+      // Valid token, proceed and apply security headers
+      return withAdminHeaders(NextResponse.next());
+    } catch (err) {
+      // Invalid token → redirect to login
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("next", pathname);
+      const response = NextResponse.redirect(loginUrl);
+      // Clear the invalid cookie
+      response.cookies.delete("auth_token");
+      return response;
     }
   }
 

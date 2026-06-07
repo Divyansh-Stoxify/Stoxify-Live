@@ -105,7 +105,7 @@ export function PlanModal({ plan, onClose, onSave }: PlanModalProps) {
         </div>
 
         {/* Form Body */}
-        <form className="flex flex-col gap-4.5" onSubmit={handleSubmit}>
+        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           {/* Plan Name */}
           <div className="flex flex-col gap-1.5">
             <label className="text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-wider">
@@ -197,7 +197,7 @@ export function PlanModal({ plan, onClose, onSave }: PlanModalProps) {
           {/* Footer Actions */}
           <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-[var(--line)]">
             <button
-              className="rounded-lg border border-[var(--line)] bg-white px-4.5 py-2 text-[13px] font-bold text-[var(--muted)] hover:bg-[var(--surface)] transition-all cursor-pointer"
+              className="rounded-lg border border-[var(--line)] bg-white px-4 py-2 text-[13px] font-bold text-[var(--muted)] hover:bg-[var(--surface)] transition-all cursor-pointer"
               onClick={onClose}
               type="button"
             >
@@ -235,18 +235,6 @@ export function PlanModal({ plan, onClose, onSave }: PlanModalProps) {
           </div>
         </form>
       </div>
-
-      {/* Local animation keyframe defined inside style */}
-      <style jsx>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-      `}</style>
     </div>
   );
 }

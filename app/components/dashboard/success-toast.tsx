@@ -17,7 +17,7 @@ interface SuccessToastProps {
 export function SuccessToast({ title, message, onClose }: SuccessToastProps) {
   return (
     <div
-      className="fixed right-6 top-[72px] z-[9999] flex w-[420px] max-w-[calc(100vw-48px)] animate-[slideIn_0.3s_ease-out] rounded-xl border border-[var(--green)]/35 bg-white p-4.5 shadow-[0_12px_32px_-4px_rgba(0,0,0,0.08),0_4px_12px_-2px_rgba(0,0,0,0.03)] transition-all"
+      className="fixed right-6 top-[72px] z-[9999] flex w-[420px] max-w-[calc(100vw-48px)] animate-[slideIn_0.3s_ease-out] rounded-xl border border-[var(--green)]/35 bg-white p-4 shadow-[0_12px_32px_-4px_rgba(0,0,0,0.08),0_4px_12px_-2px_rgba(0,0,0,0.03)] transition-all"
       role="alert"
     >
       {/* Green Check Indicator */}
@@ -40,20 +40,6 @@ export function SuccessToast({ title, message, onClose }: SuccessToastProps) {
       >
         <Icon className="h-3 w-3" name="x" />
       </button>
-
-      {/* CSS Animation keyframe defined locally or in layout */}
-      <style jsx global>{`
-        @keyframes slideIn {
-          from {
-            transform: translateY(-16px);
-            opacity: 0;
-          }
-          to {
-            transform: translateY(0);
-            opacity: 1;
-          }
-        }
-      `}</style>
     </div>
   );
 }

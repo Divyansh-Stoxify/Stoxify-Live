@@ -372,10 +372,7 @@ export function getMockPlansStats(): SubscriptionPlansStats {
     mrr += Math.round(monthlyPrice * plan.subscribers_count);
   });
 
-  // Adjust MRR with offset to match Figma's exact 8,55,000 when all three default plans are active
-  if (isBasicActive && isQuarterlyActive && isAnnualActive && MOCK_PLANS.length === 4) {
-    mrr = 855000;
-  }
+
 
   return {
     total_subscribers: totalSubscribers,

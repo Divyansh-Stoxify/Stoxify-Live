@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { Topbar } from "@/app/components/dashboard/topbar";
 import { MetricCard, MetricCardSkeleton } from "@/app/components/dashboard/metric-card";
@@ -159,7 +160,7 @@ function TradeRowSkeleton() {
     <tr className="border-b border-[var(--line)]">
       {[5, 4, 3, 4, 3, 4, 5].map((w, i) => (
         <td className="py-4 px-4" key={i}>
-          <div className={`h-4 w-${w * 4} animate-pulse rounded bg-[var(--line)]`} />
+          <div className="h-4 animate-pulse rounded bg-[var(--line)]" style={{ width: `${w}rem` }} />
         </td>
       ))}
     </tr>
@@ -179,11 +180,12 @@ function SubscriberRow({ subscriber }: { subscriber: Subscriber }) {
     <div className="flex items-center gap-3 py-3 border-b border-[var(--line)] last:border-0">
       {/* Avatar */}
       {subscriber.user_avatar ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           alt={subscriber.user_name}
           className="h-9 w-9 shrink-0 rounded-full object-cover"
           src={subscriber.user_avatar}
+          width={36}
+          height={36}
         />
       ) : (
         <div
@@ -208,7 +210,7 @@ function SubscriberRow({ subscriber }: { subscriber: Subscriber }) {
       </div>
 
       {/* Time ago */}
-      <div className="shrink-0 text-[11px] text-[var(--muted-2)] text-right leading-snug">
+      <div className="shrink-0 text-[11px] text-[var(--muted-2)] text-right leading-snug whitespace-pre-line">
         {relativeTime(subscriber.subscribed_at).split(" ").slice(0, 2).join("\n")}
       </div>
     </div>

@@ -98,11 +98,12 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    border-color: var(--border);
+    outline-color: color-mix(in srgb, var(--ring) 50%, transparent);
   }
 }
 
-@utility no-scrollbar {
+.no-scrollbar {
   &::-webkit-scrollbar {
     display: none;
   }
@@ -251,5 +252,21 @@ input[data-slot="input-group-control"] {
   .reveal {
     opacity: 1;
     transform: none;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }

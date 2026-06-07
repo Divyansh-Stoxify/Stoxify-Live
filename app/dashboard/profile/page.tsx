@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { Topbar } from "@/app/components/dashboard/topbar";
 import { useAnalystProfile } from "@/app/lib/hooks/use-dashboard-metrics";
 import { updateMockProfile } from "@/app/lib/mock-data";
@@ -71,7 +72,7 @@ export default function ProfilePage() {
     e.preventDefault();
 
     if (!firstName.trim()) {
-      alert("First name is required.");
+      showSuccessToast("Error", "First name is required.");
       return;
     }
 
@@ -165,8 +166,7 @@ export default function ProfilePage() {
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-full overflow-hidden bg-[var(--brand)] flex items-center justify-center text-white text-[18px] font-bold shadow-sm border border-slate-100">
                   {avatarUrl ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    <Image src={avatarUrl} alt="Avatar" width={56} height={56} className="w-full h-full object-cover" />
                   ) : (
                     initials
                   )}

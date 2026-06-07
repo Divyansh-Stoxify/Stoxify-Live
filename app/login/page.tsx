@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { AuthPanel } from "../components/auth-panel";
 import { Icon } from "../components/stoxify-icon";
 import { saveAuthToken } from "@/app/lib/api";
+import { SignJWT } from "jose";
 
 interface FormErrors {
   email?: string;
@@ -81,7 +82,7 @@ export default function LoginPage() {
     setSubmittedData(null);
 
     // Simulate network delay
-    setTimeout(() => {
+    setTimeout(async () => {
       setIsSubmitting(false);
       const output = {
         email: formData.email,
@@ -91,8 +92,15 @@ export default function LoginPage() {
       console.log("Login form submitted successfully:", output);
       setSubmittedData(output);
 
+      // Generate a mock JWT for the middleware to validate
+      const secret = new TextEncoder().encode("mock_stoxify_secret_key_123!");
+      const mockToken = await new SignJWT({ email: formData.email })
+        .setProtectedHeader({ alg: "HS256" })
+        .setExpirationTime("24h")
+        .sign(secret);
+
       // Save mock token to enable bypassing auth middleware
-      saveAuthToken("mock_access_token_value");
+      saveAuthToken(mockToken);
 
       // Redirect to next URL or main dashboard
       router.push(nextUrl);

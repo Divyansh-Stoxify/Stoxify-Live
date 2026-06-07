@@ -195,7 +195,7 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
     <div className="fixed inset-0 z-[9990] flex items-center justify-center bg-black/45 backdrop-blur-[2px] p-4 animate-[fadeIn_0.2s_ease-out]">
       <div className="relative w-[520px] max-w-full rounded-2xl bg-white shadow-[0_24px_64px_rgba(0,0,0,0.15)] border border-[var(--line)] overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4.5 flex items-center justify-between border-b border-dashed border-[#1f7ae0]/25">
+        <div className="px-6 py-4 flex items-center justify-between border-b border-dashed border-[#1f7ae0]/25">
           <h2 className="text-[16.5px] font-bold text-[var(--ink)] tracking-[-0.2px]">
             Create Trade
           </h2>
@@ -205,7 +205,7 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
             onClick={onClose}
             type="button"
           >
-            <Icon className="h-4.5 w-4.5" name="x" />
+            <Icon className="h-5 w-5" name="x" />
           </button>
         </div>
 
@@ -485,7 +485,7 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
           </div>
 
           {/* Footer Actions */}
-          <div className="px-6 py-4.5 bg-[var(--surface)] flex items-center justify-end gap-3 border-t border-dashed border-[#1f7ae0]/25">
+          <div className="px-6 py-4 bg-[var(--surface)] flex items-center justify-end gap-3 border-t border-dashed border-[#1f7ae0]/25">
             <button
               className="rounded-lg border border-[var(--line)] bg-white px-5 py-2 text-[12.5px] font-bold text-[var(--muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--ink)]"
               onClick={onClose}
@@ -512,17 +512,6 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
         </form>
       </div>
 
-      {/* Local animation keyframe defined inside style */}
-      <style jsx>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-      `}</style>
     </div>
   );
 }
