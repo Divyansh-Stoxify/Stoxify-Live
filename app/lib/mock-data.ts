@@ -372,8 +372,6 @@ export function getMockPlansStats(): SubscriptionPlansStats {
     mrr += Math.round(monthlyPrice * plan.subscribers_count);
   });
 
-
-
   return {
     total_subscribers: totalSubscribers,
     monthly_recurring_revenue: mrr,

@@ -511,7 +511,6 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
           </div>
         </form>
       </div>
-
     </div>
   );
 }

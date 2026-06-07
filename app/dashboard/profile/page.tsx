@@ -166,7 +166,13 @@ export default function ProfilePage() {
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-full overflow-hidden bg-[var(--brand)] flex items-center justify-center text-white text-[18px] font-bold shadow-sm border border-slate-100">
                   {avatarUrl ? (
-                    <Image src={avatarUrl} alt="Avatar" width={56} height={56} className="w-full h-full object-cover" />
+                    <Image
+                      src={avatarUrl}
+                      alt="Avatar"
+                      width={56}
+                      height={56}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     initials
                   )}

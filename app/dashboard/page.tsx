@@ -160,7 +160,10 @@ function TradeRowSkeleton() {
     <tr className="border-b border-[var(--line)]">
       {[5, 4, 3, 4, 3, 4, 5].map((w, i) => (
         <td className="py-4 px-4" key={i}>
-          <div className="h-4 animate-pulse rounded bg-[var(--line)]" style={{ width: `${w}rem` }} />
+          <div
+            className="h-4 animate-pulse rounded bg-[var(--line)]"
+            style={{ width: `${w}rem` }}
+          />
         </td>
       ))}
     </tr>
