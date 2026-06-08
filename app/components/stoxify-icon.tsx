@@ -36,23 +36,7 @@ export type IconName =
   | "eye"
   | "eyeOff"
   | "google"
-  | "apple"
-  | "layoutDashboard"
-  | "user"
-  | "gear"
-  | "plus"
-  | "circleCheck"
-  | "logout"
-  | "activity"
-  | "chartPie"
-  | "chevronDown"
-  | "edit"
-  | "ban"
-  | "power"
-  | "rupee"
-  | "bank"
-  | "download"
-  | "menu";
+  | "apple";
 
 const icons: Record<IconName, string> = {
   arrowRight: "fa-solid fa-arrow-right",
@@ -91,22 +75,6 @@ const icons: Record<IconName, string> = {
   wallet: "fa-solid fa-wallet",
   x: "fa-solid fa-xmark",
   zap: "fa-solid fa-bolt",
-  layoutDashboard: "fa-solid fa-table-cells-large",
-  user: "fa-solid fa-user",
-  gear: "fa-solid fa-gear",
-  plus: "fa-solid fa-plus",
-  circleCheck: "fa-solid fa-circle-check",
-  logout: "fa-solid fa-right-from-bracket",
-  activity: "fa-solid fa-wave-square",
-  chartPie: "fa-solid fa-chart-pie",
-  chevronDown: "fa-solid fa-chevron-down",
-  edit: "fa-solid fa-pen-to-square",
-  ban: "fa-solid fa-ban",
-  power: "fa-solid fa-power-off",
-  rupee: "fa-solid fa-indian-rupee-sign",
-  bank: "fa-solid fa-building-columns",
-  download: "fa-solid fa-download",
-  menu: "fa-solid fa-bars",
 };
 
 function getFontSize(className?: string): CSSProperties["fontSize"] {

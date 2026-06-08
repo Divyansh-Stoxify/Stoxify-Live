@@ -1,13 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { AuthPanel } from "../components/auth-panel";
 import { Icon } from "../components/stoxify-icon";
-import { saveAuthToken } from "@/app/lib/api";
-import { SignJWT } from "jose";
 
 interface FormErrors {
   email?: string;
@@ -28,20 +25,6 @@ export default function LoginPage() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedData, setSubmittedData] = useState<SubmittedLoginData | null>(null);
-  const [nextUrl, setNextUrl] = useState("/dashboard");
-
-  const router = useRouter();
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const next = params.get("next");
-      if (next) {
-        /* eslint-disable-next-line react-hooks/set-state-in-effect */
-        setNextUrl(next);
-      }
-    }
-  }, []);
 
   // Field change handler
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,7 +65,7 @@ export default function LoginPage() {
     setSubmittedData(null);
 
     // Simulate network delay
-    setTimeout(async () => {
+    setTimeout(() => {
       setIsSubmitting(false);
       const output = {
         email: formData.email,
@@ -91,21 +74,6 @@ export default function LoginPage() {
 
       console.log("Login form submitted successfully:", output);
       setSubmittedData(output);
-
-      // Generate a mock JWT for the middleware to validate
-      const secret = new TextEncoder().encode(
-        process.env.NEXT_PUBLIC_JWT_SECRET || "mock_stoxify_secret_key_123!"
-      );
-      const mockToken = await new SignJWT({ email: formData.email })
-        .setProtectedHeader({ alg: "HS256" })
-        .setExpirationTime("24h")
-        .sign(secret);
-
-      // Save mock token to enable bypassing auth middleware
-      saveAuthToken(mockToken);
-
-      // Redirect to next URL or main dashboard
-      router.push(nextUrl);
     }, 1500);
   };
 
