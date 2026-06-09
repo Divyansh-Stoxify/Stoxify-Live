@@ -138,7 +138,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return response;
   }
 
-
   const meData = (await meResponse.json().catch(() => ({}))) as {
     user_id?: string;
     name?: string;

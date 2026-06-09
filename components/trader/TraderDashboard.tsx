@@ -85,21 +85,15 @@ function StatCard({
   return (
     <div className="rounded-xl border border-[var(--line)] bg-white p-5 transition-all hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]">
       <div className="flex items-center gap-3 mb-3">
-        <div
-          className={`flex h-10 w-10 items-center justify-center rounded-lg ${iconWrap}`}
-        >
+        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${iconWrap}`}>
           <Icon name={icon} className={`h-4.5 w-4.5 ${iconColor}`} />
         </div>
         <span className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">
           {label}
         </span>
       </div>
-      <div className="text-[28px] font-extrabold tracking-[-1px] text-[var(--ink)]">
-        {value}
-      </div>
-      {sub && (
-        <div className="mt-0.5 text-[12px] text-[var(--muted-2)]">{sub}</div>
-      )}
+      <div className="text-[28px] font-extrabold tracking-[-1px] text-[var(--ink)]">{value}</div>
+      {sub && <div className="mt-0.5 text-[12px] text-[var(--muted-2)]">{sub}</div>}
     </div>
   );
 }
@@ -130,9 +124,7 @@ function TradeCard({ trade }: { trade: Trade }) {
             {isLong ? "L" : "S"}
           </div>
           <div>
-            <div className="text-[13px] font-bold text-[var(--ink)]">
-              {trade.analyst_name}
-            </div>
+            <div className="text-[13px] font-bold text-[var(--ink)]">{trade.analyst_name}</div>
             <div className="text-[11px] text-[var(--muted-2)]">
               {timeAgo(trade.entry_timestamp)} · {trade.category}
             </div>
@@ -164,9 +156,7 @@ function TradeCard({ trade }: { trade: Trade }) {
           <div className="font-sans text-xl font-extrabold leading-none tracking-[-0.5px] text-[var(--ink)]">
             {trade.symbol}
           </div>
-          <div className="mt-0.5 text-[11px] text-[var(--muted-2)]">
-            {trade.segment} · NSE
-          </div>
+          <div className="mt-0.5 text-[11px] text-[var(--muted-2)]">{trade.segment} · NSE</div>
         </div>
         <div className="flex gap-4">
           <div className="text-center">
@@ -277,49 +267,46 @@ export function TraderDashboard({ user }: { user: DashboardUser }) {
     }
   }, []);
 
-  const fetchTrades = useCallback(
-    async (status: string, analystIds: string[]) => {
-      setLoadingTrades(true);
-      try {
-        if (analystIds.length === 0) {
-          setTrades([]);
-          setLoadingTrades(false);
-          return;
-        }
+  const fetchTrades = useCallback(async (status: string, analystIds: string[]) => {
+    setLoadingTrades(true);
+    try {
+      if (analystIds.length === 0) {
+        setTrades([]);
+        setLoadingTrades(false);
+        return;
+      }
 
-        // Fan out one request per subscribed analyst
-        const results = await Promise.allSettled(
-          analystIds.map(async (analyst_id) => {
-            const res = await fetch(
-              `/api/trader/trades?analyst_id=${analyst_id}&status=${status}&limit=10`,
-              { credentials: "same-origin", cache: "no-store" }
-            );
-            const data = await res.json().catch(() => ({}));
-            return (data.trades ?? data.data ?? []) as Trade[];
-          })
+      // Fan out one request per subscribed analyst
+      const results = await Promise.allSettled(
+        analystIds.map(async (analyst_id) => {
+          const res = await fetch(
+            `/api/trader/trades?analyst_id=${analyst_id}&status=${status}&limit=10`,
+            { credentials: "same-origin", cache: "no-store" }
+          );
+          const data = await res.json().catch(() => ({}));
+          return (data.trades ?? data.data ?? []) as Trade[];
+        })
+      );
+
+      const allTrades = results
+        .filter((r): r is PromiseFulfilledResult<Trade[]> => r.status === "fulfilled")
+        .flatMap((r) => r.value)
+        .sort(
+          (a, b) => new Date(b.entry_timestamp).getTime() - new Date(a.entry_timestamp).getTime()
         );
 
-        const allTrades = results
-          .filter((r): r is PromiseFulfilledResult<Trade[]> => r.status === "fulfilled")
-          .flatMap((r) => r.value)
-          .sort(
-            (a, b) =>
-              new Date(b.entry_timestamp).getTime() -
-              new Date(a.entry_timestamp).getTime()
-          );
-
-        setTrades(allTrades);
-      } catch {
-        setTrades([]);
-      } finally {
-        setLoadingTrades(false);
-      }
-    },
-    []
-  );
+      setTrades(allTrades);
+    } catch {
+      setTrades([]);
+    } finally {
+      setLoadingTrades(false);
+    }
+  }, []);
 
   useEffect(() => {
-    fetchSubscriptions();
+    Promise.resolve().then(() => {
+      fetchSubscriptions();
+    });
   }, [fetchSubscriptions]);
 
   // Once subscriptions are loaded, extract analyst IDs and fetch trades
@@ -329,7 +316,9 @@ export function TraderDashboard({ user }: { user: DashboardUser }) {
 
   useEffect(() => {
     if (loadingSubs) return; // wait for subscriptions
-    fetchTrades(tradeTab, analystIds);
+    Promise.resolve().then(() => {
+      fetchTrades(tradeTab, analystIds);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tradeTab, loadingSubs, analystIds.join(",")]);
 
@@ -340,7 +329,13 @@ export function TraderDashboard({ user }: { user: DashboardUser }) {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-[24px] font-extrabold tracking-[-0.5px] text-[var(--ink)]">
-          Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}, {firstName}
+          Good{" "}
+          {new Date().getHours() < 12
+            ? "morning"
+            : new Date().getHours() < 17
+              ? "afternoon"
+              : "evening"}
+          , {firstName}
         </h1>
         <p className="mt-1 text-[13px] text-[var(--muted)]">
           Here&apos;s your trading overview for today.
@@ -379,10 +374,7 @@ export function TraderDashboard({ user }: { user: DashboardUser }) {
               iconWrap="bg-[var(--orange-light)]"
               iconColor="text-[var(--orange)]"
               label="Analysts"
-              value={
-                new Set(subscriptions.map((s) => s.analyst_id).filter(Boolean))
-                  .size
-              }
+              value={new Set(subscriptions.map((s) => s.analyst_id).filter(Boolean)).size}
               sub="you follow"
             />
             <StatCard
@@ -427,9 +419,7 @@ export function TraderDashboard({ user }: { user: DashboardUser }) {
         <div className="flex items-center justify-between border-b border-[var(--line)] px-5 py-4">
           <div className="flex items-center gap-2">
             <Icon name="lineChart" className="h-4 w-4 text-[var(--brand)]" />
-            <h2 className="text-[15px] font-bold text-[var(--ink)]">
-              Trade Feed
-            </h2>
+            <h2 className="text-[15px] font-bold text-[var(--ink)]">Trade Feed</h2>
           </div>
           <div className="flex rounded-lg border border-[var(--line)] bg-[var(--surface)] p-0.5">
             <button
@@ -472,9 +462,7 @@ export function TraderDashboard({ user }: { user: DashboardUser }) {
                 <Icon name="lineChart" className="h-6 w-6" />
               </div>
               <h3 className="text-[15px] font-bold text-[var(--ink)] mb-1.5">
-                {tradeTab === "LIVE"
-                  ? "No live trades"
-                  : "No closed trades yet"}
+                {tradeTab === "LIVE" ? "No live trades" : "No closed trades yet"}
               </h3>
               <p className="text-[13px] text-[var(--muted)] max-w-[300px] mb-4">
                 {tradeTab === "LIVE"

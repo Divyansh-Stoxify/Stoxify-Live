@@ -5,23 +5,16 @@ import { TraderShell } from "@/components/trader/TraderShell";
 
 export const metadata = {
   title: "Dashboard — Stoxify",
-  description: "Your trading dashboard — live trades, subscriptions, and alerts from SEBI-registered analysts.",
+  description:
+    "Your trading dashboard — live trades, subscriptions, and alerts from SEBI-registered analysts.",
 };
 
-export default async function TraderLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function TraderLayout({ children }: { children: React.ReactNode }) {
   const session = await readUserSessionFromCookies();
 
   if (!session.authenticated) {
     redirect("/login?next=/trader/dashboard");
   }
 
-  return (
-    <TraderShell user={session.user}>
-      {children}
-    </TraderShell>
-  );
+  return <TraderShell user={session.user}>{children}</TraderShell>;
 }

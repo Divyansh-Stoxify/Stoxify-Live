@@ -74,7 +74,9 @@ function useNavUser(): NavUser {
   useEffect(() => {
     const cookieUser = readCookieNavUser();
     if (cookieUser) {
-      setUser(cookieUser);
+      Promise.resolve().then(() => {
+        setUser(cookieUser);
+      });
       return;
     }
 

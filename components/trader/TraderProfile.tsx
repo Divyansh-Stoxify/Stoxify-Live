@@ -51,7 +51,11 @@ function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "U";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return parts.slice(0, 2).map((p) => p[0]).join("").toUpperCase();
+  return parts
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase();
 }
 
 function formatDate(dateStr: string): string {
@@ -84,9 +88,7 @@ function SubscriptionCard({ sub }: { sub: Subscription }) {
           <h3 className="text-[14px] font-extrabold text-[var(--ink)] truncate">
             {sub.analyst_name || "Analyst"}
           </h3>
-          <p className="text-[12px] text-[var(--muted)] truncate">
-            {sub.plan_name || sub.plan_id}
-          </p>
+          <p className="text-[12px] text-[var(--muted)] truncate">{sub.plan_name || sub.plan_id}</p>
         </div>
         <span
           className={[
@@ -94,8 +96,8 @@ function SubscriptionCard({ sub }: { sub: Subscription }) {
             isActive
               ? "bg-[var(--green-light)] text-[var(--green)]"
               : sub.status === "EXPIRED"
-              ? "bg-[var(--orange-light)] text-[var(--orange)]"
-              : "bg-[var(--red-light)] text-[var(--red)]",
+                ? "bg-[var(--orange-light)] text-[var(--orange)]"
+                : "bg-[var(--red-light)] text-[var(--red)]",
           ].join(" ")}
         >
           {sub.status}
@@ -104,26 +106,32 @@ function SubscriptionCard({ sub }: { sub: Subscription }) {
 
       <div className="grid grid-cols-3 gap-3 rounded-xl bg-slate-50 border border-slate-100 p-3 mb-4">
         <div className="text-center">
-          <div className="text-[10px] text-[var(--muted)] font-bold uppercase tracking-wider mb-0.5">Started</div>
+          <div className="text-[10px] text-[var(--muted)] font-bold uppercase tracking-wider mb-0.5">
+            Started
+          </div>
           <div className="text-[12px] font-extrabold text-[var(--ink)]">
             {formatDate(sub.start_date)}
           </div>
         </div>
         <div className="text-center">
-          <div className="text-[10px] text-[var(--muted)] font-bold uppercase tracking-wider mb-0.5">Expires</div>
+          <div className="text-[10px] text-[var(--muted)] font-bold uppercase tracking-wider mb-0.5">
+            Expires
+          </div>
           <div className="text-[12px] font-extrabold text-[var(--ink)]">
             {formatDate(sub.end_date)}
           </div>
         </div>
         <div className="text-center">
-          <div className="text-[10px] text-[var(--muted)] font-bold uppercase tracking-wider mb-0.5">Remaining</div>
+          <div className="text-[10px] text-[var(--muted)] font-bold uppercase tracking-wider mb-0.5">
+            Remaining
+          </div>
           <div
             className={`text-[12px] font-extrabold ${
               isActive && days <= 3
                 ? "text-[var(--red)]"
                 : isActive
-                ? "text-[var(--green)]"
-                : "text-[var(--muted)]"
+                  ? "text-[var(--green)]"
+                  : "text-[var(--muted)]"
             }`}
           >
             {isActive ? `${days} days` : "—"}
@@ -156,7 +164,7 @@ function SubscriptionCard({ sub }: { sub: Subscription }) {
 export function TraderProfile({ user }: { user: ProfileUser }) {
   // Local User State
   const [userData, setUserData] = useState<ProfileUser>(user);
-  
+
   // Navigation Tabs (Settings / Subscriptions only)
   const [activeTab, setActiveTab] = useState<"settings" | "subscriptions">("settings");
 
@@ -181,11 +189,13 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab");
-      if (tabParam === "subscriptions") {
-        setActiveTab("subscriptions");
-      } else {
-        setActiveTab("settings");
-      }
+      Promise.resolve().then(() => {
+        if (tabParam === "subscriptions") {
+          setActiveTab("subscriptions");
+        } else {
+          setActiveTab("settings");
+        }
+      });
     }
   }, []);
 
@@ -229,7 +239,9 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
   }, []);
 
   useEffect(() => {
-    fetchProfileSubscriptions();
+    Promise.resolve().then(() => {
+      fetchProfileSubscriptions();
+    });
   }, [fetchProfileSubscriptions]);
 
   // Update Profile handler (Backend Supported PATCH /me)
@@ -254,8 +266,9 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
       }
       setUserData((prev) => ({ ...prev, name: cleanName }));
       toast.success("Profile updated successfully!");
-    } catch (err: any) {
-      toast.error(err.message || "Something went wrong.");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Something went wrong.";
+      toast.error(errorMessage);
     } finally {
       setSavingProfile(false);
     }
@@ -302,11 +315,12 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
       setUserData((prev) => ({ ...prev, state: data.state || "ACTIVE" }));
       toast.success("Identity verified successfully!");
       setAadhaarInput("");
-      
+
       // Auto-fetch subscriptions again if status shifts to ACTIVE
       fetchProfileSubscriptions();
-    } catch (err: any) {
-      setKycError(err.message || "An unexpected error occurred during KYC.");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred during KYC.";
+      setKycError(errorMessage);
     } finally {
       setSubmittingKyc(false);
     }
@@ -317,7 +331,6 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
       <Toaster position="bottom-right" />
 
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8">
-        
         {/* ─── LEFT COLUMN: PROFILE CARD ─── */}
         <div className="space-y-6">
           <div className="rounded-[24px] border border-slate-200 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.02)] overflow-hidden">
@@ -330,9 +343,7 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
                 <h4 className="text-[15px] font-extrabold text-[var(--ink)] leading-snug truncate">
                   {userData.name || "Trader"}
                 </h4>
-                <p className="text-[12px] text-[var(--muted)] truncate">
-                  {userData.phone}
-                </p>
+                <p className="text-[12px] text-[var(--muted)] truncate">{userData.phone}</p>
               </div>
             </div>
 
@@ -342,17 +353,15 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
                 <div className="text-[18px] font-extrabold text-[var(--ink)]">
                   {loadingSubs ? "—" : activeSubs.length}
                 </div>
-                <div className="text-[11px] font-semibold text-[var(--muted)]">
-                  Active
-                </div>
+                <div className="text-[11px] font-semibold text-[var(--muted)]">Active</div>
               </div>
               <div>
                 <div className="text-[18px] font-extrabold text-[var(--ink)]">
-                  {loadingSubs ? "—" : (activeSubs.length + expiredSubs.length + cancelledSubs.length)}
+                  {loadingSubs
+                    ? "—"
+                    : activeSubs.length + expiredSubs.length + cancelledSubs.length}
                 </div>
-                <div className="text-[11px] font-semibold text-[var(--muted)]">
-                  Total
-                </div>
+                <div className="text-[11px] font-semibold text-[var(--muted)]">Total</div>
               </div>
             </div>
 
@@ -445,7 +454,7 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
                 <h3 className="text-[17px] font-extrabold text-[var(--ink)] mb-6 select-none">
                   Edit Personal Information
                 </h3>
-                
+
                 {/* Large Avatar Element */}
                 <div className="flex items-center gap-5 mb-8">
                   <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-tr from-[var(--brand)] to-[#4f46e5] text-[24px] font-extrabold text-white shadow-lg border-4 border-white ring-1 ring-slate-200 select-none">
@@ -467,11 +476,12 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
                         className="w-full rounded-xl border border-slate-200 bg-white py-3 px-4 text-[13.5px] font-semibold text-[var(--ink)] placeholder:text-slate-400 outline-none focus:border-emerald-500 transition-colors pr-10"
                         placeholder="Your full name"
                       />
-                      <Icon name="sparkle" className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 pointer-events-none" />
+                      <Icon
+                        name="sparkle"
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 pointer-events-none"
+                      />
                     </div>
                   </div>
-
-
 
                   <div>
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] mb-2 select-none">
@@ -501,7 +511,8 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
                   Identity Verification (KYC)
                 </h3>
                 <p className="text-[12.5px] text-[var(--muted)] leading-relaxed mb-5 select-none">
-                  SEBI regulations require identity verification (KYC) for all users accessing premium research analyst signals.
+                  SEBI regulations require identity verification (KYC) for all users accessing
+                  premium research analyst signals.
                 </p>
 
                 {userData.state === "ACTIVE" ? (
@@ -514,7 +525,8 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
                         Aadhaar KYC Verified
                       </h4>
                       <p className="text-[12px] text-emerald-700">
-                        Your identity is verified. You have full access to subscribe to analyst plans.
+                        Your identity is verified. You have full access to subscribe to analyst
+                        plans.
                       </p>
                     </div>
                   </div>
@@ -590,7 +602,12 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
               {/* Filter Tabs */}
               <div className="flex rounded-lg border border-slate-200/80 bg-slate-50 p-0.5 w-fit">
                 {(["ACTIVE", "EXPIRED", "CANCELLED"] as const).map((t) => {
-                  const count = t === "ACTIVE" ? activeSubs.length : t === "EXPIRED" ? expiredSubs.length : cancelledSubs.length;
+                  const count =
+                    t === "ACTIVE"
+                      ? activeSubs.length
+                      : t === "EXPIRED"
+                        ? expiredSubs.length
+                        : cancelledSubs.length;
                   return (
                     <button
                       key={t}
@@ -604,7 +621,9 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
                       ].join(" ")}
                     >
                       <span>{t.charAt(0) + t.slice(1).toLowerCase()}</span>
-                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${subTab === t ? "bg-emerald-100 text-emerald-800" : "bg-slate-200/80 text-slate-500"}`}>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${subTab === t ? "bg-emerald-100 text-emerald-800" : "bg-slate-200/80 text-slate-500"}`}
+                      >
                         {count}
                       </span>
                     </button>
@@ -616,7 +635,10 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
               {loadingSubs ? (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {[1, 2].map((i) => (
-                    <div key={i} className="rounded-xl border border-slate-200 bg-white p-5 animate-pulse">
+                    <div
+                      key={i}
+                      className="rounded-xl border border-slate-200 bg-white p-5 animate-pulse"
+                    >
                       <div className="flex items-start gap-4 mb-4">
                         <div className="h-11 w-11 rounded-[12px] bg-slate-100" />
                         <div className="flex-1">
@@ -629,13 +651,20 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
                     </div>
                   ))}
                 </div>
-              ) : (subTab === "ACTIVE" ? activeSubs : subTab === "EXPIRED" ? expiredSubs : cancelledSubs).length === 0 ? (
+              ) : (subTab === "ACTIVE"
+                  ? activeSubs
+                  : subTab === "EXPIRED"
+                    ? expiredSubs
+                    : cancelledSubs
+                ).length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/30">
                   <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-[var(--muted)]">
                     <Icon name="listChecks" className="h-5 w-5" />
                   </div>
                   <h3 className="text-[14px] font-bold text-[var(--ink)] mb-1 select-none">
-                    {subTab === "ACTIVE" ? "No active subscriptions" : `No ${subTab.toLowerCase()} subscriptions`}
+                    {subTab === "ACTIVE"
+                      ? "No active subscriptions"
+                      : `No ${subTab.toLowerCase()} subscriptions`}
                   </h3>
                   <p className="text-[12.5px] text-[var(--muted)] max-w-[280px] mb-4 select-none">
                     {subTab === "ACTIVE"
@@ -654,7 +683,12 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {(subTab === "ACTIVE" ? activeSubs : subTab === "EXPIRED" ? expiredSubs : cancelledSubs).map((sub) => (
+                  {(subTab === "ACTIVE"
+                    ? activeSubs
+                    : subTab === "EXPIRED"
+                      ? expiredSubs
+                      : cancelledSubs
+                  ).map((sub) => (
                     <SubscriptionCard key={sub.subscription_id} sub={sub} />
                   ))}
                 </div>
@@ -662,7 +696,6 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
             </div>
           )}
         </div>
-
       </div>
     </div>
   );

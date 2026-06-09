@@ -36,10 +36,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(data, { status: backendResponse.status });
   } catch {
-    return NextResponse.json(
-      { error: "Unable to reach notification service" },
-      { status: 503 }
-    );
+    return NextResponse.json({ error: "Unable to reach notification service" }, { status: 503 });
   }
 }
 
@@ -78,9 +75,6 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(data, { status: backendResponse.status });
   } catch {
-    return NextResponse.json(
-      { error: "Unable to reach notification service" },
-      { status: 503 }
-    );
+    return NextResponse.json({ error: "Unable to reach notification service" }, { status: 503 });
   }
 }

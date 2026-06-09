@@ -103,15 +103,15 @@ export default function NotificationsPage() {
   }, [filter]);
 
   useEffect(() => {
-    fetchNotifications();
+    Promise.resolve().then(() => {
+      fetchNotifications();
+    });
   }, [fetchNotifications]);
 
   const markAsRead = async (notificationId: string) => {
     // Optimistic update
     setNotifications((prev) =>
-      prev.map((n) =>
-        n.notification_id === notificationId ? { ...n, read: true } : n
-      )
+      prev.map((n) => (n.notification_id === notificationId ? { ...n, read: true } : n))
     );
 
     try {
@@ -124,9 +124,7 @@ export default function NotificationsPage() {
     } catch {
       // Revert on error
       setNotifications((prev) =>
-        prev.map((n) =>
-          n.notification_id === notificationId ? { ...n, read: false } : n
-        )
+        prev.map((n) => (n.notification_id === notificationId ? { ...n, read: false } : n))
       );
     }
   };
@@ -179,7 +177,10 @@ export default function NotificationsPage() {
       {loading ? (
         <div className="flex flex-col gap-2">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="rounded-xl border border-[var(--line)] bg-white p-4 animate-pulse flex items-start gap-3">
+            <div
+              key={i}
+              className="rounded-xl border border-[var(--line)] bg-white p-4 animate-pulse flex items-start gap-3"
+            >
               <div className="h-10 w-10 rounded-lg bg-[var(--line)] shrink-0" />
               <div className="flex-1">
                 <div className="h-3.5 w-40 rounded bg-[var(--line)] mb-2" />

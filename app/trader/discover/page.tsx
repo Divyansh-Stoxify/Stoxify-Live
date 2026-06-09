@@ -42,7 +42,11 @@ function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "A";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return parts.slice(0, 2).map((p) => p[0]).join("").toUpperCase();
+  return parts
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase();
 }
 
 function formatPrice(value: number): string {
@@ -82,9 +86,7 @@ function PlanCard({ plan }: { plan: Plan }) {
 
       {/* Plan Name & Description */}
       <div className="mb-4 flex-1">
-        <h4 className="text-[14px] font-bold text-[var(--ink)] mb-1">
-          {plan.name}
-        </h4>
+        <h4 className="text-[14px] font-bold text-[var(--ink)] mb-1">{plan.name}</h4>
         {plan.description && (
           <p className="text-[12px] leading-relaxed text-[var(--muted)] line-clamp-2">
             {plan.description}
@@ -96,10 +98,7 @@ function PlanCard({ plan }: { plan: Plan }) {
       {plan.features && plan.features.length > 0 && (
         <ul className="mb-4 flex flex-col gap-1.5">
           {plan.features.slice(0, 3).map((feature) => (
-            <li
-              key={feature}
-              className="flex items-center gap-2 text-[12px] text-[var(--muted)]"
-            >
+            <li key={feature} className="flex items-center gap-2 text-[12px] text-[var(--muted)]">
               <Icon name="check" className="h-3 w-3 text-[var(--green)]" />
               {feature}
             </li>
@@ -117,9 +116,7 @@ function PlanCard({ plan }: { plan: Plan }) {
             <div className="text-[10px] text-[var(--muted)]">Subscribers</div>
           </div>
           <div className="text-center">
-            <div className="text-[15px] font-extrabold text-[var(--green)]">
-              {plan.days}d
-            </div>
+            <div className="text-[15px] font-extrabold text-[var(--green)]">{plan.days}d</div>
             <div className="text-[10px] text-[var(--muted)]">Duration</div>
           </div>
         </div>
@@ -190,7 +187,9 @@ export default function DiscoverPage() {
   }, [segment]);
 
   useEffect(() => {
-    fetchPlans();
+    Promise.resolve().then(() => {
+      fetchPlans();
+    });
   }, [fetchPlans]);
 
   const filteredPlans = search
@@ -244,7 +243,11 @@ export default function DiscoverPage() {
                   : "text-[var(--muted)] hover:text-[var(--ink)]",
               ].join(" ")}
             >
-              {seg === "FNO" ? "F&O" : seg === "ALL" ? "All" : seg.charAt(0) + seg.slice(1).toLowerCase()}
+              {seg === "FNO"
+                ? "F&O"
+                : seg === "ALL"
+                  ? "All"
+                  : seg.charAt(0) + seg.slice(1).toLowerCase()}
             </button>
           ))}
         </div>

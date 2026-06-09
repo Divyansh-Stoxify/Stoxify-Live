@@ -90,7 +90,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     };
 
     const response = NextResponse.json({ success: true, user: meData });
-    
+
     // 3. Write user cookies to update userInfo on client side
     writeUserTokenCookies(response, {
       access_token: session.accessToken,
@@ -100,10 +100,11 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     });
 
     return response;
-  } catch (err: any) {
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : "Unable to reach the user service";
     console.error("Profile update failed:", err);
     return NextResponse.json(
-      { error: err.message || "Unable to reach the user service", code: "SERVICE_UNAVAILABLE" },
+      { error: errorMessage, code: "SERVICE_UNAVAILABLE" },
       { status: 503 }
     );
   }

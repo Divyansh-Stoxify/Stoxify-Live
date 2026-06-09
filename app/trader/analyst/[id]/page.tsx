@@ -55,7 +55,11 @@ function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "A";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return parts.slice(0, 2).map((p) => p[0]).join("").toUpperCase();
+  return parts
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase();
 }
 
 function formatCurrency(value: number): string {
@@ -104,17 +108,15 @@ export default function AnalystDetailPage() {
   }, [analystId]);
 
   useEffect(() => {
-    fetchData();
+    Promise.resolve().then(() => {
+      fetchData();
+    });
   }, [fetchData]);
 
   // Compute performance stats from trades
-  const closedTrades = trades.filter(
-    (t) => t.status !== "LIVE" && t.pnl_percent !== undefined
-  );
+  const closedTrades = trades.filter((t) => t.status !== "LIVE" && t.pnl_percent !== undefined);
   const totalClosed = closedTrades.length;
-  const winningTrades = closedTrades.filter(
-    (t) => (t.pnl_percent ?? 0) > 0
-  ).length;
+  const winningTrades = closedTrades.filter((t) => (t.pnl_percent ?? 0) > 0).length;
   const winRate = totalClosed > 0 ? Math.round((winningTrades / totalClosed) * 100) : 0;
   const avgPnl =
     totalClosed > 0
@@ -168,9 +170,7 @@ export default function AnalystDetailPage() {
               <Icon name="shieldCheck" className="h-3 w-3" />
               SEBI Verified
             </span>
-            <span className="text-[12px] text-[var(--muted)]">
-              ID: {analystId}
-            </span>
+            <span className="text-[12px] text-[var(--muted)]">ID: {analystId}</span>
           </div>
         </div>
       </div>
@@ -186,7 +186,9 @@ export default function AnalystDetailPage() {
           <div className="text-[11px] text-[var(--muted)]">Win Rate</div>
         </div>
         <div className="rounded-xl border border-[var(--line)] bg-white p-4 text-center">
-          <div className={`text-[22px] font-extrabold ${avgPnl >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
+          <div
+            className={`text-[22px] font-extrabold ${avgPnl >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}
+          >
             {avgPnl >= 0 ? "+" : ""}
             {avgPnl.toFixed(1)}%
           </div>
@@ -212,9 +214,7 @@ export default function AnalystDetailPage() {
                 className="rounded-xl border-[1.5px] border-[var(--line)] bg-white p-5 transition-all hover:border-[var(--brand-mid)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-[14px] font-bold text-[var(--ink)]">
-                    {plan.name}
-                  </h3>
+                  <h3 className="text-[14px] font-bold text-[var(--ink)]">{plan.name}</h3>
                   <span className="rounded-full bg-[var(--brand-light)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--brand)]">
                     {plan.segment}
                   </span>
@@ -227,7 +227,10 @@ export default function AnalystDetailPage() {
                 {plan.features && plan.features.length > 0 && (
                   <ul className="mb-4 flex flex-col gap-1">
                     {plan.features.map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-[12px] text-[var(--muted)]">
+                      <li
+                        key={f}
+                        className="flex items-center gap-2 text-[12px] text-[var(--muted)]"
+                      >
                         <Icon name="check" className="h-3 w-3 text-[var(--green)]" />
                         {f}
                       </li>
@@ -266,13 +269,27 @@ export default function AnalystDetailPage() {
               <table className="w-full text-[13px]">
                 <thead>
                   <tr className="border-b border-[var(--line)] bg-[var(--surface)]">
-                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted)]">Symbol</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted)]">Direction</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted)]">Entry</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted)]">Target</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted)]">SL</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted)]">Status</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted)]">P&L</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted)]">
+                      Symbol
+                    </th>
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted)]">
+                      Direction
+                    </th>
+                    <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted)]">
+                      Entry
+                    </th>
+                    <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted)]">
+                      Target
+                    </th>
+                    <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted)]">
+                      SL
+                    </th>
+                    <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted)]">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted)]">
+                      P&L
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -280,7 +297,10 @@ export default function AnalystDetailPage() {
                     const isLong = trade.direction === "LONG";
                     const isLive = trade.status === "LIVE";
                     return (
-                      <tr key={trade.trade_id} className="border-b border-[var(--line)] last:border-0 hover:bg-[var(--surface)] transition-colors">
+                      <tr
+                        key={trade.trade_id}
+                        className="border-b border-[var(--line)] last:border-0 hover:bg-[var(--surface)] transition-colors"
+                      >
                         <td className="px-4 py-3 font-bold text-[var(--ink)]">{trade.symbol}</td>
                         <td className="px-4 py-3">
                           <span
@@ -319,9 +339,7 @@ export default function AnalystDetailPage() {
                           {trade.pnl_percent !== undefined && trade.pnl_percent !== null ? (
                             <span
                               className={`font-bold ${
-                                trade.pnl_percent >= 0
-                                  ? "text-[var(--green)]"
-                                  : "text-[var(--red)]"
+                                trade.pnl_percent >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"
                               }`}
                             >
                               {trade.pnl_percent >= 0 ? "+" : ""}
@@ -347,9 +365,7 @@ export default function AnalystDetailPage() {
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--brand-light)] text-[var(--brand)]">
             <Icon name="users" className="h-6 w-6" />
           </div>
-          <h3 className="text-[15px] font-bold text-[var(--ink)] mb-1.5">
-            Analyst not found
-          </h3>
+          <h3 className="text-[15px] font-bold text-[var(--ink)] mb-1.5">Analyst not found</h3>
           <p className="text-[13px] text-[var(--muted)] max-w-[300px] mb-4">
             This analyst may not have active plans yet, or the ID is incorrect.
           </p>

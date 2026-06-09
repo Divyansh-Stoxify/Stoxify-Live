@@ -38,13 +38,7 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
-export function TraderShell({
-  user,
-  children,
-}: {
-  user: TraderUser;
-  children: React.ReactNode;
-}) {
+export function TraderShell({ user, children }: { user: TraderUser; children: React.ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -72,7 +66,9 @@ export function TraderShell({
 
               let isActive = false;
               if (isProfilePage) {
-                const isTabSub = typeof window !== "undefined" && window.location.search.includes("tab=subscriptions");
+                const isTabSub =
+                  typeof window !== "undefined" &&
+                  window.location.search.includes("tab=subscriptions");
                 if (isTabSub) {
                   isActive = isSubscriptionsLink;
                 } else {
@@ -172,7 +168,9 @@ export function TraderShell({
 
               let isActive = false;
               if (isProfilePage) {
-                const isTabSub = typeof window !== "undefined" && window.location.search.includes("tab=subscriptions");
+                const isTabSub =
+                  typeof window !== "undefined" &&
+                  window.location.search.includes("tab=subscriptions");
                 if (isTabSub) {
                   isActive = isSubscriptionsLink;
                 } else {
@@ -260,9 +258,7 @@ export function TraderShell({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
+        <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>
   );

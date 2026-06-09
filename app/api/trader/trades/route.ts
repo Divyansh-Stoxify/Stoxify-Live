@@ -39,9 +39,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json(data, { status: backendResponse.status });
   } catch (error) {
     console.error("[trader/trades] signedBackendFetch failed:", error);
-    return NextResponse.json(
-      { error: "Unable to reach trade service" },
-      { status: 503 }
-    );
+    return NextResponse.json({ error: "Unable to reach trade service" }, { status: 503 });
   }
 }

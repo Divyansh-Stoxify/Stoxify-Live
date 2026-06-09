@@ -144,7 +144,8 @@ export default function LoginPage() {
 
       const params = new URLSearchParams(window.location.search);
       const next = params.get("next");
-      const destination = next && next.startsWith("/") ? next : (data.redirectTo ?? "/trader/dashboard");
+      const destination =
+        next && next.startsWith("/") ? next : (data.redirectTo ?? "/trader/dashboard");
       router.push(destination);
       router.refresh();
     } catch {
