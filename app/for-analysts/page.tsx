@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { Icon, type IconName } from "../components/stoxify-icon";
-import { RevealObserver } from "../components/reveal-observer";
-import { StoxifyNav } from "../components/stoxify-nav";
-import { WaitlistForm } from "../components/waitlist-form";
+import { Icon, type IconName } from "@/components/stoxify-icon";
+import { RevealObserver } from "@/components/reveal-observer";
+import { StoxifyNav } from "@/components/stoxify-nav";
+import { WaitlistForm } from "@/components/waitlist-form";
 
 export const metadata: Metadata = {
   title: "Stoxify for Research Analysts - Grow Your Advisory Practice",

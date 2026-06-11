@@ -1,9 +1,9 @@
 import Link from "next/link";
 
-import { AnalystFilters } from "./components/analyst-filters";
-import { Icon, type IconName } from "./components/stoxify-icon";
-import { RevealObserver } from "./components/reveal-observer";
-import { StoxifyNav } from "./components/stoxify-nav";
+import { AnalystFilters } from "@/components/analyst-filters";
+import { Icon, type IconName } from "@/components/stoxify-icon";
+import { RevealObserver } from "@/components/reveal-observer";
+import { StoxifyNav } from "@/components/stoxify-nav";
 
 const buttonBase =
   "inline-flex items-center justify-center gap-2 rounded px-5 py-[9px] text-[13px] font-medium transition-all active:scale-[0.97]";

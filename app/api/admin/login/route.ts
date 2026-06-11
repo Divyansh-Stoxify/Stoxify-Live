@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
-import { adminCookieNames } from "@/lib/admin/cookies";
+import { adminCookieNames, adminCookieOptions } from "@/lib/admin/cookies";
 import { backendUrls, signedBackendFetch } from "@/lib/admin/backend";
 import { rejectCrossOriginPost } from "@/lib/admin/csrf";
 import { checkAdminLoginRateLimit } from "@/lib/admin/rate-limit";
@@ -30,20 +30,21 @@ type BackendLoginResponse = {
 };
 
 type AdminLoginRequestBody = {
+  action?: "request_otp" | "verify_otp";
   device_fingerprint?: Record<string, unknown>;
   device_id?: string;
   device_name?: string;
   device_type?: "WEB";
   email?: string;
-  password?: string;
+  otp?: string;
 };
 
 const KNOWN_ERROR_CODES = new Set([
-  "INVALID_CREDENTIALS",
-  "ACCOUNT_LOCKED",
   "ACCOUNT_INACTIVE",
+  "INVALID_OTP",
   "INVALID_SIGNATURE",
   "ADMIN_ACCESS_REQUIRED",
+  "RATE_LIMITED",
 ]);
 
 async function readBackendJson<T>(response: Response): Promise<T> {
@@ -54,7 +55,11 @@ async function readBackendJson<T>(response: Response): Promise<T> {
   }
 }
 
-function safeErrorResponse(data: BackendLoginResponse, httpStatus: number): NextResponse {
+function safeErrorResponse(
+  data: BackendLoginResponse,
+  httpStatus: number,
+  fallbackMessage = "Unable to sign in"
+): NextResponse {
   const isKnown = Boolean(data.code && KNOWN_ERROR_CODES.has(data.code));
   if (!isKnown) {
     console.error("[admin-login] Upstream auth error:", {
@@ -65,53 +70,8 @@ function safeErrorResponse(data: BackendLoginResponse, httpStatus: number): Next
   }
   const payload = isKnown
     ? { error: data.error ?? data.message ?? "Authentication failed", code: data.code }
-    : { error: "Unable to sign in", code: "AUTH_FAILED" };
+    : { error: fallbackMessage, code: "AUTH_FAILED" };
   return NextResponse.json(payload, { status: httpStatus });
-}
-
-async function logAdminGateDenied({
-  ip,
-  email,
-  deviceId,
-  userId,
-  dashboardStatus,
-}: {
-  ip: string;
-  email: string;
-  deviceId: string;
-  userId?: string;
-  dashboardStatus: number;
-}): Promise<void> {
-  const internalSecret = process.env.INTERNAL_SECRET;
-  if (!internalSecret) {
-    console.warn("[admin-login] INTERNAL_SECRET missing; admin gate denial not persisted", {
-      ip,
-      email,
-      dashboardStatus,
-    });
-    return;
-  }
-
-  try {
-    await fetch(`${backendUrls.auth}/auth/security/log-admin-denied`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Internal-Secret": internalSecret,
-      },
-      body: JSON.stringify({
-        email,
-        ip_address: ip,
-        device_id: deviceId,
-        user_id: userId,
-        dashboard_status: dashboardStatus,
-      }),
-      cache: "no-store",
-      signal: AbortSignal.timeout(5_000),
-    });
-  } catch (error) {
-    console.error("[admin-login] Failed to persist admin gate denial", { error });
-  }
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -153,11 +113,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  if (!credentials.email || !credentials.password) {
-    return NextResponse.json(
-      { error: "Email and password are required", code: "BAD_REQUEST" },
-      { status: 400 }
-    );
+  const email = credentials.email?.trim().toLowerCase();
+  if (!email) {
+    return NextResponse.json({ error: "Email is required", code: "BAD_REQUEST" }, { status: 400 });
   }
 
   const cookieStore = await cookies();
@@ -165,21 +123,36 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     credentials.device_id?.trim() ||
     cookieStore.get(adminCookieNames.deviceId)?.value ||
     `admin-web-${randomUUID()}`;
+  const deviceType = credentials.device_type ?? "WEB";
+  const deviceName = credentials.device_name?.trim() || "Stoxify Admin Console";
+  const action = credentials.action === "verify_otp" ? "verify_otp" : "request_otp";
+  const otp = credentials.otp?.trim();
+
+  if (action === "verify_otp" && (!otp || otp.length !== 6)) {
+    return NextResponse.json(
+      { error: "A valid 6-digit verification code is required", code: "BAD_REQUEST" },
+      { status: 400 }
+    );
+  }
 
   let loginResponse: Response;
   try {
     loginResponse = await signedBackendFetch({
       baseUrl: backendUrls.auth,
-      path: "/auth/login",
+      path: action === "verify_otp" ? "/auth/login/verify-otp" : "/auth/login/request-otp",
       method: "POST",
       deviceId,
-      body: {
-        email: credentials.email.trim(),
-        password: credentials.password,
-        device_fingerprint: credentials.device_fingerprint,
-        device_type: credentials.device_type ?? "WEB",
-        device_name: credentials.device_name ?? "Stoxify Admin Console",
-      },
+      body:
+        action === "verify_otp"
+          ? {
+              identifier: email,
+              otp,
+              device_type: deviceType,
+              device_name: deviceName,
+            }
+          : {
+              identifier: email,
+            },
       extraHeaders: forwardedIpHeaders(request),
     });
   } catch {
@@ -193,10 +166,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   console.info("[admin-login] Login attempt", {
     ip,
-    email: credentials.email.trim(),
+    action,
+    email,
     status: loginResponse.status,
     code: loginData.code,
   });
+
+  if (action === "request_otp") {
+    if (!loginResponse.ok) {
+      return safeErrorResponse(loginData, loginResponse.status, "Unable to send verification code");
+    }
+
+    const response = NextResponse.json({
+      ok: true,
+      challenge: "otp",
+      email,
+    });
+    response.cookies.set(adminCookieNames.deviceId, deviceId, {
+      ...adminCookieOptions,
+      maxAge: 60 * 60 * 24 * 365,
+    });
+    return response;
+  }
 
   if (!loginResponse.ok || !loginData.access_token) {
     return safeErrorResponse(loginData, loginResponse.status);
@@ -229,19 +220,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!session.authenticated || !session.user) {
     console.warn("[admin-login] Admin gate denied", {
       ip,
-      email: credentials.email.trim(),
+      email,
       code: session.code,
     });
-
-    if (session.code === "ADMIN_ACCESS_REQUIRED") {
-      await logAdminGateDenied({
-        ip,
-        email: credentials.email.trim(),
-        deviceId,
-        userId: loginData.user?.user_id ?? session.user?.user_id,
-        dashboardStatus: 403,
-      });
-    }
 
     await signedBackendFetch({
       baseUrl: backendUrls.auth,

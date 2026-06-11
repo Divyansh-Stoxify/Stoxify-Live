@@ -3,9 +3,14 @@ import "server-only";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
-import { backendUrls, signedBackendFetch } from "@/lib/admin/backend";
+import { backendUrls, signedBackendFetch } from "@/lib/backend/index";
+import { clientIpFromRequest, forwardedIpHeaders } from "@/lib/backend/index";
 import { adminCookieNames, adminCookieOptions } from "@/lib/admin/cookies";
+import { adminKnownPowers } from "@/lib/admin/permissions";
 import type { AdminSessionPayload, AdminUser } from "@/lib/admin/session-shared";
+
+// Re-export so existing admin route imports don't need to change.
+export { clientIpFromRequest, forwardedIpHeaders };
 
 type JwtPayload = {
   user_id?: string;
@@ -15,18 +20,107 @@ type JwtPayload = {
   name?: string;
 };
 
-type BackendPermission = {
-  power_id?: string;
+type BackendPermissionsResponse = {
+  roles?: { role_id?: string; role_name?: string }[];
+  powers?: { power_id?: string }[];
 };
 
-type BackendPermissionsResponse = {
-  powers?: BackendPermission[];
-  roles?: { role_id?: string; role_name?: string }[];
+type PermissionCheckResponse = {
+  authorized?: boolean;
 };
+
+function normalizeAdminRole(role: string) {
+  return role.toUpperCase().replace(/^ROLE_/, "");
+}
 
 function isAdminConsoleRole(role: string) {
-  const normalized = role.toUpperCase().replace(/^ROLE_/, "");
+  const normalized = normalizeAdminRole(role);
   return normalized === "FOUNDER" || normalized === "ADMIN";
+}
+
+function isFounderRole(role: string) {
+  return normalizeAdminRole(role) === "FOUNDER";
+}
+
+async function loadAdminRolesAndPowersFromRbac({
+  accessToken,
+  deviceId,
+  userId,
+}: {
+  accessToken: string;
+  deviceId: string;
+  userId: string;
+}): Promise<{ roles: string[]; powers: string[] } | null> {
+  const permissionsResponse = await signedBackendFetch({
+    baseUrl: backendUrls.rbac,
+    path: `/rbac/user-permissions/${encodeURIComponent(userId)}`,
+    method: "GET",
+    accessToken,
+    deviceId,
+  }).catch(() => null);
+
+  if (!permissionsResponse?.ok) {
+    return null;
+  }
+
+  const permissions = (await permissionsResponse
+    .json()
+    .catch(() => ({}))) as BackendPermissionsResponse;
+
+  return {
+    roles:
+      permissions.roles
+        ?.map((role) => role.role_id ?? role.role_name)
+        .filter((role): role is string => Boolean(role)) ?? [],
+    powers:
+      permissions.powers
+        ?.map((power) => power.power_id)
+        .filter((power): power is string => Boolean(power)) ?? [],
+  };
+}
+
+async function loadKnownAdminPowers(userId: string, userState?: string): Promise<string[] | null> {
+  const internalSecret = process.env.INTERNAL_SECRET?.trim();
+  if (!internalSecret) return null;
+
+  const checks = await Promise.all(
+    adminKnownPowers.map(async (power) => {
+      try {
+        const response = await fetch(`${backendUrls.rbac}/rbac/check-permission`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Internal-Secret": internalSecret,
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            power,
+            context: userState ? { user_state: userState } : undefined,
+          }),
+          cache: "no-store",
+          signal: AbortSignal.timeout(5_000),
+        });
+
+        if (!response.ok) {
+          return { resolved: false as const };
+        }
+
+        const data = (await response.json().catch(() => ({}))) as PermissionCheckResponse;
+        return { resolved: true as const, power: data.authorized ? power : undefined };
+      } catch {
+        return { resolved: false as const };
+      }
+    })
+  );
+
+  const resolvedChecks = checks.filter((check) => check.resolved);
+  if (resolvedChecks.length === 0) {
+    return null;
+  }
+
+  return resolvedChecks
+    .map((check) => check.power)
+    .filter((power): power is string => Boolean(power));
 }
 
 export function decodeJwtPayload(token: string): JwtPayload | null {
@@ -39,22 +133,6 @@ export function decodeJwtPayload(token: string): JwtPayload | null {
   } catch {
     return null;
   }
-}
-
-export function clientIpFromRequest(request: NextRequest) {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
-    request.headers.get("x-real-ip") ||
-    "unknown"
-  );
-}
-
-export function forwardedIpHeaders(request: NextRequest) {
-  const ip = clientIpFromRequest(request);
-  return {
-    "X-Forwarded-For": ip,
-    "X-Real-IP": ip,
-  };
 }
 
 export async function clearAdminCookies(response: NextResponse) {
@@ -141,6 +219,7 @@ export async function readAdminSession({
     email: userOverride?.email,
   };
   const tokenRoles = Array.isArray(jwt.roles) ? jwt.roles : [];
+  const hasFounderTokenRole = tokenRoles.some(isFounderRole);
 
   if (user.user_type !== "INTERNAL_TEAM") {
     return {
@@ -153,38 +232,57 @@ export async function readAdminSession({
     };
   }
 
-  const permissionsResponse = await signedBackendFetch({
-    baseUrl: backendUrls.rbac,
-    path: `/rbac/user-permissions/${encodeURIComponent(jwt.user_id)}`,
-    method: "GET",
-    accessToken,
-    deviceId,
-  });
+  let roles = tokenRoles;
+  let powers: string[] | null = null;
 
-  if (!permissionsResponse.ok) {
-    return {
-      authenticated: false,
-      user,
-      roles: tokenRoles,
-      powers: [],
-      error: "Unable to load RBAC permissions.",
-      code: "RBAC_PERMISSIONS_FAILED",
-    };
+  if (hasFounderTokenRole) {
+    const founderPermissions = await loadAdminRolesAndPowersFromRbac({
+      accessToken,
+      deviceId,
+      userId: jwt.user_id,
+    });
+
+    if (founderPermissions) {
+      roles = founderPermissions.roles.length > 0 ? founderPermissions.roles : tokenRoles;
+      powers = founderPermissions.powers;
+    } else if (user.state === "ACTIVE") {
+      // Founder is seeded with every system power in the backend, so use the
+      // frontend-known admin power set as a safe fallback when RBAC lookup
+      // fails.
+      powers = [...adminKnownPowers];
+    }
   }
 
-  const permissions = (await permissionsResponse
-    .json()
-    .catch(() => ({}))) as BackendPermissionsResponse;
-  const roles =
-    permissions.roles
-      ?.map((role) => role.role_id ?? role.role_name)
-      .filter((role): role is string => Boolean(role)) ?? tokenRoles;
-  const powers =
-    permissions.powers
-      ?.map((power) => power.power_id)
-      .filter((power): power is string => Boolean(power)) ?? [];
+  if (!powers) {
+    powers = await loadKnownAdminPowers(jwt.user_id, user.state);
+  }
 
-  if (!roles.some(isAdminConsoleRole)) {
+  if (!powers) {
+    const permissions = await loadAdminRolesAndPowersFromRbac({
+      accessToken,
+      deviceId,
+      userId: jwt.user_id,
+    });
+
+    if (!permissions) {
+      return {
+        authenticated: false,
+        user,
+        roles: tokenRoles,
+        powers: [],
+        error: "Unable to load RBAC permissions.",
+        code: "RBAC_PERMISSIONS_FAILED",
+      };
+    }
+
+    roles = permissions.roles.length > 0 ? permissions.roles : tokenRoles;
+    powers = permissions.powers;
+  }
+
+  const hasConsoleRole = roles.some(isAdminConsoleRole);
+  const hasDashboardPower = powers.includes("PWR_ADMIN_DASHBOARD_VIEW");
+
+  if (!hasConsoleRole && !hasDashboardPower) {
     return {
       authenticated: false,
       user,
@@ -195,7 +293,7 @@ export async function readAdminSession({
     };
   }
 
-  if (!powers.includes("PWR_ADMIN_DASHBOARD_VIEW")) {
+  if (!hasDashboardPower) {
     return {
       authenticated: false,
       user,
@@ -214,4 +312,16 @@ export async function readAdminSession({
     powers,
     redirectTo: "/admin",
   };
+}
+
+export async function readAdminSessionFromCookies(): Promise<AdminSessionPayload | null> {
+  const store = await cookies();
+  const accessToken = store.get(adminCookieNames.accessToken)?.value;
+  const deviceId = store.get(adminCookieNames.deviceId)?.value;
+
+  if (!accessToken || !deviceId) {
+    return null;
+  }
+
+  return readAdminSession({ accessToken, deviceId }).catch(() => null);
 }

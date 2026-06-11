@@ -1,7 +1,16 @@
 import { NextRequest } from "next/server";
 
-import { proxyAdminRequest } from "@/lib/admin/proxy";
+import { proxyAdminInternalRequest } from "@/lib/admin/internal-proxy";
 
+// Backend only exposes /notifications/internal/broadcast (interServiceAuth).
+// The BFF authenticates the admin via cookies + PWR_NOTIFICATION_SEND_BROADCAST
+// before injecting the internal secret upstream.
 export function POST(request: NextRequest) {
-  return proxyAdminRequest({ request, backend: "notification", path: "/notifications/broadcast" });
+  return proxyAdminInternalRequest({
+    request,
+    backend: "notification",
+    path: "/notifications/internal/broadcast",
+    method: "POST",
+    requiredPower: "PWR_NOTIFICATION_SEND_BROADCAST",
+  });
 }

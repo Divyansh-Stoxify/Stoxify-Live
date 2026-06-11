@@ -3,7 +3,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-import { LenisProvider } from "./components/lenis-provider";
+import { LenisProvider } from "@/components/lenis-provider";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./globals.css";
 import "lenis/dist/lenis.css";

@@ -60,11 +60,13 @@ export async function proxyAdminRequest({
   backend,
   path,
   method,
+  body,
 }: {
   request: NextRequest;
   backend: BackendKey;
   path: string;
   method?: string;
+  body?: unknown;
 }) {
   if (isMutatingMethod(method ?? request.method)) {
     const reject = rejectCrossOriginPost(request);
@@ -91,7 +93,7 @@ export async function proxyAdminRequest({
       accessToken,
       deviceId,
       query: queryFromRequest(request),
-      body: await bodyFromRequest(request),
+      body: body ?? (await bodyFromRequest(request)),
       extraHeaders: forwardedIpHeaders(request),
     });
   } catch {

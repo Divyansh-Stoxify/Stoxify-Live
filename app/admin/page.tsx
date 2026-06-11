@@ -6,6 +6,7 @@ import { AdminContent } from "@/components/admin/admin-content";
 import { AppShell } from "@/components/app-shell";
 import { backendUrls, signedBackendFetch } from "@/lib/admin/backend";
 import { adminCookieNames, adminCookieOptions } from "@/lib/admin/cookies";
+import { readAdminSession } from "@/lib/admin/server-session";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -50,23 +51,9 @@ export default async function AdminPage(): Promise<JSX.Element> {
     redirect("/admin/login");
   }
 
-  let adminCheck: Response;
-  try {
-    adminCheck = await signedBackendFetch({
-      baseUrl: backendUrls.user,
-      path: "/admin/dashboard",
-      method: "GET",
-      accessToken,
-      deviceId,
-    });
-  } catch {
-    redirect("/admin/login");
-  }
-
-  if (!adminCheck.ok) {
-    // 401 means the access token expired. Attempt a silent token refresh once
-    // before falling back to the login page.
-    if (adminCheck.status === 401 && refreshToken && deviceId) {
+  const session = await readAdminSession({ accessToken, deviceId }).catch(() => null);
+  if (!session?.authenticated) {
+    if (session?.code !== "ADMIN_ACCESS_REQUIRED" && refreshToken && deviceId) {
       redirect("/api/admin/refresh-redirect");
     }
     redirect("/admin/login");

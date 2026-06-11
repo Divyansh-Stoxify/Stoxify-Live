@@ -45,3 +45,6 @@ next-dev.err.log
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# backend keys symlink (should not be in frontend)
+keys
