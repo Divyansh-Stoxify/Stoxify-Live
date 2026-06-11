@@ -24,50 +24,59 @@ const FAQ_ITEMS: FAQItem[] = [
     id: "faq-1",
     category: "account",
     question: "Why is Aadhaar KYC verification mandatory?",
-    answer: "Under SEBI guidelines, all users subscribing to and receiving advice from SEBI-registered Research Analysts must verify their identity. KYC ensures transparency, safety, and regulatory compliance on the Stoxify platform.",
+    answer:
+      "Under SEBI guidelines, all users subscribing to and receiving advice from SEBI-registered Research Analysts must verify their identity. KYC ensures transparency, safety, and regulatory compliance on the Stoxify platform.",
   },
   {
     id: "faq-2",
     category: "subscriptions",
     question: "How do I subscribe to an analyst's plan?",
-    answer: "Navigate to the 'Discover' section from the sidebar, find an analyst you wish to follow, click 'View Analyst', select a premium subscription plan, and complete the secure payment process.",
+    answer:
+      "Navigate to the 'Discover' section from the sidebar, find an analyst you wish to follow, click 'View Analyst', select a premium subscription plan, and complete the secure payment process.",
   },
   {
     id: "faq-3",
     category: "alerts",
     question: "How are trading signals/alerts delivered?",
-    answer: "Active alerts are visible on your 'Dashboard' tab. Additionally, you will receive real-time system notifications inside the 'Notifications' section. We are currently working on SMS and WhatsApp alerts integration as well.",
+    answer:
+      "Active alerts are visible on your 'Dashboard' tab. Additionally, you will receive real-time system notifications inside the 'Notifications' section. We are currently working on SMS and WhatsApp alerts integration as well.",
   },
   {
     id: "faq-4",
     category: "subscriptions",
     question: "Can I cancel my subscription or get a refund?",
-    answer: "Subscriptions are billed up-front for the duration specified (e.g. 30 days). You can cancel your subscription's auto-renewal at any time from your Profile's Subscriptions tab. Refunds are subject to individual analyst terms and Stoxify's refund policy.",
+    answer:
+      "Subscriptions are billed up-front for the duration specified (e.g. 30 days). You can cancel your subscription's auto-renewal at any time from your Profile's Subscriptions tab. Refunds are subject to individual analyst terms and Stoxify's refund policy.",
   },
   {
     id: "faq-5",
     category: "account",
     question: "How long does it take for Aadhaar verification to complete?",
-    answer: "Aadhaar verification is instantaneous in most cases. Simply enter your 12-digit Aadhaar number in the Profile page settings. If it enters a pending state, our support team will verify it within 2 hours.",
+    answer:
+      "Aadhaar verification is instantaneous in most cases. Simply enter your 12-digit Aadhaar number in the Profile page settings. If it enters a pending state, our support team will verify it within 2 hours.",
   },
   {
     id: "faq-6",
     category: "alerts",
     question: "Who are the analysts listing signals on Stoxify?",
-    answer: "All analysts on Stoxify are SEBI-registered Research Analysts or Investment Advisers. Their credentials, SEBI registration numbers, and performance history are verified and clearly displayed on their profiles.",
+    answer:
+      "All analysts on Stoxify are SEBI-registered Research Analysts or Investment Advisers. Their credentials, SEBI registration numbers, and performance history are verified and clearly displayed on their profiles.",
   },
   {
     id: "faq-7",
     category: "subscriptions",
     question: "Are there any hidden transaction fees?",
-    answer: "No, Stoxify does not charge any hidden payment fees. The price you see on the analyst subscription card is inclusive of platform access. Standard GST or payment gateway fees might be displayed at checkout.",
+    answer:
+      "No, Stoxify does not charge any hidden payment fees. The price you see on the analyst subscription card is inclusive of platform access. Standard GST or payment gateway fees might be displayed at checkout.",
   },
 ];
 
 export function TraderSupport({ user }: { user: SupportUser }) {
   // Search & Accordion states
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<"all" | "account" | "subscriptions" | "alerts">("all");
+  const [selectedCategory, setSelectedCategory] = useState<
+    "all" | "account" | "subscriptions" | "alerts"
+  >("all");
   const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
 
   // Form states
@@ -109,7 +118,10 @@ export function TraderSupport({ user }: { user: SupportUser }) {
     await new Promise((resolve) => setTimeout(resolve, 1200));
 
     setSubmitting(false);
-    toast.success("Support ticket raised successfully! Ticket ID: STX-" + Math.floor(100000 + Math.random() * 900000));
+    toast.success(
+      "Support ticket raised successfully! Ticket ID: STX-" +
+        Math.floor(100000 + Math.random() * 900000)
+    );
     setSubject("");
     setDescription("");
     setCategory("general");
@@ -185,9 +197,12 @@ export function TraderSupport({ user }: { user: SupportUser }) {
               <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-[var(--muted)]">
                 <Icon name="search" className="h-4.5 w-4.5" />
               </div>
-              <h3 className="text-[14px] font-bold text-[var(--ink)] mb-1">No FAQs matched your query</h3>
+              <h3 className="text-[14px] font-bold text-[var(--ink)] mb-1">
+                No FAQs matched your query
+              </h3>
               <p className="text-[12.5px] text-[var(--muted)] max-w-[280px]">
-                Try writing general words like &quot;KYC&quot;, &quot;analyst&quot;, &quot;refund&quot;, or raise a ticket.
+                Try writing general words like &quot;KYC&quot;, &quot;analyst&quot;,
+                &quot;refund&quot;, or raise a ticket.
               </p>
             </div>
           ) : (
@@ -233,7 +248,9 @@ export function TraderSupport({ user }: { user: SupportUser }) {
           <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4">
             <Icon name="sparkle" className="h-4.5 w-4.5 text-emerald-600 shrink-0 mt-0.5" />
             <div className="text-[12px] leading-relaxed text-[var(--muted)]">
-              <span className="font-bold text-[var(--ink)]">Tip:</span> If you are facing verification issues, verify that the Aadhaar details you enter match your billing or profile identity documents exactly.
+              <span className="font-bold text-[var(--ink)]">Tip:</span> If you are facing
+              verification issues, verify that the Aadhaar details you enter match your billing or
+              profile identity documents exactly.
             </div>
           </div>
         </div>
@@ -262,7 +279,10 @@ export function TraderSupport({ user }: { user: SupportUser }) {
                     support@stoxify.com
                   </div>
                 </div>
-                <Icon name="arrowRight" className="h-3.5 w-3.5 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
+                <Icon
+                  name="arrowRight"
+                  className="h-3.5 w-3.5 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all"
+                />
               </a>
 
               {/* Phone Card */}
@@ -281,7 +301,10 @@ export function TraderSupport({ user }: { user: SupportUser }) {
                     +91 9999999999
                   </div>
                 </div>
-                <Icon name="arrowRight" className="h-3.5 w-3.5 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
+                <Icon
+                  name="arrowRight"
+                  className="h-3.5 w-3.5 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all"
+                />
               </a>
             </div>
             <div className="mt-4 text-[11px] text-center text-slate-400">

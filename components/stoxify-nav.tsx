@@ -219,11 +219,7 @@ export function StoxifyNav({
             </button>
           )}
           {!navUser && active === "home" ? null : !navUser && ctaHref === "/signup" ? (
-            <button
-              className={ctaClass}
-              onClick={() => setLoginOpen(true)}
-              type="button"
-            >
+            <button className={ctaClass} onClick={() => setLoginOpen(true)} type="button">
               {ctaLabel}
               <Icon className="h-3.5 w-3.5" name="arrowRight" />
             </button>

@@ -234,7 +234,6 @@ input[data-slot="input-group-control"] {
   }
 }
 
-
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

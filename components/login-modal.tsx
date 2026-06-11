@@ -32,13 +32,7 @@ function normalizeIdentifier(
   return { ok: true, value: `+91${digits}` };
 }
 
-export function LoginModal({
-  open,
-  onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) {
+export function LoginModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("identifier");
   const [identifier, setIdentifier] = useState("");
@@ -311,10 +305,11 @@ export function LoginModal({
                   Phone number
                 </label>
                 <input
-                  className={`w-full rounded-lg border px-3.5 py-2.5 text-[13px] transition-all placeholder:text-[var(--muted-2)] focus:outline-none ${fieldErrors.identifier
-                    ? "border-[var(--red)] focus:border-[var(--red)] bg-[var(--red-light)]/10"
-                    : "border-[var(--line)] focus:border-[var(--brand)] focus:bg-white"
-                    }`}
+                  className={`w-full rounded-lg border px-3.5 py-2.5 text-[13px] transition-all placeholder:text-[var(--muted-2)] focus:outline-none ${
+                    fieldErrors.identifier
+                      ? "border-[var(--red)] focus:border-[var(--red)] bg-[var(--red-light)]/10"
+                      : "border-[var(--line)] focus:border-[var(--brand)] focus:bg-white"
+                  }`}
                   id="login-modal-identifier"
                   name="identifier"
                   onChange={(e) => {
@@ -452,4 +447,3 @@ export function LoginModal({
     document.body
   );
 }
-
