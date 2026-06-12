@@ -17,27 +17,27 @@ const isHostedEnv =
  * Local development URLs
  */
 const LOCAL_URLS = {
-  apiUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001",
-  wsUrl: process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:9000",
-  rbacUrl: process.env.NEXT_PUBLIC_RBAC_URL || "http://localhost:8004",
-  planUrl: process.env.NEXT_PUBLIC_PLAN_URL || "http://localhost:8005",
-  userUrl: process.env.NEXT_PUBLIC_USER_URL || "http://localhost:8006",
-  marketDataUrl: process.env.NEXT_PUBLIC_MARKET_DATA_URL || "http://localhost:8009",
-  notificationUrl: process.env.NEXT_PUBLIC_NOTIFICATION_URL || "http://localhost:8010",
+  apiUrl: process.env.NEXT_PUBLIC_API_URL || "https://stoxify-backend-monolith.onrender.com",
+  wsUrl: process.env.NEXT_PUBLIC_WS_URL || "wss://stoxify-backend-monolith.onrender.com",
+  rbacUrl: process.env.NEXT_PUBLIC_RBAC_URL || "https://stoxify-backend-monolith.onrender.com/rbac",
+  planUrl: process.env.NEXT_PUBLIC_PLAN_URL || "https://stoxify-backend-monolith.onrender.com/plan",
+  userUrl: process.env.NEXT_PUBLIC_USER_URL || "https://stoxify-backend-monolith.onrender.com/user",
+  marketDataUrl: process.env.NEXT_PUBLIC_MARKET_DATA_URL || "https://stoxify-backend-monolith.onrender.com/market-data",
+  notificationUrl: process.env.NEXT_PUBLIC_NOTIFICATION_URL || "https://stoxify-backend-monolith.onrender.com/notification",
 };
 
 /**
  * Hosted environment URLs
  */
 const HOSTED_URLS = {
-  apiUrl: process.env.NEXT_PUBLIC_API_URL || "https://api.stoxify.com",
-  wsUrl: process.env.NEXT_PUBLIC_WS_URL || "wss://api.stoxify.com",
-  rbacUrl: process.env.NEXT_PUBLIC_RBAC_URL || "https://api.stoxify.com/rbac",
-  planUrl: process.env.NEXT_PUBLIC_PLAN_URL || "https://api.stoxify.com/plan",
-  userUrl: process.env.NEXT_PUBLIC_USER_URL || "https://api.stoxify.com/user",
-  marketDataUrl: process.env.NEXT_PUBLIC_MARKET_DATA_URL || "https://api.stoxify.com/market-data",
+  apiUrl: process.env.NEXT_PUBLIC_API_URL || "https://stoxify-backend-monolith.onrender.com",
+  wsUrl: process.env.NEXT_PUBLIC_WS_URL || "wss://stoxify-backend-monolith.onrender.com",
+  rbacUrl: process.env.NEXT_PUBLIC_RBAC_URL || "https://stoxify-backend-monolith.onrender.com/rbac",
+  planUrl: process.env.NEXT_PUBLIC_PLAN_URL || "https://stoxify-backend-monolith.onrender.com/plan",
+  userUrl: process.env.NEXT_PUBLIC_USER_URL || "https://stoxify-backend-monolith.onrender.com/user",
+  marketDataUrl: process.env.NEXT_PUBLIC_MARKET_DATA_URL || "https://stoxify-backend-monolith.onrender.com/market-data",
   notificationUrl:
-    process.env.NEXT_PUBLIC_NOTIFICATION_URL || "https://api.stoxify.com/notification",
+    process.env.NEXT_PUBLIC_NOTIFICATION_URL || "https://stoxify-backend-monolith.onrender.com/notification",
 };
 
 // ── Active Configuration ───────────────────────────────────────────

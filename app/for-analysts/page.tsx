@@ -949,7 +949,13 @@ function FooterColumn({ title, links }: { title: string; links: string[] }) {
           <li key={link}>
             <Link
               className="text-sm text-white/55 transition-colors hover:text-white"
-              href={link === "Join Waitlist" ? "#waitlist" : "#"}
+              href={
+                link === "Join Waitlist"
+                  ? "#waitlist"
+                  : link === "RA Dashboard"
+                    ? "/login?role=analyst"
+                    : "#"
+              }
             >
               {link}
             </Link>

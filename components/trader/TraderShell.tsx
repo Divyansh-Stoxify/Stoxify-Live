@@ -13,6 +13,7 @@ type TraderUser = {
   email: string;
   phone: string;
   state: string;
+  user_type?: string;
 };
 
 const navItems: Array<{
@@ -110,7 +111,10 @@ export function TraderShell({ user, children }: { user: TraderUser; children: Re
 
         {/* User Footer */}
         <div className="border-t border-[var(--line)] px-4 py-4">
-          <div className="flex items-center gap-3">
+          <Link
+            href={user.user_type === "ANALYST" ? "/dashboard" : "/trader/profile"}
+            className="flex items-center gap-3 hover:opacity-90 transition-opacity"
+          >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--brand)] text-[11px] font-extrabold text-white select-none">
               {getInitials(user.name || user.email || "U")}
             </div>
@@ -122,7 +126,7 @@ export function TraderShell({ user, children }: { user: TraderUser; children: Re
                 {user.phone || user.email}
               </div>
             </div>
-          </div>
+          </Link>
           <LogoutButton className="mt-3 w-full rounded-lg border border-[var(--line)] bg-transparent px-3 py-2 text-[12px] font-semibold text-[var(--muted)] transition-colors hover:border-[var(--red)] hover:bg-[var(--red-light)] hover:text-[var(--red)]">
             Sign out
           </LogoutButton>
@@ -212,7 +216,11 @@ export function TraderShell({ user, children }: { user: TraderUser; children: Re
         </nav>
 
         <div className="border-t border-[var(--line)] px-4 py-4">
-          <div className="flex items-center gap-3 mb-3">
+          <Link
+            href={user.user_type === "ANALYST" ? "/dashboard" : "/trader/profile"}
+            onClick={() => setSidebarOpen(false)}
+            className="flex items-center gap-3 mb-3 hover:opacity-90 transition-opacity"
+          >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--brand)] text-[11px] font-extrabold text-white select-none">
               {getInitials(user.name || user.email || "U")}
             </div>
@@ -224,7 +232,7 @@ export function TraderShell({ user, children }: { user: TraderUser; children: Re
                 {user.phone || user.email}
               </div>
             </div>
-          </div>
+          </Link>
           <LogoutButton className="w-full rounded-lg border border-[var(--line)] bg-transparent px-3 py-2 text-[12px] font-semibold text-[var(--muted)] transition-colors hover:border-[var(--red)] hover:bg-[var(--red-light)] hover:text-[var(--red)]">
             Sign out
           </LogoutButton>
@@ -253,9 +261,12 @@ export function TraderShell({ user, children }: { user: TraderUser; children: Re
           >
             Stoxify
           </Link>
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--brand)] text-[10px] font-extrabold text-white select-none">
+          <Link
+            href={user.user_type === "ANALYST" ? "/dashboard" : "/trader/profile"}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--brand)] text-[10px] font-extrabold text-white select-none hover:opacity-90 transition-opacity"
+          >
             {getInitials(user.name || user.email || "U")}
-          </div>
+          </Link>
         </header>
 
         {/* Page Content */}

@@ -16,5 +16,9 @@ export default async function TraderLayout({ children }: { children: React.React
     redirect("/");
   }
 
+  if (session.user.user_type === "ANALYST") {
+    redirect("/dashboard");
+  }
+
   return <TraderShell user={session.user}>{children}</TraderShell>;
 }

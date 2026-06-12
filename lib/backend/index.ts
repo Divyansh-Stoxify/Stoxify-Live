@@ -28,28 +28,28 @@ function getBackendUrl(envName: BackendEnvName, fallback: string) {
 
 export const backendUrls = {
   get auth() {
-    return getBackendUrl("AUTH_SERVICE_URL", "http://localhost:8001");
+    return getBackendUrl("AUTH_SERVICE_URL", "https://stoxify-backend-monolith.onrender.com");
   },
   get user() {
-    return getBackendUrl("USER_SERVICE_URL", "http://localhost:8002");
+    return getBackendUrl("USER_SERVICE_URL", "https://stoxify-backend-monolith.onrender.com");
   },
   get trade() {
-    return getBackendUrl("TRADE_SERVICE_URL", "http://localhost:8003");
+    return getBackendUrl("TRADE_SERVICE_URL", "https://stoxify-backend-monolith.onrender.com");
   },
   get rbac() {
-    return getBackendUrl("RBAC_SERVICE_URL", "http://localhost:8004");
+    return getBackendUrl("RBAC_SERVICE_URL", "https://stoxify-backend-monolith.onrender.com");
   },
   get plan() {
-    return getBackendUrl("PLAN_SERVICE_URL", "http://localhost:8005");
+    return getBackendUrl("PLAN_SERVICE_URL", "https://stoxify-backend-monolith.onrender.com");
   },
   get marketData() {
-    return getBackendUrl("MARKET_DATA_SERVICE_URL", "http://localhost:8006");
+    return getBackendUrl("MARKET_DATA_SERVICE_URL", "https://stoxify-backend-monolith.onrender.com");
   },
   get notification() {
-    return getBackendUrl("NOTIFICATION_SERVICE_URL", "http://localhost:8007");
+    return getBackendUrl("NOTIFICATION_SERVICE_URL", "https://stoxify-backend-monolith.onrender.com");
   },
   get subscription() {
-    return getBackendUrl("SUBSCRIPTION_SERVICE_URL", "http://localhost:8008");
+    return getBackendUrl("SUBSCRIPTION_SERVICE_URL", "https://stoxify-backend-monolith.onrender.com");
   },
 };
 

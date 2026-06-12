@@ -18,13 +18,14 @@ export type UserSessionUser = {
   email: string;
   phone: string;
   state: string;
+  user_type?: string;
 };
 
 export type UserSession =
   | { authenticated: true; user: UserSessionUser; accessToken: string }
   | { authenticated: false };
 
-function decodeJwtPayload(token: string): JwtPayload | null {
+export function decodeJwtPayload(token: string): JwtPayload | null {
   const part = token.split(".")[1];
   if (!part) return null;
   try {
@@ -42,7 +43,7 @@ export function writeUserTokenCookies(
     refresh_token?: string;
     session_id?: string;
     device_id?: string;
-    user?: { user_id?: string; name?: string; email?: string; phone?: string; state?: string };
+    user?: { user_id?: string; name?: string; email?: string; phone?: string; state?: string; user_type?: string };
   }
 ) {
   response.cookies.set(userCookieNames.accessToken, data.access_token, {
@@ -68,6 +69,8 @@ export function writeUserTokenCookies(
     });
   }
   if (data.user) {
+    const jwt = decodeJwtPayload(data.access_token);
+    const user_type = jwt?.user_type ?? data.user.user_type ?? "";
     // Stored without httpOnly so client JS can read display data without hitting /api/auth/me.
     response.cookies.set(
       userCookieNames.userInfo,
@@ -77,6 +80,7 @@ export function writeUserTokenCookies(
         email: data.user.email ?? "",
         phone: data.user.phone ?? "",
         state: data.user.state ?? "",
+        user_type,
       }),
       {
         ...userCookieOptions,
@@ -110,13 +114,15 @@ export async function readUserSessionFromCookies(): Promise<UserSession> {
   let name = jwt.name ?? "";
   let email = "";
   let phone = "";
+  let user_type = jwt.user_type ?? "";
   const rawInfo = store.get(userCookieNames.userInfo)?.value;
   if (rawInfo) {
     try {
-      const info = JSON.parse(rawInfo) as { name?: string; email?: string; phone?: string };
+      const info = JSON.parse(rawInfo) as { name?: string; email?: string; phone?: string; user_type?: string };
       name = info.name ?? name;
       email = info.email ?? "";
       phone = info.phone ?? "";
+      user_type = info.user_type ?? user_type;
     } catch {
       // ignore malformed cookie
     }
@@ -130,6 +136,7 @@ export async function readUserSessionFromCookies(): Promise<UserSession> {
       email,
       phone,
       state: jwt.state ?? "",
+      user_type,
     },
     accessToken,
   };

@@ -12,20 +12,20 @@ services:
       - NODE_ENV=development
       - PORT=3000
       # Server-side route handlers use these URLs for signed backend requests.
-      - AUTH_SERVICE_URL=http://host.docker.internal:8001
-      - USER_SERVICE_URL=http://host.docker.internal:8002
+      - AUTH_SERVICE_URL=https://stoxify-backend-monolith.onrender.com
+      - USER_SERVICE_URL=https://stoxify-backend-monolith.onrender.com
       - ECDSA_PRIVATE_KEY_PATH=/app/keys/ecdsa_private.pem
       - ECDSA_KEY_VERSION=v1.0
       # Optional client-side service URLs for components that read public env.
-      - NEXT_PUBLIC_API_URL=http://host.docker.internal:8001
-      - NEXT_PUBLIC_USER_URL=http://host.docker.internal:8002
+      - NEXT_PUBLIC_API_URL=https://stoxify-backend-monolith.onrender.com
+      - NEXT_PUBLIC_USER_URL=https://stoxify-backend-monolith.onrender.com
     ports:
       - "3000:3000"
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - ../backend-stocxify/keys:/app/keys:ro
+      - ./keys:/app/keys:ro
       # Mount for hot-reload in development (optional)
       - ./app:/app/app
       - ./components:/app/components

@@ -25,7 +25,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  let body: { identifier?: string };
+  let body: { identifier?: string; intent?: string };
   try {
     body = await request.json();
   } catch {
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     backendResponse = await signedBackendFetch({
       baseUrl: backendUrls.auth,
-      path: "/auth/login/request-otp",
+      path: body.intent === "ANALYST" ? "/auth/analyst/request-otp" : "/auth/login/request-otp",
       method: "POST",
       deviceId,
       body: { identifier },
