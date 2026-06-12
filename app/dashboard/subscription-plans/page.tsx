@@ -122,7 +122,7 @@ export default function SubscriptionPlansPage() {
       <div className="flex-1 p-6 flex flex-col gap-6 overflow-y-auto">
         {/* ─── Metrics / KPIs Strip ─── */}
         <div className="grid grid-cols-3 gap-6 max-[860px]:grid-cols-1">
-          {isStatsLoading ? (
+          {isStatsLoading || !stats ? (
             <>
               <div className="h-[120px] rounded-xl border border-[var(--line)] bg-white animate-pulse" />
               <div className="h-[120px] rounded-xl border border-[var(--line)] bg-white animate-pulse" />
