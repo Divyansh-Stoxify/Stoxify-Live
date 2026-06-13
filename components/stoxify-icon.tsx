@@ -1,7 +1,10 @@
 import type { CSSProperties, HTMLAttributes } from "react";
 
 export type IconName =
+  | "activity"
   | "arrowRight"
+  | "ban"
+  | "bank"
   | "barChart"
   | "bell"
   | "badge"
@@ -9,18 +12,27 @@ export type IconName =
   | "check"
   | "chevronRight"
   | "chevronDown"
+  | "circleCheck"
   | "creditCard"
+  | "download"
+  | "edit"
   | "fileBadge"
   | "fileText"
   | "folder"
   | "flame"
+  | "gear"
   | "link"
+  | "layoutDashboard"
   | "lineChart"
   | "listChecks"
   | "lock"
+  | "logout"
   | "mail"
   | "phone"
+  | "plus"
+  | "power"
   | "receipt"
+  | "rupee"
   | "scale"
   | "search"
   | "send"
@@ -32,6 +44,7 @@ export type IconName =
   | "timer"
   | "trendingDown"
   | "trendingUp"
+  | "user"
   | "users"
   | "wallet"
   | "x"
@@ -44,7 +57,10 @@ export type IconName =
   | "headset";
 
 const icons: Record<IconName, string> = {
+  activity: "fa-solid fa-wave-pulse",
   arrowRight: "fa-solid fa-arrow-right",
+  ban: "fa-solid fa-ban",
+  bank: "fa-solid fa-building-columns",
   barChart: "fa-solid fa-chart-column",
   badge: "fa-solid fa-certificate",
   banknote: "fa-solid fa-money-bill-wave",
@@ -52,22 +68,31 @@ const icons: Record<IconName, string> = {
   check: "fa-solid fa-check",
   chevronRight: "fa-solid fa-chevron-right",
   chevronDown: "fa-solid fa-chevron-down",
+  circleCheck: "fa-solid fa-circle-check",
   creditCard: "fa-solid fa-credit-card",
+  download: "fa-solid fa-download",
+  edit: "fa-solid fa-pen-to-square",
   eye: "fa-solid fa-eye",
   eyeOff: "fa-solid fa-eye-slash",
   fileBadge: "fa-solid fa-file-circle-check",
   fileText: "fa-solid fa-file-lines",
   flame: "fa-solid fa-fire",
   folder: "fa-solid fa-folder-open",
+  gear: "fa-solid fa-gear",
   google: "fa-brands fa-google",
   apple: "fa-brands fa-apple",
   link: "fa-solid fa-link",
+  layoutDashboard: "fa-solid fa-grip",
   lineChart: "fa-solid fa-chart-line",
   listChecks: "fa-solid fa-list-check",
   lock: "fa-solid fa-lock",
+  logout: "fa-solid fa-right-from-bracket",
   mail: "fa-solid fa-envelope",
   phone: "fa-solid fa-phone",
+  plus: "fa-solid fa-plus",
+  power: "fa-solid fa-power-off",
   receipt: "fa-solid fa-receipt",
+  rupee: "fa-solid fa-indian-rupee-sign",
   scale: "fa-solid fa-scale-balanced",
   search: "fa-solid fa-magnifying-glass",
   send: "fa-solid fa-paper-plane",
@@ -79,6 +104,7 @@ const icons: Record<IconName, string> = {
   timer: "fa-solid fa-stopwatch",
   trendingDown: "fa-solid fa-arrow-trend-down",
   trendingUp: "fa-solid fa-arrow-trend-up",
+  user: "fa-solid fa-user",
   users: "fa-solid fa-users",
   wallet: "fa-solid fa-wallet",
   x: "fa-solid fa-xmark",

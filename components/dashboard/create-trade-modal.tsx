@@ -173,8 +173,8 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
       console.log("Mock trade added:", newTrade);
 
       // Mutate all SWR keys matching "/trades/" to revalidate and update UI
-      mutate((key) => typeof key === "string" && key.startsWith("/trades/"));
-      mutate((key) => typeof key === "string" && key.startsWith("/analytics/"));
+      mutate((key: string) => typeof key === "string" && key.startsWith("/trades/"));
+      mutate((key: string) => typeof key === "string" && key.startsWith("/analytics/"));
 
       // Trigger success confirmation toast notification
       const dirText = position === "LONG" ? "LONG" : "SHORT";

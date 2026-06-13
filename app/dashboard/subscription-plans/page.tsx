@@ -128,7 +128,7 @@ export default function SubscriptionPlansPage() {
               <div className="h-[120px] rounded-xl border border-[var(--line)] bg-white animate-pulse" />
               <div className="h-[120px] rounded-xl border border-[var(--line)] bg-white animate-pulse" />
             </>
-          ) : (
+          ) : stats ? (
             <>
               <MetricCard
                 changeLabel="this month"
@@ -151,7 +151,7 @@ export default function SubscriptionPlansPage() {
                 value={stats.active_plans_count.toString()}
               />
             </>
-          )}
+          ) : null}
         </div>
 
         {/* ─── Manage Plans Section Header ─── */}
