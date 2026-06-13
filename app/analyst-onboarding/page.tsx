@@ -20,9 +20,21 @@ interface FormErrors {
 /* ─── Sidebar ─────────────────────────────────────────────────────────── */
 
 const sidebarFeatures = [
-  { icon: "shieldCheck" as const, title: "SEBI Compliant", desc: "Built with regulatory guidelines in mind." },
-  { icon: "users" as const, title: "Audience Growth", desc: "Reach thousands of active traders directly." },
-  { icon: "banknote" as const, title: "Instant Payouts", desc: "Zero hidden fees on subscription revenue." },
+  {
+    icon: "shieldCheck" as const,
+    title: "SEBI Compliant",
+    desc: "Built with regulatory guidelines in mind.",
+  },
+  {
+    icon: "users" as const,
+    title: "Audience Growth",
+    desc: "Reach thousands of active traders directly.",
+  },
+  {
+    icon: "banknote" as const,
+    title: "Instant Payouts",
+    desc: "Zero hidden fees on subscription revenue.",
+  },
 ];
 
 function OnboardingSidebar({ formStep }: { formStep: number }) {
@@ -71,11 +83,7 @@ function OnboardingSidebar({ formStep }: { formStep: number }) {
                       : "border-2 border-[var(--line)] text-[var(--muted-2)] bg-white"
                 }`}
               >
-                {step.done ? (
-                  <Icon name="check" className="h-3.5 w-3.5" />
-                ) : (
-                  i + 1
-                )}
+                {step.done ? <Icon name="check" className="h-3.5 w-3.5" /> : i + 1}
               </div>
               {/* Label */}
               <span
@@ -145,22 +153,26 @@ function MobileTopBar({ formStep }: { formStep: number }) {
         </span>
         <div className="h-px w-3 bg-[var(--line)]" />
         {/* Step 1: Personal */}
-        <span className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold transition-all duration-300 ${
-          formStep > 0
-            ? "bg-[var(--green)] text-white"
-            : formStep === 0
-              ? "bg-[var(--brand)] text-white ring-2 ring-[var(--brand-light)]"
-              : "border-2 border-[var(--line)] text-[var(--muted-2)] bg-white"
-        }`}>
+        <span
+          className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold transition-all duration-300 ${
+            formStep > 0
+              ? "bg-[var(--green)] text-white"
+              : formStep === 0
+                ? "bg-[var(--brand)] text-white ring-2 ring-[var(--brand-light)]"
+                : "border-2 border-[var(--line)] text-[var(--muted-2)] bg-white"
+          }`}
+        >
           {formStep > 0 ? <Icon name="check" className="h-3 w-3" /> : "2"}
         </span>
         <div className="h-px w-3 bg-[var(--line)]" />
         {/* Step 2: SEBI */}
-        <span className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold transition-all duration-300 ${
-          formStep === 1
-            ? "bg-[var(--brand)] text-white ring-2 ring-[var(--brand-light)]"
-            : "border-2 border-[var(--line)] text-[var(--muted-2)] bg-white"
-        }`}>
+        <span
+          className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold transition-all duration-300 ${
+            formStep === 1
+              ? "bg-[var(--brand)] text-white ring-2 ring-[var(--brand-light)]"
+              : "border-2 border-[var(--line)] text-[var(--muted-2)] bg-white"
+          }`}
+        >
           3
         </span>
         <div className="h-px w-3 bg-[var(--line)]" />

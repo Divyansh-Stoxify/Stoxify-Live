@@ -32,7 +32,15 @@ function normalizeIdentifier(
   return { ok: true, value: `+91${digits}` };
 }
 
-export function LoginModal({ open, onClose, intent }: { open: boolean; onClose: () => void; intent?: "ANALYST" | "TRADER" }) {
+export function LoginModal({
+  open,
+  onClose,
+  intent,
+}: {
+  open: boolean;
+  onClose: () => void;
+  intent?: "ANALYST" | "TRADER";
+}) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("identifier");
   const [identifier, setIdentifier] = useState("");
@@ -171,7 +179,11 @@ export function LoginModal({ open, onClose, intent }: { open: boolean; onClose: 
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
         cache: "no-store",
-        body: JSON.stringify({ identifier: normalizedId, otp: code, ...(intent ? { intent } : {}) }),
+        body: JSON.stringify({
+          identifier: normalizedId,
+          otp: code,
+          ...(intent ? { intent } : {}),
+        }),
       });
 
       const data = (await res.json().catch(() => ({}))) as {

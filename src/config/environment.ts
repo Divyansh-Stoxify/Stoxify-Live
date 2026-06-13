@@ -22,8 +22,12 @@ const LOCAL_URLS = {
   rbacUrl: process.env.NEXT_PUBLIC_RBAC_URL || "https://stoxify-backend-monolith.onrender.com/rbac",
   planUrl: process.env.NEXT_PUBLIC_PLAN_URL || "https://stoxify-backend-monolith.onrender.com/plan",
   userUrl: process.env.NEXT_PUBLIC_USER_URL || "https://stoxify-backend-monolith.onrender.com/user",
-  marketDataUrl: process.env.NEXT_PUBLIC_MARKET_DATA_URL || "https://stoxify-backend-monolith.onrender.com/market-data",
-  notificationUrl: process.env.NEXT_PUBLIC_NOTIFICATION_URL || "https://stoxify-backend-monolith.onrender.com/notification",
+  marketDataUrl:
+    process.env.NEXT_PUBLIC_MARKET_DATA_URL ||
+    "https://stoxify-backend-monolith.onrender.com/market-data",
+  notificationUrl:
+    process.env.NEXT_PUBLIC_NOTIFICATION_URL ||
+    "https://stoxify-backend-monolith.onrender.com/notification",
 };
 
 /**
@@ -35,9 +39,12 @@ const HOSTED_URLS = {
   rbacUrl: process.env.NEXT_PUBLIC_RBAC_URL || "https://stoxify-backend-monolith.onrender.com/rbac",
   planUrl: process.env.NEXT_PUBLIC_PLAN_URL || "https://stoxify-backend-monolith.onrender.com/plan",
   userUrl: process.env.NEXT_PUBLIC_USER_URL || "https://stoxify-backend-monolith.onrender.com/user",
-  marketDataUrl: process.env.NEXT_PUBLIC_MARKET_DATA_URL || "https://stoxify-backend-monolith.onrender.com/market-data",
+  marketDataUrl:
+    process.env.NEXT_PUBLIC_MARKET_DATA_URL ||
+    "https://stoxify-backend-monolith.onrender.com/market-data",
   notificationUrl:
-    process.env.NEXT_PUBLIC_NOTIFICATION_URL || "https://stoxify-backend-monolith.onrender.com/notification",
+    process.env.NEXT_PUBLIC_NOTIFICATION_URL ||
+    "https://stoxify-backend-monolith.onrender.com/notification",
 };
 
 // ── Active Configuration ───────────────────────────────────────────

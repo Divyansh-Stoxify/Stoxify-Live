@@ -27,20 +27,13 @@ function normalizePhone(raw: string): { ok: true; value: string } | { ok: false;
   return { ok: true, value: `+91${digits}` };
 }
 
-export function AnalystLoginModal({
-  isOpen,
-  onClose,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-}) {
+export function AnalystLoginModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("phone");
 
   // Login inputs
   const [phoneInput, setPhoneInput] = useState("");
   const [normalizedPhone, setNormalizedPhone] = useState("");
-
 
   const [fieldErrors, setFieldErrors] = useState<FormErrors>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
@@ -52,17 +45,15 @@ export function AnalystLoginModal({
   const [isResending, setIsResending] = useState(false);
   const otpInputs = useRef<(HTMLInputElement | null)[]>([]);
 
-  useEffect(() => {
-    if (isOpen) {
-      setStep("phone");
-      setPhoneInput("");
-      setNormalizedPhone("");
-      setOtp(Array.from({ length: 6 }, () => ""));
-      setFieldErrors({});
-      setGeneralError(null);
-      setIsSubmitting(false);
-    }
-  }, [isOpen]);
+  const resetForm = () => {
+    setStep("phone");
+    setPhoneInput("");
+    setNormalizedPhone("");
+    setOtp(Array.from({ length: 6 }, () => ""));
+    setFieldErrors({});
+    setGeneralError(null);
+    setIsSubmitting(false);
+  };
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -122,7 +113,6 @@ export function AnalystLoginModal({
     }
   };
 
-
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     const code = otp.join("");
@@ -161,7 +151,9 @@ export function AnalystLoginModal({
       // If new user, capture the token and redirect to full-page onboarding
       if (data.is_new_user && data.registration_token) {
         onClose();
-        router.push(`/analyst-onboarding?token=${encodeURIComponent(data.registration_token)}&phone=${encodeURIComponent(normalizedPhone)}`);
+        router.push(
+          `/analyst-onboarding?token=${encodeURIComponent(data.registration_token)}&phone=${encodeURIComponent(normalizedPhone)}`
+        );
         return;
       }
 
@@ -222,7 +214,13 @@ export function AnalystLoginModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (open) resetForm();
+        if (!open) onClose();
+      }}
+    >
       <DialogContent className="sm:max-w-[480px] bg-white border border-[var(--line)] rounded-2xl p-7 shadow-2xl overflow-hidden font-sans">
         <DialogHeader className="mb-4">
           <DialogTitle className="text-[20px] font-extrabold text-[var(--ink)] tracking-tight">
@@ -230,7 +228,8 @@ export function AnalystLoginModal({
             {step === "otp" && "Verify Your Account"}
           </DialogTitle>
           <DialogDescription className="text-[13px] text-[var(--muted)] mt-1.5 leading-relaxed">
-            {step === "phone" && "Enter your registered phone number. We will send a 6-digit verification code."}
+            {step === "phone" &&
+              "Enter your registered phone number. We will send a 6-digit verification code."}
             {step === "otp" && `Enter the 6-digit code sent to ${normalizedPhone}.`}
           </DialogDescription>
         </DialogHeader>
@@ -245,7 +244,10 @@ export function AnalystLoginModal({
         {step === "phone" && (
           <form onSubmit={handleRequestOtp} className="space-y-4">
             <div>
-              <label htmlFor="phone" className="block text-[11px] font-bold uppercase tracking-[0.05em] text-[var(--muted)] mb-1.5">
+              <label
+                htmlFor="phone"
+                className="block text-[11px] font-bold uppercase tracking-[0.05em] text-[var(--muted)] mb-1.5"
+              >
                 Phone Number
               </label>
               <input
@@ -284,7 +286,6 @@ export function AnalystLoginModal({
                 "Send verification code"
               )}
             </button>
-
           </form>
         )}
 

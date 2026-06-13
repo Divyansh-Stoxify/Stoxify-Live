@@ -151,11 +151,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // If the login intent was specifically for an Analyst, but the user is not an Analyst, reject it.
   if (body.intent === "ANALYST" && actualUserType !== "ANALYST") {
-    // Note: The backend already created a session, so ideally we would revoke it, but for now 
+    // Note: The backend already created a session, so ideally we would revoke it, but for now
     // we simply don't write the cookies so the frontend remains unauthenticated.
     return NextResponse.json(
-      { error: "This account is not registered as a Research Analyst. Please use the Trader login.", code: "INVALID_USER_TYPE" },
-      { status: 403 },
+      {
+        error: "This account is not registered as a Research Analyst. Please use the Trader login.",
+        code: "INVALID_USER_TYPE",
+      },
+      { status: 403 }
     );
   }
 

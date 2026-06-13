@@ -3,7 +3,11 @@
 import { useState } from "react";
 import { Topbar } from "@/components/dashboard/topbar";
 import { Icon } from "@/components/stoxify-icon";
-import { useActiveTrades, usePendingTrades, useClosedTrades } from "@/lib/hooks/use-analyst-dashboard";
+import {
+  useActiveTrades,
+  usePendingTrades,
+  useClosedTrades,
+} from "@/lib/hooks/use-analyst-dashboard";
 import { useLiveTradesStats } from "@/lib/hooks/use-analyst-dashboard";
 import { useDashboard } from "@/components/dashboard/dashboard-context";
 import type { Trade } from "@/lib/types/analyst";
@@ -368,10 +372,7 @@ export default function LiveTradesPage() {
     isError: activeError,
   } = useActiveTrades(20);
   const activeTotal = activeTrades.length;
-  const {
-    trades: pendingTrades,
-    isLoading: pendingLoading,
-  } = usePendingTrades();
+  const { trades: pendingTrades, isLoading: pendingLoading } = usePendingTrades();
   const pendingTotal = pendingTrades.length;
   const { trades: closedTrades, isLoading: closedLoading } = useClosedTrades();
 

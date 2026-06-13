@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { DashboardMetrics, Trade, Subscriber, AnalystProfile, SubscriptionPlan } from "@/lib/types/analyst";
+import type {
+  DashboardMetrics,
+  Trade,
+  Subscriber,
+  AnalystProfile,
+  SubscriptionPlan,
+} from "@/lib/types/analyst";
 
 // ─── Mock Data ──────────────────────────────────────────────────────────────
 
@@ -86,7 +92,7 @@ let MOCK_PLANS: SubscriptionPlan[] = [
 export function useDashboardMetrics() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isError, setIsError] = useState(false);
+  const [isError] = useState(false);
 
   useEffect(() => {
     // Simulate API fetch
@@ -103,7 +109,7 @@ export function useDashboardMetrics() {
 export function useActiveTrades(limit: number = 5) {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isError, setIsError] = useState(false);
+  const [isError] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -146,8 +152,16 @@ export function useClosedTrades() {
   return { trades, isLoading };
 }
 
+interface LiveTradesStats {
+  total_active: number;
+  avg_win_rate_monthly: number;
+  win_rate_change_pct: number;
+  active_subscribers: number;
+  live_viewers: number;
+}
+
 export function useLiveTradesStats() {
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<LiveTradesStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -170,7 +184,7 @@ export function useLiveTradesStats() {
 export function useRecentSubscribers(limit: number = 5) {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isError, setIsError] = useState(false);
+  const [isError] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -217,8 +231,15 @@ export function useSubscriptionPlans() {
   return { plans, isLoading };
 }
 
+interface SubscriptionPlansStats {
+  total_subscribers: number;
+  monthly_recurring_revenue: number;
+  total_plans_count: number;
+  active_plans_count: number;
+}
+
 export function useSubscriptionPlansStats() {
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<SubscriptionPlansStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

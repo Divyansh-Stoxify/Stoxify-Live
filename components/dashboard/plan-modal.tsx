@@ -53,13 +53,8 @@ export function PlanModal({ plan, onClose, onSave }: PlanModalProps) {
 
     // Simulate small latency for premium feel
     setTimeout(() => {
-      const planData = {
-        name: name.trim(),
-        price: parseFloat(price),
-        billing_cycle: billingCycle,
-        status,
-        subscribers_count: plan?.subscribers_count ?? 0, // Retain subscribers or start at 0
-      };
+      // Plan data prepared for API call
+      // { name, price, billing_cycle, status, subscribers_count }
 
       if (isEditMode && plan) {
         // updateMockPlan(plan.plan_id, planData);

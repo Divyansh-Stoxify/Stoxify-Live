@@ -43,13 +43,22 @@ export const backendUrls = {
     return getBackendUrl("PLAN_SERVICE_URL", "https://stoxify-backend-monolith.onrender.com");
   },
   get marketData() {
-    return getBackendUrl("MARKET_DATA_SERVICE_URL", "https://stoxify-backend-monolith.onrender.com");
+    return getBackendUrl(
+      "MARKET_DATA_SERVICE_URL",
+      "https://stoxify-backend-monolith.onrender.com"
+    );
   },
   get notification() {
-    return getBackendUrl("NOTIFICATION_SERVICE_URL", "https://stoxify-backend-monolith.onrender.com");
+    return getBackendUrl(
+      "NOTIFICATION_SERVICE_URL",
+      "https://stoxify-backend-monolith.onrender.com"
+    );
   },
   get subscription() {
-    return getBackendUrl("SUBSCRIPTION_SERVICE_URL", "https://stoxify-backend-monolith.onrender.com");
+    return getBackendUrl(
+      "SUBSCRIPTION_SERVICE_URL",
+      "https://stoxify-backend-monolith.onrender.com"
+    );
   },
 };
 

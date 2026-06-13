@@ -43,7 +43,14 @@ export function writeUserTokenCookies(
     refresh_token?: string;
     session_id?: string;
     device_id?: string;
-    user?: { user_id?: string; name?: string; email?: string; phone?: string; state?: string; user_type?: string };
+    user?: {
+      user_id?: string;
+      name?: string;
+      email?: string;
+      phone?: string;
+      state?: string;
+      user_type?: string;
+    };
   }
 ) {
   response.cookies.set(userCookieNames.accessToken, data.access_token, {
@@ -118,7 +125,12 @@ export async function readUserSessionFromCookies(): Promise<UserSession> {
   const rawInfo = store.get(userCookieNames.userInfo)?.value;
   if (rawInfo) {
     try {
-      const info = JSON.parse(rawInfo) as { name?: string; email?: string; phone?: string; user_type?: string };
+      const info = JSON.parse(rawInfo) as {
+        name?: string;
+        email?: string;
+        phone?: string;
+        user_type?: string;
+      };
       name = info.name ?? name;
       email = info.email ?? "";
       phone = info.phone ?? "";
