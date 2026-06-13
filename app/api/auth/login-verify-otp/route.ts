@@ -141,13 +141,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     actualUserType = jwt?.user_type;
   }
 
+  console.info("[user-login] user_type resolution", {
+    intent: body.intent,
+    backendUserType: data.user?.user_type,
+    jwtUserType: data.access_token ? decodeJwtPayload(data.access_token)?.user_type : "no-token",
+    actualUserType,
+    redirectTo: actualUserType === "ANALYST" ? "/dashboard" : "/trader/dashboard",
+  });
+
   // If the login intent was specifically for an Analyst, but the user is not an Analyst, reject it.
   if (body.intent === "ANALYST" && actualUserType !== "ANALYST") {
     // Note: The backend already created a session, so ideally we would revoke it, but for now 
     // we simply don't write the cookies so the frontend remains unauthenticated.
     return NextResponse.json(
       { error: "This account is not registered as a Research Analyst. Please use the Trader login.", code: "INVALID_USER_TYPE" },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
@@ -162,7 +170,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     refresh_token: data.refresh_token,
     session_id: data.session_id,
     device_id: deviceId,
-    user: data.user,
+    user: { ...data.user, user_type: actualUserType },
   });
 
   return response;

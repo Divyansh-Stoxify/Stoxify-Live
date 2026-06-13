@@ -88,7 +88,7 @@ export function AnalystLoginModal({
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
         cache: "no-store",
-        body: JSON.stringify({ identifier: check.value }),
+        body: JSON.stringify({ identifier: check.value, intent: "ANALYST" }),
       });
 
       const data = (await res.json().catch(() => ({}))) as { error?: string };
@@ -183,7 +183,7 @@ export function AnalystLoginModal({
       const res = await fetch("/api/auth/login-request-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier: normalizedPhone }),
+        body: JSON.stringify({ identifier: normalizedPhone, intent: "ANALYST" }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {

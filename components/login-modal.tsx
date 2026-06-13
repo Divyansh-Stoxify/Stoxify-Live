@@ -32,7 +32,7 @@ function normalizeIdentifier(
   return { ok: true, value: `+91${digits}` };
 }
 
-export function LoginModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function LoginModal({ open, onClose, intent }: { open: boolean; onClose: () => void; intent?: "ANALYST" | "TRADER" }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("identifier");
   const [identifier, setIdentifier] = useState("");
@@ -119,7 +119,7 @@ export function LoginModal({ open, onClose }: { open: boolean; onClose: () => vo
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
         cache: "no-store",
-        body: JSON.stringify({ identifier: check.value }),
+        body: JSON.stringify({ identifier: check.value, ...(intent ? { intent } : {}) }),
       });
 
       const data = (await res.json().catch(() => ({}))) as { error?: string };
@@ -171,7 +171,7 @@ export function LoginModal({ open, onClose }: { open: boolean; onClose: () => vo
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
         cache: "no-store",
-        body: JSON.stringify({ identifier: normalizedId, otp: code }),
+        body: JSON.stringify({ identifier: normalizedId, otp: code, ...(intent ? { intent } : {}) }),
       });
 
       const data = (await res.json().catch(() => ({}))) as {
@@ -189,8 +189,10 @@ export function LoginModal({ open, onClose }: { open: boolean; onClose: () => vo
       }
 
       // Success – close modal and redirect
+      console.log("[LoginModal] verify response", { intent, redirectTo: data.redirectTo, data });
       onClose();
       const destination = data.redirectTo ?? "/trader/dashboard";
+      console.log("[LoginModal] redirecting to", destination);
       router.push(destination);
       router.refresh();
     } catch {
@@ -209,7 +211,7 @@ export function LoginModal({ open, onClose }: { open: boolean; onClose: () => vo
       const res = await fetch("/api/auth/login-request-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier: normalizedId }),
+        body: JSON.stringify({ identifier: normalizedId, ...(intent ? { intent } : {}) }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {

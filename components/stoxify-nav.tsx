@@ -7,12 +7,14 @@ import { userCookieNames } from "@/lib/auth/cookies";
 
 import { Icon } from "./stoxify-icon";
 import { LoginModal } from "./login-modal";
+import { AnalystLoginModal } from "./analyst-login-modal";
 
 type NavUser = {
   user_id?: string;
   name?: string;
   email?: string;
   phone?: string;
+  user_type?: string;
 } | null;
 
 function getUserLabel(user: Exclude<NavUser, null>): string {
@@ -47,6 +49,7 @@ function normalizeNavUser(value: unknown): Exclude<NavUser, null> | null {
     name: typeof candidate.name === "string" ? candidate.name : "",
     email: typeof candidate.email === "string" ? candidate.email : "",
     phone: typeof candidate.phone === "string" ? candidate.phone : "",
+    user_type: typeof candidate.user_type === "string" ? candidate.user_type : "",
   };
   return user.name || user.email || user.phone || user.user_id ? user : null;
 }
@@ -123,6 +126,7 @@ export function StoxifyNav({
 }) {
   const [open, setOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [isAnalystModalOpen, setIsAnalystModalOpen] = useState(false);
   const navUser = useNavUser();
   const navUserLabel = navUser ? getUserLabel(navUser) : "";
 
@@ -135,6 +139,20 @@ export function StoxifyNav({
     ctaVariant === "orange"
       ? "inline-flex items-center justify-center gap-2 rounded bg-[var(--orange)] px-5 py-[9px] text-[13px] font-medium text-white transition-all hover:-translate-y-px hover:bg-[#EA6F0C] hover:shadow-[0_4px_16px_rgba(249,115,22,0.35)]"
       : "inline-flex items-center justify-center gap-2 rounded bg-[var(--brand)] px-5 py-[9px] text-[13px] font-medium text-white transition-all hover:-translate-y-px hover:bg-[var(--brand-dark)] hover:shadow-[0_4px_16px_rgba(31,122,224,0.35)]";
+
+  const handleLoginClick = () => {
+    if (active === "analysts") {
+      setIsAnalystModalOpen(true);
+    } else {
+      setLoginOpen(true);
+    }
+  };
+
+  const dashboardHref = navUser
+    ? navUser.user_type === "ANALYST"
+      ? "/dashboard"
+      : "/trader/dashboard"
+    : "/trader/dashboard";
 
   return (
     <nav className="fixed inset-x-0 top-0 z-[200] flex h-[66px] items-center border-b border-[var(--line)] bg-white/90 backdrop-blur-2xl">
@@ -203,7 +221,7 @@ export function StoxifyNav({
         <div className="ml-auto flex items-center gap-2 max-[860px]:ml-0">
           {navUser ? (
             <Link
-              href="/trader/dashboard"
+              href={dashboardHref}
               title={navUserLabel}
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--brand)] text-[11px] font-extrabold text-white hover:opacity-90 transition-opacity select-none max-[860px]:hidden"
             >
@@ -212,25 +230,28 @@ export function StoxifyNav({
           ) : (
             <button
               className="inline-flex items-center justify-center gap-2 rounded border border-[var(--line)] bg-transparent px-5 py-[9px] text-[13px] font-medium text-[var(--muted)] transition-colors hover:border-[var(--muted-2)] hover:bg-[var(--line-2)] hover:text-[var(--ink)] max-[860px]:hidden"
-              onClick={() => setLoginOpen(true)}
+              onClick={handleLoginClick}
               type="button"
             >
               Log In
             </button>
           )}
           {!navUser && active === "home" ? null : !navUser && ctaHref === "/signup" ? (
-            <button className={ctaClass} onClick={() => setLoginOpen(true)} type="button">
+            <button className={ctaClass} onClick={handleLoginClick} type="button">
               {ctaLabel}
               <Icon className="h-3.5 w-3.5" name="arrowRight" />
             </button>
           ) : (
-            <Link className={ctaClass} href={navUser ? "/trader/dashboard" : ctaHref}>
-              {navUser ? "Dashboard" : ctaLabel}
+            <Link className={ctaClass} href={navUser ? dashboardHref : ctaHref}>
+              {navUser ? (navUser.user_type === "ANALYST" ? "RA Home" : "Dashboard") : ctaLabel}
               <Icon className="h-3.5 w-3.5" name="arrowRight" />
             </Link>
           )}
         </div>
       </div>
+      {/* Analyst login modal — used on the for-analysts page */}
+      <AnalystLoginModal isOpen={isAnalystModalOpen} onClose={() => setIsAnalystModalOpen(false)} />
+      {/* Generic login modal — used on the home page */}
       <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
     </nav>
   );
