@@ -228,7 +228,7 @@ export function StoxifyNav({
               {getInitials(navUserLabel)}
             </Link>
           ) : (
-            <button
+            <Link
               className="inline-flex items-center justify-center gap-2 rounded border border-[var(--line)] bg-transparent px-5 py-[9px] text-[13px] font-medium text-[var(--muted)] transition-colors hover:border-[var(--muted-2)] hover:bg-[var(--line-2)] hover:text-[var(--ink)] max-[860px]:hidden"
               onClick={handleLoginClick}
               type="button"

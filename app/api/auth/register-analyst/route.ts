@@ -141,10 +141,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // 5. The user-service logs the new analyst in directly and issues an access_token.
-  //    We must write these cookies so the frontend picks up the session.
-  const redirectTo = "/dashboard";
-
+  // Write tokens and redirect to dashboard
+  const redirectTo = "/analyst-dashboard";
   const nextResponse = NextResponse.json({ ok: true, redirectTo });
 
   if (data.access_token) {
