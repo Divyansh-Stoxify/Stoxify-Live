@@ -18,6 +18,7 @@ export interface Trade {
   segment_label?: string;
   trade_type?: "SIMPLE" | "PAIR";
   trade_subtype?: "INTRADAY" | "SWING";
+  batch?: string;
   expiry?: string;
   direction: TradeDirection;
   entry_price: number;

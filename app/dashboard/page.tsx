@@ -10,6 +10,7 @@ import {
   useActiveTrades,
   useRecentSubscribers,
 } from "@/lib/hooks/use-analyst-dashboard";
+import { useWebSocket } from "@/lib/hooks/use-websocket";
 import type { Trade, Subscriber } from "@/lib/types/analyst";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -59,11 +60,15 @@ function avatarGradient(name: string) {
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 /** Single row in the Active Live Trades table */
-function TradeRow({ trade }: { trade: Trade }) {
+function TradeRow({ trade, liveLtp }: { trade: Trade; liveLtp?: number }) {
   const isLong = trade.direction === "LONG";
-  const pnl = trade.pnl_pct ?? 0;
+  const ltp = liveLtp ?? trade.ltp;
+  // Compute live P&L from LTP if available
+  const pnl =
+    ltp !== undefined
+      ? ((isLong ? ltp - trade.entry_price : trade.entry_price - ltp) / trade.entry_price) * 100
+      : (trade.pnl_pct ?? 0);
   const pnlPositive = pnl >= 0;
-  const ltp = trade.ltp;
 
   return (
     <tr className="border-b border-[var(--line)] last:border-0 hover:bg-[var(--surface)] transition-colors">
@@ -237,6 +242,7 @@ export default function DashboardPage() {
   const { metrics, isLoading: metricsLoading, isError: metricsError } = useDashboardMetrics();
   const { trades, isLoading: tradesLoading, isError: tradesError } = useActiveTrades(5);
   const { subscribers, isLoading: subsLoading } = useRecentSubscribers(5);
+  const { prices: livePrices } = useWebSocket();
 
   return (
     <>
@@ -358,7 +364,13 @@ export default function DashboardPage() {
                       </td>
                     </tr>
                   ) : (
-                    trades.map((trade) => <TradeRow key={trade.trade_id} trade={trade} />)
+                    trades.map((trade) => (
+                      <TradeRow
+                        key={trade.trade_id}
+                        trade={trade}
+                        liveLtp={livePrices[trade.symbol]}
+                      />
+                    ))
                   )}
                 </tbody>
               </table>

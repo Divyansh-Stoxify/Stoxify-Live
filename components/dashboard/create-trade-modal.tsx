@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSWRConfig } from "swr";
 import { Icon } from "@/components/stoxify-icon";
-import type { Trade, TradeDirection } from "@/lib/types/analyst";
+import type { TradeDirection } from "@/lib/types/analyst";
 
 interface CreateTradeModalProps {
   onClose: () => void;
@@ -12,18 +12,17 @@ interface CreateTradeModalProps {
 
 // Typical Indian market symbols for autocomplete search
 const POPULAR_SYMBOLS = [
-  { symbol: "RELIANCE", segment: "EQUITY" },
-  { symbol: "HDFCBANK", segment: "EQUITY" },
-  { symbol: "TCS", segment: "EQUITY" },
-  { symbol: "INFY", segment: "EQUITY" },
-  { symbol: "ICICIBANK", segment: "EQUITY" },
-  { symbol: "SBIN", segment: "EQUITY" },
-  { symbol: "BHARTIARTL", segment: "EQUITY" },
-  { symbol: "LTIM", segment: "EQUITY" },
-  { symbol: "NIFTY 21MAR 22000 PE", segment: "FNO" },
-  { symbol: "BANKNIFTY 48000 CE", segment: "FNO" },
-  { symbol: "FINNIFTY 20600 CE", segment: "FNO" },
-  { symbol: "NIFTY 22200 CE", segment: "FNO" },
+  { symbol: "RELIANCE-EQ", segment: "EQUITY" },
+  { symbol: "HDFCBANK-EQ", segment: "EQUITY" },
+  { symbol: "TCS-EQ", segment: "EQUITY" },
+  { symbol: "INFY-EQ", segment: "EQUITY" },
+  { symbol: "ICICIBANK-EQ", segment: "EQUITY" },
+  { symbol: "SBIN-EQ", segment: "EQUITY" },
+  { symbol: "BHARTIARTL-EQ", segment: "EQUITY" },
+  { symbol: "LTIM-EQ", segment: "EQUITY" },
+  { symbol: "NIFTY29DEC2630000PE", segment: "FNO" },
+  { symbol: "BANKNIFTY29SEP2648000CE", segment: "FNO" },
+  { symbol: "FINNIFTY30JUN2622450CE", segment: "FNO" },
 ];
 
 export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) {
@@ -40,10 +39,12 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
   const [targetPrice, setTargetPrice] = useState("");
   const [stopLoss, setStopLoss] = useState("");
   const [notes, setNotes] = useState("");
+  const [batch, setBatch] = useState("");
 
   // Validation / Loading states
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFetchingPrice, setIsFetchingPrice] = useState(false);
 
   const autocompleteRef = useRef<HTMLDivElement>(null);
 
@@ -63,13 +64,33 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
     s.symbol.toLowerCase().includes(symbolQuery.toLowerCase())
   );
 
-  const handleSelectSymbol = (item: (typeof POPULAR_SYMBOLS)[0]) => {
+  const handleSelectSymbol = async (item: (typeof POPULAR_SYMBOLS)[0]) => {
     setSymbolQuery(item.symbol);
     setSegment(item.segment as "EQUITY" | "FNO");
     setShowAutocomplete(false);
     // Clear symbol error if it was set
     if (errors.symbol) {
       setErrors((prev) => ({ ...prev, symbol: "" }));
+    }
+
+    // Auto-fetch the latest price for this symbol
+    setIsFetchingPrice(true);
+    try {
+      const res = await fetch(`/api/market-data/price/${encodeURIComponent(item.symbol)}`, {
+        credentials: "same-origin",
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const price = data?.price ?? data?.ltp;
+        if (price !== null && price !== undefined) {
+          setEntryPrice(String(price));
+        }
+      }
+    } catch {
+      // Non-critical — analyst can still type manually
+    } finally {
+      setIsFetchingPrice(false);
     }
   };
 
@@ -120,59 +141,55 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
     return Object.keys(nextErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
     setIsSubmitting(true);
 
-    // Simulate API network latency
-    setTimeout(() => {
-      setIsSubmitting(false);
+    const entry = parseFloat(entryPrice);
+    const target = parseFloat(targetPrice);
+    const sl = parseFloat(stopLoss);
 
-      const entry = parseFloat(entryPrice);
-      const target = parseFloat(targetPrice);
-      const sl = parseFloat(stopLoss);
+    // Map position toggle to standard direction string
+    let direction: TradeDirection = "LONG";
+    if (segment === "EQUITY") {
+      direction = position === "LONG" ? "LONG" : "SHORT";
+    } else {
+      direction = position === "LONG" ? "BUY" : "SELL";
+    }
 
-      // Map position toggle to standard direction direction string
-      let direction: TradeDirection = "LONG";
-      if (segment === "EQUITY") {
-        direction = position === "LONG" ? "LONG" : "SHORT";
-      } else {
-        direction = position === "LONG" ? "BUY" : "SELL";
+    const tradePayload = {
+      trade_type: tradeStructure,
+      segment: segment,
+      category: category,
+      symbol: symbolQuery.toUpperCase(),
+      name: symbolQuery.toUpperCase(),
+      direction: direction,
+      entry_price: entry,
+      stop_loss: sl,
+      target: target,
+      target_note: notes.trim() || undefined,
+      batch: batch || undefined,
+    };
+
+    try {
+      const res = await fetch("/api/analyst/trades", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify(tradePayload),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setErrors({ submit: data.message || data.error || "Failed to create trade" });
+        setIsSubmitting(false);
+        return;
       }
 
-      const riskVal = Math.abs(entry - sl) / entry;
-      const rewardVal = Math.abs(target - entry) / entry;
-
-      const newTrade: Trade = {
-        trade_id: `trade_${Date.now()}`,
-        symbol: symbolQuery.toUpperCase(),
-        segment: segment,
-        segment_label: segment === "FNO" ? "FNO - OPTIONS" : "EQUITY",
-        trade_type: tradeStructure,
-        trade_subtype: category,
-        direction: direction,
-        entry_price: entry,
-        target_price: target,
-        stop_loss_price: sl,
-        risk_pct: Math.round(riskVal * 1000) / 10,
-        reward_pct: Math.round(rewardVal * 1000) / 10,
-        pnl_pct: 0.0,
-        pnl_per_unit: 0.0,
-        pnl_unit: segment === "EQUITY" ? "share" : "lot",
-        status: "ACTIVE",
-        note: notes.trim() || undefined,
-        is_live_streaming: false,
-        live_viewers: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      // Add to local mock database array
-      console.log("Mock trade added:", newTrade);
-
-      // Mutate all SWR keys matching "/trades/" to revalidate and update UI
+      // Mutate SWR keys to revalidate and update UI
       mutate((key: string) => typeof key === "string" && key.startsWith("/trades/"));
       mutate((key: string) => typeof key === "string" && key.startsWith("/analytics/"));
 
@@ -180,12 +197,16 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
       const dirText = position === "LONG" ? "LONG" : "SHORT";
       onSuccess(
         "Trade Created Successfully",
-        `${newTrade.symbol} ${dirText} trade has been created and broadcasted to your active subscribers.`
+        `${symbolQuery.toUpperCase()} ${dirText} trade has been created and broadcasted to your active subscribers.`
       );
 
       // Close the modal
       onClose();
-    }, 800);
+    } catch {
+      setErrors({ submit: "Network error — please try again" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -327,8 +348,8 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
               </div>
             </div>
 
-            {/* Toggle Row 2: Position & Category */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Toggle Row 2: Position, Category & Batch */}
+            <div className="grid grid-cols-3 gap-4">
               {/* Position */}
               <div>
                 <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em] mb-1.5">
@@ -380,6 +401,30 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
                   />
                 </div>
               </div>
+
+              {/* Batch */}
+              <div>
+                <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em] mb-1.5">
+                  Batch{" "}
+                  <span className="text-[9px] font-normal lowercase normal-case">(optional)</span>
+                </label>
+                <div className="relative">
+                  <select
+                    className="w-full appearance-none rounded-lg border border-[var(--line)] bg-white py-2 px-3.5 text-[12.5px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)]"
+                    onChange={(e) => setBatch(e.target.value)}
+                    value={batch}
+                  >
+                    <option value="">Select Batch</option>
+                    <option value="Morning Batch">Morning Batch</option>
+                    <option value="Evening Batch">Evening Batch</option>
+                    <option value="VIP Batch">VIP Batch</option>
+                  </select>
+                  <Icon
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-2)] pointer-events-none h-3 w-3"
+                    name="chevronDown"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Price Row: Entry Price, Target Price, Stop Loss */}
@@ -396,13 +441,20 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
                   <input
                     className={`w-full rounded-lg border bg-white py-2 pl-6 pr-3.5 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
                       errors.entry ? "border-[var(--red)]" : "border-[var(--line)]"
-                    }`}
+                    } ${isFetchingPrice ? "animate-pulse bg-[var(--surface)]" : ""}`}
                     onChange={(e) => setEntryPrice(e.target.value)}
-                    placeholder="0.00"
+                    placeholder={isFetchingPrice ? "Fetching…" : "0.00"}
                     type="number"
                     step="0.05"
                     value={entryPrice}
+                    disabled={isFetchingPrice}
                   />
+                  {isFetchingPrice && (
+                    <Icon
+                      className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin h-3.5 w-3.5 text-[var(--brand)]"
+                      name="timer"
+                    />
+                  )}
                 </div>
                 {errors.entry && (
                   <div className="text-[10px] text-[var(--red)] font-semibold mt-1 leading-snug">
@@ -465,6 +517,70 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
                 )}
               </div>
             </div>
+
+            {/* Risk : Reward Ratio */}
+            {(() => {
+              const e = parseFloat(entryPrice);
+              const t = parseFloat(targetPrice);
+              const s = parseFloat(stopLoss);
+              const valid = !isNaN(e) && !isNaN(t) && !isNaN(s) && e > 0 && t > 0 && s > 0;
+              if (!valid) return null;
+
+              const risk = Math.abs(e - s);
+              const reward = Math.abs(t - e);
+              if (risk === 0) return null;
+
+              const ratio = reward / risk;
+              const riskPct = (risk / (risk + reward)) * 100;
+              const rewardPct = (reward / (risk + reward)) * 100;
+
+              const label =
+                ratio >= 3 ? "Excellent" : ratio >= 2 ? "Good" : ratio >= 1 ? "Moderate" : "Poor";
+              const labelColor =
+                ratio >= 3
+                  ? "text-[var(--green)]"
+                  : ratio >= 2
+                    ? "text-[var(--green)]"
+                    : ratio >= 1
+                      ? "text-[var(--brand)]"
+                      : "text-[var(--red)]";
+
+              return (
+                <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-[0.05em]">
+                      Risk : Reward Ratio
+                    </span>
+                    <span className={`text-[11.5px] font-bold ${labelColor}`}>{label}</span>
+                  </div>
+
+                  {/* Visual bar */}
+                  <div className="flex h-2 w-full overflow-hidden rounded-full">
+                    <div
+                      className="bg-[var(--red)] transition-all duration-300"
+                      style={{ width: `${riskPct}%` }}
+                    />
+                    <div
+                      className="bg-[var(--green)] transition-all duration-300"
+                      style={{ width: `${rewardPct}%` }}
+                    />
+                  </div>
+
+                  {/* Labels */}
+                  <div className="flex items-center justify-between mt-1.5">
+                    <span className="text-[10.5px] font-semibold text-[var(--red)]">
+                      Risk ₹{risk.toFixed(2)}
+                    </span>
+                    <span className="text-[13px] font-extrabold text-[var(--ink)] tracking-tight">
+                      1 : {ratio.toFixed(1)}
+                    </span>
+                    <span className="text-[10.5px] font-semibold text-[var(--green)]">
+                      Reward ₹{reward.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Analyst Notes */}
             <div>

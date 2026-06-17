@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { backendUrls, forwardedIpHeaders, signedBackendFetch } from "@/lib/backend/index";
 import { rejectCrossOriginPost } from "@/lib/auth/csrf";
 import { userCookieNames } from "@/lib/auth/cookies";
+import { writeUserTokenCookies } from "@/lib/auth/server-session";
 
 type RegisterAnalystRequestBody = {
   name?: string;
@@ -16,9 +17,10 @@ type RegisterAnalystRequestBody = {
   company_location?: string;
   business_type?: string;
   website?: string;
-  registration_type?: "research_analyst" | "investment_advisors";
+  registration_type?: string;
   asset_under_research_cr?: number;
   number_of_clients?: number;
+  registration_token?: string;
 };
 
 const ERROR_MAP: Record<string, string> = {
@@ -51,7 +53,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     !body.business_type ||
     !body.registration_type ||
     body.asset_under_research_cr === undefined ||
-    body.number_of_clients === undefined
+    body.number_of_clients === undefined ||
+    !body.registration_token
   ) {
     return NextResponse.json(
       { error: "All required registration details must be filled", code: "BAD_REQUEST" },
@@ -79,9 +82,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         company_location: body.company_location.trim(),
         business_type: body.business_type,
         website: body.website?.trim() || "",
-        registration_type: body.registration_type,
+        registration_type:
+          body.registration_type === "Research Analyst"
+            ? "research_analyst"
+            : body.registration_type === "Investment Advisor"
+              ? "investment_advisors"
+              : body.registration_type,
         asset_under_research_cr: Number(body.asset_under_research_cr),
         number_of_clients: Number(body.number_of_clients),
+        registration_token: body.registration_token,
       },
       extraHeaders: forwardedIpHeaders(request),
     });
@@ -99,32 +108,67 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     error?: string;
     message?: string;
     code?: string;
+    details?: unknown;
+    access_token?: string;
+    refresh_token?: string;
+    session_id?: string;
+    user?: Record<string, unknown>;
   };
 
   console.info("[analyst-register] Registration attempt", {
-    email: body.email.trim(),
+    email: body.email?.trim(),
     status: response.status,
     code: data.code,
+    raw_data: data,
   });
 
   if (!response.ok) {
     const code = data.code ?? "";
-    const userMessage = ERROR_MAP[code] ?? data.message ?? "Unable to submit analyst profile";
-    return NextResponse.json({ error: userMessage, code }, { status: response.status || 400 });
+    let userMessage = ERROR_MAP[code] ?? data.message ?? "Unable to submit analyst profile.";
+    let fieldErrors;
+
+    if (code === "VALIDATION_ERROR" && data.details) {
+      if (Array.isArray(data.details)) {
+        fieldErrors = data.details;
+        userMessage = "Please check the highlighted fields and try again.";
+      } else {
+        userMessage += ` Details: ${JSON.stringify(data.details)}`;
+      }
+    }
+    return NextResponse.json(
+      { error: userMessage, code, field_errors: fieldErrors },
+      { status: response.status || 400 }
+    );
   }
 
-  // Signup OTP step is rendered inline by the signup form, which then calls
-  // /api/auth/login-verify-otp to log the new analyst in directly.
-  const redirectTo = "/";
-
+  // Write tokens and redirect to dashboard
+  const redirectTo = "/analyst-dashboard";
   const nextResponse = NextResponse.json({ ok: true, redirectTo });
-  nextResponse.cookies.set(userCookieNames.deviceId, deviceId, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-  });
+
+  if (data.access_token) {
+    writeUserTokenCookies(nextResponse, {
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      session_id: data.session_id,
+      device_id: deviceId,
+      user: {
+        ...data.user,
+        user_type: "ANALYST",
+        user_id: data.user_id,
+        email: data.email,
+        state: data.state,
+      },
+    });
+  } else {
+    // Fallback if the token is missing for some reason
+    nextResponse.cookies.set(userCookieNames.deviceId, deviceId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+    });
+  }
 
   return nextResponse;
 }

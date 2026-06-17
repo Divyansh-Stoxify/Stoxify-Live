@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import type {
   DashboardMetrics,
   Trade,
@@ -9,7 +9,8 @@ import type {
   SubscriptionPlan,
 } from "@/lib/types/analyst";
 
-// ─── Mock Data ──────────────────────────────────────────────────────────────
+// ─── Mock / Fallback Data ───────────────────────────────────────────────────
+// Used as fallback when the real API is unavailable or returns errors.
 
 const MOCK_METRICS: DashboardMetrics = {
   active_trades: { value: 12, change_pct: 8.5, new_today: 1 },
@@ -18,48 +19,20 @@ const MOCK_METRICS: DashboardMetrics = {
   monthly_revenue: { value: 450000, change_pct: 15.2 },
 };
 
-const MOCK_TRADES: Trade[] = [
-  {
-    trade_id: "tr_1",
-    symbol: "NIFTY",
-    segment: "Options",
-    expiry: "25 May 2026",
-    direction: "LONG",
-    entry_price: 22450,
-    ltp: 22500,
-    target_price: 22600,
-    stop_loss_price: 22400,
-    pnl_pct: 0.22,
-    status: "ACTIVE",
-  },
-  {
-    trade_id: "tr_2",
-    symbol: "RELIANCE",
-    segment: "Equity",
-    direction: "SHORT",
-    entry_price: 2950,
-    ltp: 2930,
-    target_price: 2800,
-    stop_loss_price: 3000,
-    pnl_pct: 0.68,
-    status: "ACTIVE",
-  },
-];
-
 const MOCK_SUBSCRIBERS: Subscriber[] = [
   {
     subscription_id: "sub_1",
     user_name: "Rahul Sharma",
     plan_name: "Premium",
     billing_cycle: "MONTH",
-    subscribed_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 mins ago
+    subscribed_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
   },
   {
     subscription_id: "sub_2",
     user_name: "Priya Desai",
     plan_name: "Pro",
     billing_cycle: "YEAR",
-    subscribed_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
+    subscribed_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
   },
 ];
 
@@ -87,6 +60,22 @@ let MOCK_PLANS: SubscriptionPlan[] = [
   },
 ];
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+async function fetchJSON<T>(url: string, fallback: T): Promise<{ data: T; fromApi: boolean }> {
+  try {
+    const res = await fetch(url, {
+      credentials: "same-origin",
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    return { data: json as T, fromApi: true };
+  } catch {
+    return { data: fallback, fromApi: false };
+  }
+}
+
 // ─── Hooks ──────────────────────────────────────────────────────────────────
 
 export function useDashboardMetrics() {
@@ -95,7 +84,8 @@ export function useDashboardMetrics() {
   const [isError] = useState(false);
 
   useEffect(() => {
-    // Simulate API fetch
+    // Metrics are computed from trades — for now use mock.
+    // Will be replaced with a dedicated analytics endpoint.
     const timer = setTimeout(() => {
       setMetrics(MOCK_METRICS);
       setIsLoading(false);
@@ -109,17 +99,36 @@ export function useDashboardMetrics() {
 export function useActiveTrades(limit: number = 5) {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isError] = useState(false);
+  const [isError, setIsError] = useState(false);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setTrades(MOCK_TRADES.slice(0, limit));
+  const fetchTrades = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/analyst/trades?status=ACTIVE&limit=${limit}`, {
+        credentials: "same-origin",
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      // The backend returns { trades: [...], total, page, limit }
+      const tradeList = json.trades ?? json.data ?? json;
+      setTrades(Array.isArray(tradeList) ? tradeList.slice(0, limit) : []);
+      setIsError(false);
+    } catch {
+      // Fallback: empty (no mock trades — real data should come from API)
+      setTrades([]);
+      setIsError(true);
+    } finally {
       setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
+    }
   }, [limit]);
 
-  return { trades, isLoading, isError };
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchTrades();
+  }, [fetchTrades]);
+
+  return { trades, isLoading, isError, refetch: fetchTrades };
 }
 
 export function usePendingTrades() {
@@ -127,11 +136,22 @@ export function usePendingTrades() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setTrades([]);
-      setIsLoading(false);
-    }, 400);
-    return () => clearTimeout(timer);
+    (async () => {
+      try {
+        const res = await fetch("/api/analyst/trades?status=PENDING&limit=50", {
+          credentials: "same-origin",
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        const tradeList = json.trades ?? json.data ?? json;
+        setTrades(Array.isArray(tradeList) ? tradeList : []);
+      } catch {
+        setTrades([]);
+      } finally {
+        setIsLoading(false);
+      }
+    })();
   }, []);
 
   return { trades, isLoading };
@@ -142,11 +162,22 @@ export function useClosedTrades() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setTrades([]);
-      setIsLoading(false);
-    }, 400);
-    return () => clearTimeout(timer);
+    (async () => {
+      try {
+        const res = await fetch("/api/analyst/trades?status=CLOSED&limit=50", {
+          credentials: "same-origin",
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        const tradeList = json.trades ?? json.data ?? json;
+        setTrades(Array.isArray(tradeList) ? tradeList : []);
+      } catch {
+        setTrades([]);
+      } finally {
+        setIsLoading(false);
+      }
+    })();
   }, []);
 
   return { trades, isLoading };
@@ -165,6 +196,7 @@ export function useLiveTradesStats() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Will be replaced with a real analytics endpoint
     const timer = setTimeout(() => {
       setStats({
         total_active: 12,
@@ -187,6 +219,7 @@ export function useRecentSubscribers(limit: number = 5) {
   const [isError] = useState(false);
 
   useEffect(() => {
+    // Will be replaced with real subscriber API
     const timer = setTimeout(() => {
       setSubscribers(MOCK_SUBSCRIBERS.slice(0, limit));
       setIsLoading(false);
@@ -201,15 +234,18 @@ export function useAnalystProfile() {
   const [profile, setProfile] = useState<AnalystProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setProfile(MOCK_PROFILE);
-      setIsLoading(false);
-    }, 400);
-    return () => clearTimeout(timer);
+  const load = useCallback(async () => {
+    const { data } = await fetchJSON<AnalystProfile>("/api/analyst/profile", MOCK_PROFILE);
+    setProfile(data);
+    setIsLoading(false);
   }, []);
 
-  return { profile, isLoading, mutate: () => {} };
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void load();
+  }, [load]);
+
+  return { profile, isLoading, mutate: load };
 }
 
 export function updateMockProfile(profileData: Partial<AnalystProfile>) {
@@ -221,11 +257,11 @@ export function useSubscriptionPlans() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setPlans(MOCK_PLANS);
+    (async () => {
+      const { data } = await fetchJSON<SubscriptionPlan[]>("/api/analyst/plans", MOCK_PLANS);
+      setPlans(Array.isArray(data) ? data : MOCK_PLANS);
       setIsLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
+    })();
   }, []);
 
   return { plans, isLoading };
@@ -243,6 +279,7 @@ export function useSubscriptionPlansStats() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Will be replaced with a real analytics endpoint
     const timer = setTimeout(() => {
       setStats({
         total_subscribers: 1450,

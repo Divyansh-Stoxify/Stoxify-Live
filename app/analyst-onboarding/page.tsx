@@ -339,9 +339,39 @@ function AnalystOnboardingForm() {
         }),
       });
 
-      const data = (await res.json().catch(() => ({}))) as { error?: string; redirectTo?: string };
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        redirectTo?: string;
+        field_errors?: { path: string[]; message: string }[];
+      };
 
       if (!res.ok) {
+        if (data.field_errors && Array.isArray(data.field_errors)) {
+          const newFieldErrors: Record<string, string> = {};
+          data.field_errors.forEach((err) => {
+            const field = err.path[0];
+            if (field === "email") newFieldErrors.email = err.message;
+            if (field === "name") newFieldErrors.name = err.message;
+            if (field === "company_name") newFieldErrors.companyName = err.message;
+            if (field === "company_location") newFieldErrors.companyLocation = err.message;
+            if (field === "sebi_license_number") newFieldErrors.sebiLicenseNumber = err.message;
+            if (field === "business_type") newFieldErrors.businessType = err.message;
+            if (field === "registration_type") newFieldErrors.registrationType = err.message;
+            if (field === "asset_under_research_cr")
+              newFieldErrors.assetUnderResearchCr = err.message;
+            if (field === "number_of_clients") newFieldErrors.numberOfClients = err.message;
+            if (field === "website") newFieldErrors.website = err.message;
+          });
+          setFieldErrors(newFieldErrors);
+
+          if (newFieldErrors.name || newFieldErrors.email) {
+            setFormStep(0);
+          }
+          setGeneralError(data.error ?? "Please check the highlighted fields.");
+          setIsSubmitting(false);
+          return;
+        }
+
         setGeneralError(data.error ?? "Registration failed. Please try again.");
         setIsSubmitting(false);
         return;
@@ -634,8 +664,8 @@ function AnalystOnboardingForm() {
                           <option value="" disabled>
                             Select registration type
                           </option>
-                          <option value="Research Analyst">Research Analyst</option>
-                          <option value="Investment Advisor">Investment Advisor</option>
+                          <option value="research_analyst">Research Analyst</option>
+                          <option value="investment_advisors">Investment Advisor</option>
                         </select>
                         <Icon
                           name="chevronDown"

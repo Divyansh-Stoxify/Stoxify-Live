@@ -22,7 +22,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const session = await readUserSessionFromCookies();
 
   if (!session.authenticated) {
-    redirect("/login?next=/dashboard");
+    redirect("/?next=/dashboard");
   }
 
   if (session.user.user_type !== "ANALYST") {

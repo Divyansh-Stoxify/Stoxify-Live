@@ -31,9 +31,16 @@ export function Sidebar() {
   const isActive = (href: string) =>
     href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
 
-  const handleLogout = () => {
-    document.cookie = "userInfo=; path=/; max-age=0";
-    window.location.href = "/login";
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store",
+      });
+    } finally {
+      window.location.href = "/";
+    }
   };
 
   // Badge count for Live Trades
