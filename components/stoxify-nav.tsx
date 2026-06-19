@@ -86,6 +86,7 @@ function useNavUser(): NavUser {
 
     // Show cookie data immediately for fast UI
     if (cookieUser) {
+      /* eslint-disable-next-line react-hooks/set-state-in-effect */
       setUser(cookieUser);
     }
 
@@ -149,6 +150,7 @@ export function StoxifyNav({
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     if (params.has("next")) {
+      /* eslint-disable-next-line react-hooks/set-state-in-effect */
       setLoginOpen(true);
     }
   }, [navUser]);

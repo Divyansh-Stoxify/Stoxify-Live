@@ -33,10 +33,7 @@ export async function PATCH(
 
   const body = await request.json().catch(() => null);
   if (!body || typeof body.is_active !== "boolean") {
-    return NextResponse.json(
-      { error: "Body must contain is_active (boolean)" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Body must contain is_active (boolean)" }, { status: 400 });
   }
 
   try {

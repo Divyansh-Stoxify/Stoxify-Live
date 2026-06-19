@@ -72,6 +72,7 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
       try {
         const stored = localStorage.getItem("stoxify_recent_searches");
         if (stored) {
+          /* eslint-disable-next-line react-hooks/set-state-in-effect */
           setRecentSearches(JSON.parse(stored));
         }
       } catch (e) {
@@ -198,7 +199,7 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
           setEntryPrice(String(price));
         }
       }
-    } catch (err) {
+    } catch {
       // Non-critical — analyst can still type manually
     } finally {
       setIsFetchingPrice(false);
@@ -462,7 +463,10 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
                               type="button"
                             >
                               <span className="flex items-center gap-2">
-                                <Icon className="h-3.5 w-3.5 text-[var(--muted-2)]" name="trendingUp" />
+                                <Icon
+                                  className="h-3.5 w-3.5 text-[var(--muted-2)]"
+                                  name="trendingUp"
+                                />
                                 <span className="font-semibold">{s.symbol}</span>
                               </span>
                               <span className="text-[10px] font-bold bg-[var(--line)] px-1.5 py-0.5 rounded text-[var(--muted)] uppercase">

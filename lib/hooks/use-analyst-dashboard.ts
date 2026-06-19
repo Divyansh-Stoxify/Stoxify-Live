@@ -11,9 +11,7 @@ import type {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-async function fetchJSON<T>(
-  url: string
-): Promise<{ data: T | null; ok: boolean; status: number }> {
+async function fetchJSON<T>(url: string): Promise<{ data: T | null; ok: boolean; status: number }> {
   try {
     const res = await fetch(url, {
       credentials: "same-origin",
@@ -46,16 +44,12 @@ export function useDashboardMetrics() {
       setIsLoading(true);
       try {
         // Fetch active trades count and subscription plans in parallel
-        const [tradesRes, plansRes, subsRes] = await Promise.all([
+        const [tradesRes, plansRes] = await Promise.all([
           fetch("/api/analyst/trades?status=ACTIVE&limit=100", {
             credentials: "same-origin",
             cache: "no-store",
           }),
           fetch("/api/analyst/plans", {
-            credentials: "same-origin",
-            cache: "no-store",
-          }),
-          fetch("/api/analyst/subscribers?limit=100", {
             credentials: "same-origin",
             cache: "no-store",
           }),
@@ -65,7 +59,6 @@ export function useDashboardMetrics() {
 
         const tradesJson = tradesRes.ok ? await tradesRes.json().catch(() => ({})) : {};
         const plansJson = plansRes.ok ? await plansRes.json().catch(() => ({})) : {};
-        const subsJson = subsRes.ok ? await subsRes.json().catch(() => ({})) : {};
 
         // Normalise trade list
         const tradeList: Trade[] = Array.isArray(tradesJson.trades)
@@ -85,20 +78,10 @@ export function useDashboardMetrics() {
               ? plansJson
               : [];
 
-        // Normalise subscriber list
-        const subList: Subscriber[] = Array.isArray(subsJson.subscriptions)
-          ? subsJson.subscriptions
-          : Array.isArray(subsJson.data)
-            ? subsJson.data
-            : Array.isArray(subsJson)
-              ? subsJson
-              : [];
+        // Subscriber normalization skipped (unused)
 
         // Derive total subscriber count from plan subscriber counts
-        const totalSubscribers = planList.reduce(
-          (sum, p) => sum + (p.subscribers_count ?? 0),
-          0
-        );
+        const totalSubscribers = planList.reduce((sum, p) => sum + (p.subscribers_count ?? 0), 0);
 
         // Derive MRR: sum of active plans × price (normalise YEAR to monthly)
         const mrr = planList
@@ -187,6 +170,7 @@ export function useActiveTrades(limit: number = 5) {
   }, [limit]);
 
   useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
     void fetchTrades();
   }, [fetchTrades]);
 
@@ -307,10 +291,7 @@ export function useLiveTradesStats() {
               ? closedJson
               : [];
 
-        const totalSubscribers = planList.reduce(
-          (sum, p) => sum + (p.subscribers_count ?? 0),
-          0
-        );
+        const totalSubscribers = planList.reduce((sum, p) => sum + (p.subscribers_count ?? 0), 0);
 
         const wins = closedList.filter(
           (t) => t.status === "TARGET_HIT" || (t.pnl_pct !== undefined && t.pnl_pct > 0)
@@ -409,6 +390,7 @@ export function useAnalystProfile() {
   }, []);
 
   useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
     void load();
   }, [load]);
 

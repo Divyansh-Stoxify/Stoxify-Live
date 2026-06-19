@@ -25,12 +25,7 @@ type Props = {
   trigger: ReactNode;
 };
 
-export function ChangeAnalystStateDialog({
-  analystId,
-  currentState,
-  refresh,
-  trigger,
-}: Props) {
+export function ChangeAnalystStateDialog({ analystId, currentState, refresh, trigger }: Props) {
   const normalizedCurrentState = currentState.trim().toUpperCase();
   const allowedStates = ANALYST_STATE_TRANSITIONS[normalizedCurrentState] ?? [];
   const [newState, setNewState] = useState("");
@@ -60,14 +55,11 @@ export function ChangeAnalystStateDialog({
           return { ok: false, message: "Reason is required", code: "VALIDATION_ERROR" };
         }
 
-        const res = await adminFetch(
-          `/api/admin/analysts/${encodeURIComponent(analystId)}/state`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ new_state: newState, reason: trimmedReason }),
-          }
-        );
+        const res = await adminFetch(`/api/admin/analysts/${encodeURIComponent(analystId)}/state`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ new_state: newState, reason: trimmedReason }),
+        });
         const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
         return {
           ok: res.ok,
@@ -93,9 +85,7 @@ export function ChangeAnalystStateDialog({
           disabled={allowedStates.length === 0}
         >
           <option value="" disabled>
-            {allowedStates.length > 0
-              ? "Select next state"
-              : "No valid transitions available"}
+            {allowedStates.length > 0 ? "Select next state" : "No valid transitions available"}
           </option>
           {allowedStates.map((s) => (
             <option key={s} value={s}>

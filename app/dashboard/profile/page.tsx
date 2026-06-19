@@ -28,9 +28,7 @@ export default function ProfilePage() {
   const { showSuccessToast } = useDashboard();
 
   // Derive SEBI verification status from the analyst's state
-  const isSebiVerified = profile?.state
-    ? /^ACTIVE$/i.test(profile.state)
-    : false;
+  const isSebiVerified = profile?.state ? /^ACTIVE$/i.test(profile.state) : false;
 
   // Human-readable registration type
   const entityTypeLabel = profile?.registration_type
@@ -432,11 +430,14 @@ export default function ProfilePage() {
                       type="text"
                       value={
                         profile?.verification?.submitted_at
-                          ? new Date(profile.verification.submitted_at).toLocaleDateString("en-IN", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            })
+                          ? new Date(profile.verification.submitted_at).toLocaleDateString(
+                              "en-IN",
+                              {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                              }
+                            )
                           : "—"
                       }
                       disabled
@@ -492,7 +493,7 @@ export default function ProfilePage() {
                   Copies of your official registration certificates on file.
                 </p>
 
-{profile?.sebi_license_doc_url ? (
+                {profile?.sebi_license_doc_url ? (
                   <div className="border border-slate-100 rounded-lg p-4 bg-[#f8fafc] flex items-center justify-between mt-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">
