@@ -54,7 +54,8 @@ export type IconName =
   | "google"
   | "apple"
   | "helpCircle"
-  | "headset";
+  | "headset"
+  | "loader";
 
 const icons: Record<IconName, string> = {
   activity: "fa-solid fa-wave-pulse",
@@ -111,6 +112,7 @@ const icons: Record<IconName, string> = {
   zap: "fa-solid fa-bolt",
   helpCircle: "fa-solid fa-circle-question",
   headset: "fa-solid fa-headset",
+  loader: "fa-solid fa-spinner",
 };
 
 function getFontSize(className?: string): CSSProperties["fontSize"] {

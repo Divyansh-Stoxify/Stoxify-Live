@@ -19,8 +19,8 @@ type TabId = "active" | "pending" | "closed";
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Formats a number in Indian locale: 2940.50 → "₹2,940.50" */
-function inr(value: number | undefined, decimals = 2): string {
-  if (value === undefined) return "—";
+function inr(value: number | undefined | null, decimals = 2): string {
+  if (value == null) return "—";
   return `₹${value.toLocaleString("en-IN", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
 }
 
@@ -90,6 +90,7 @@ function StatStripSkeleton() {
 
 /** Full trade card matching the Figma exactly */
 function TradeCard({ trade }: { trade: Trade }) {
+  const { openCloseTrade, openModifyTrade } = useDashboard();
   const ltpUp = (trade.ltp ?? trade.entry_price) >= trade.entry_price;
   const pnlUp = (trade.pnl_per_unit ?? 0) >= 0;
 
@@ -120,6 +121,15 @@ function TradeCard({ trade }: { trade: Trade }) {
             className={`inline-flex items-center rounded px-2 py-0.5 text-[10.5px] font-bold uppercase ${subtypeBadgeClass(trade.trade_subtype)}`}
           >
             {trade.trade_subtype}
+          </span>
+        )}
+
+        {/* Batch badge */}
+        {trade.batch && (
+          <span
+            className="inline-flex items-center rounded px-2 py-0.5 text-[10.5px] font-bold uppercase bg-[#f8fafc] text-[#475569] border border-[#cbd5e1]/50"
+          >
+            {trade.batch}
           </span>
         )}
 
@@ -185,7 +195,7 @@ function TradeCard({ trade }: { trade: Trade }) {
             Stop Loss
           </div>
           <div className="text-[15px] font-bold text-[var(--ink)]">
-            {inr(trade.stop_loss_price)}
+            {inr(trade.stop_loss ?? trade.stop_loss_price)}
           </div>
           {trade.risk_pct !== undefined && (
             <div className="mt-0.5 text-[11px] text-[var(--muted-2)]">
@@ -200,7 +210,7 @@ function TradeCard({ trade }: { trade: Trade }) {
             Targets
           </div>
           <div className="text-[15px] font-bold text-[var(--ink)]">
-            {inr(trade.target_price, 0)}
+            {inr(trade.target ?? trade.target_price, 0)}
             {trade.target_2_price && <> / {inr(trade.target_2_price, 0)}</>}
           </div>
           {(trade.reward_pct !== undefined || trade.reward_2_pct !== undefined) && (
@@ -261,8 +271,9 @@ function TradeCard({ trade }: { trade: Trade }) {
           <button
             className="rounded-lg border border-[var(--line)] px-3.5 py-1.5 text-[12px] font-semibold text-[var(--ink)] transition-colors hover:border-[var(--brand)]/40 hover:bg-[var(--brand-light)] hover:text-[var(--brand)]"
             type="button"
+            onClick={() => openModifyTrade(trade)}
           >
-            Update Stop Loss
+            Modify Trade
           </button>
           <button
             className="rounded-lg border border-[var(--brand)]/30 bg-[var(--brand-light)] px-3.5 py-1.5 text-[12px] font-semibold text-[var(--brand)] transition-colors hover:bg-[var(--brand)] hover:text-white"
@@ -273,6 +284,7 @@ function TradeCard({ trade }: { trade: Trade }) {
           <button
             className="rounded-lg border border-[var(--red)]/30 bg-[var(--red-light)] px-3.5 py-1.5 text-[12px] font-semibold text-[var(--red)] transition-colors hover:bg-[var(--red)] hover:text-white"
             type="button"
+            onClick={() => openCloseTrade(trade)}
           >
             Close Trade
           </button>

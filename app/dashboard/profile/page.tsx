@@ -392,7 +392,7 @@ export default function ProfilePage() {
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[10.5px] font-bold text-amber-600">
-                        <Icon className="h-3 w-3" name="clock" />
+                        <Icon className="h-3 w-3" name="lock" />
                         {profile?.state ? profile.state.replace(/_/g, " ") : "Pending"}
                       </span>
                     )}

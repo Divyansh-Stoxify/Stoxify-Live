@@ -25,13 +25,16 @@ export interface Trade {
   zone?: string;
   ltp?: number;
   ltp_change_pct?: number;
-  target_price: number;
+  target_price?: number;
+  target?: number;
   target_2_price?: number;
-  stop_loss_price: number;
+  stop_loss_price?: number;
+  stop_loss?: number;
   risk_pct?: number;
   reward_pct?: number;
   reward_2_pct?: number;
   pnl_pct?: number;
+  pnl_percent?: number;
   pnl_per_unit?: number;
   pnl_unit?: string;
   note?: string;

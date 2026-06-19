@@ -45,7 +45,7 @@ export function useDashboardMetrics() {
       try {
         // Fetch active trades count and subscription plans in parallel
         const [tradesRes, plansRes] = await Promise.all([
-          fetch("/api/analyst/trades?status=ACTIVE&limit=100", {
+          fetch("/api/analyst/trades?status=LIVE&limit=100", {
             credentials: "same-origin",
             cache: "no-store",
           }),
@@ -152,7 +152,7 @@ export function useActiveTrades(limit: number = 5) {
   const fetchTrades = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/analyst/trades?status=ACTIVE&limit=${limit}`, {
+      const res = await fetch(`/api/analyst/trades?status=LIVE&limit=${limit}`, {
         credentials: "same-origin",
         cache: "no-store",
       });
@@ -247,7 +247,7 @@ export function useLiveTradesStats() {
     async function load() {
       try {
         const [tradesRes, plansRes, closedRes] = await Promise.all([
-          fetch("/api/analyst/trades?status=ACTIVE&limit=100", {
+          fetch("/api/analyst/trades?status=LIVE&limit=100", {
             credentials: "same-origin",
             cache: "no-store",
           }),

@@ -11,6 +11,7 @@ import {
   useRecentSubscribers,
 } from "@/lib/hooks/use-analyst-dashboard";
 import { useWebSocket } from "@/lib/hooks/use-websocket";
+import { useDashboard } from "@/components/dashboard/dashboard-context";
 import type { Trade, Subscriber } from "@/lib/types/analyst";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -61,13 +62,14 @@ function avatarGradient(name: string) {
 
 /** Single row in the Active Live Trades table */
 function TradeRow({ trade, liveLtp }: { trade: Trade; liveLtp?: number }) {
+  const { openCloseTrade, openModifyTrade } = useDashboard();
   const isLong = trade.direction === "LONG";
   const ltp = liveLtp ?? trade.ltp;
   // Compute live P&L from LTP if available
   const pnl =
     ltp !== undefined
       ? ((isLong ? ltp - trade.entry_price : trade.entry_price - ltp) / trade.entry_price) * 100
-      : (trade.pnl_pct ?? 0);
+      : (trade.pnl_pct ?? trade.pnl_percent ?? 0);
   const pnlPositive = pnl >= 0;
 
   return (
@@ -96,7 +98,7 @@ function TradeRow({ trade, liveLtp }: { trade: Trade; liveLtp?: number }) {
 
       {/* Entry */}
       <td className="py-4 px-4 text-[13px] font-medium text-[var(--ink)]">
-        {trade.entry_price.toLocaleString("en-IN")}
+        {(trade.entry_price ?? 0).toLocaleString("en-IN")}
       </td>
 
       {/* LTP (live) with colored dot */}
@@ -120,9 +122,9 @@ function TradeRow({ trade, liveLtp }: { trade: Trade; liveLtp?: number }) {
 
       {/* Target / SL stacked */}
       <td className="py-4 px-4 text-[13px] text-[var(--ink)]">
-        <div className="font-medium">{trade.target_price.toLocaleString("en-IN")}</div>
+        <div className="font-medium">{(trade.target ?? trade.target_price ?? 0).toLocaleString("en-IN")}</div>
         <div className="text-[11px] text-[var(--muted-2)]">
-          {trade.stop_loss_price.toLocaleString("en-IN")}
+          {(trade.stop_loss ?? trade.stop_loss_price ?? 0).toLocaleString("en-IN")}
         </div>
       </td>
 
@@ -146,12 +148,14 @@ function TradeRow({ trade, liveLtp }: { trade: Trade; liveLtp?: number }) {
           <button
             className="rounded-md border border-[var(--line)] px-3 py-1.5 text-[12px] font-semibold text-[var(--ink)] transition-colors hover:border-[var(--muted-2)] hover:bg-[var(--surface)]"
             type="button"
+            onClick={() => openModifyTrade(trade)}
           >
             Modify
           </button>
           <button
             className="rounded-md border border-[var(--red)]/30 px-3 py-1.5 text-[12px] font-semibold text-[var(--red)] transition-colors hover:bg-[var(--red-light)]"
             type="button"
+            onClick={() => openCloseTrade({ ...trade, ltp: liveLtp ?? trade.ltp })}
           >
             Close
           </button>
