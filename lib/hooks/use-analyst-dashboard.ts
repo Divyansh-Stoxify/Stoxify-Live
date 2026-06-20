@@ -43,13 +43,17 @@ export function useDashboardMetrics() {
     async function load() {
       setIsLoading(true);
       try {
-        // Fetch active trades count and subscription plans in parallel
-        const [tradesRes, plansRes] = await Promise.all([
+        // Fetch active trades count, subscription plans, and active subscribers in parallel
+        const [tradesRes, plansRes, subscribersRes] = await Promise.all([
           fetch("/api/analyst/trades?status=LIVE&limit=100", {
             credentials: "same-origin",
             cache: "no-store",
           }),
           fetch("/api/analyst/plans", {
+            credentials: "same-origin",
+            cache: "no-store",
+          }),
+          fetch("/api/analyst/subscribers?status=ACTIVE&limit=1000", {
             credentials: "same-origin",
             cache: "no-store",
           }),
@@ -59,6 +63,7 @@ export function useDashboardMetrics() {
 
         const tradesJson = tradesRes.ok ? await tradesRes.json().catch(() => ({})) : {};
         const plansJson = plansRes.ok ? await plansRes.json().catch(() => ({})) : {};
+        const subsJson = subscribersRes.ok ? await subscribersRes.json().catch(() => ({})) : {};
 
         // Normalise trade list
         const tradeList: Trade[] = Array.isArray(tradesJson.trades)
@@ -69,16 +74,32 @@ export function useDashboardMetrics() {
               ? tradesJson
               : [];
 
-        // Normalise plans list
-        const planList: SubscriptionPlan[] = Array.isArray(plansJson.plans)
-          ? plansJson.plans
-          : Array.isArray(plansJson.data)
-            ? plansJson.data
-            : Array.isArray(plansJson)
-              ? plansJson
+        // Normalise active subscriptions
+        const activeSubscriptions = Array.isArray(subsJson.subscriptions)
+          ? subsJson.subscriptions
+          : Array.isArray(subsJson.data)
+            ? subsJson.data
+            : Array.isArray(subsJson)
+              ? subsJson
               : [];
 
-        // Subscriber normalization skipped (unused)
+        // Normalise plans list and enrich with status & subscribers_count
+        const planList: SubscriptionPlan[] = (
+          Array.isArray(plansJson.plans)
+            ? plansJson.plans
+            : Array.isArray(plansJson.data)
+              ? plansJson.data
+              : Array.isArray(plansJson)
+                ? plansJson
+                : []
+        ).map((p: any) => {
+          const planSubscribers = activeSubscriptions.filter((s: any) => s.plan_id === p.plan_id);
+          return {
+            ...p,
+            status: p.status || (p.is_active ? "ACTIVE" : "INACTIVE"),
+            subscribers_count: planSubscribers.length,
+          };
+        });
 
         // Derive total subscriber count from plan subscriber counts
         const totalSubscribers = planList.reduce((sum, p) => sum + (p.subscribers_count ?? 0), 0);
@@ -246,7 +267,7 @@ export function useLiveTradesStats() {
 
     async function load() {
       try {
-        const [tradesRes, plansRes, closedRes] = await Promise.all([
+        const [tradesRes, plansRes, closedRes, subscribersRes] = await Promise.all([
           fetch("/api/analyst/trades?status=LIVE&limit=100", {
             credentials: "same-origin",
             cache: "no-store",
@@ -259,6 +280,10 @@ export function useLiveTradesStats() {
             credentials: "same-origin",
             cache: "no-store",
           }),
+          fetch("/api/analyst/subscribers?status=ACTIVE&limit=1000", {
+            credentials: "same-origin",
+            cache: "no-store",
+          }),
         ]);
 
         if (cancelled) return;
@@ -266,6 +291,7 @@ export function useLiveTradesStats() {
         const tradesJson = tradesRes.ok ? await tradesRes.json().catch(() => ({})) : {};
         const plansJson = plansRes.ok ? await plansRes.json().catch(() => ({})) : {};
         const closedJson = closedRes.ok ? await closedRes.json().catch(() => ({})) : {};
+        const subsJson = subscribersRes.ok ? await subscribersRes.json().catch(() => ({})) : {};
 
         const tradeList: Trade[] = Array.isArray(tradesJson.trades)
           ? tradesJson.trades
@@ -275,13 +301,30 @@ export function useLiveTradesStats() {
               ? tradesJson
               : [];
 
-        const planList: SubscriptionPlan[] = Array.isArray(plansJson.plans)
-          ? plansJson.plans
-          : Array.isArray(plansJson.data)
-            ? plansJson.data
-            : Array.isArray(plansJson)
-              ? plansJson
+        const activeSubscriptions = Array.isArray(subsJson.subscriptions)
+          ? subsJson.subscriptions
+          : Array.isArray(subsJson.data)
+            ? subsJson.data
+            : Array.isArray(subsJson)
+              ? subsJson
               : [];
+
+        const planList: SubscriptionPlan[] = (
+          Array.isArray(plansJson.plans)
+            ? plansJson.plans
+            : Array.isArray(plansJson.data)
+              ? plansJson.data
+              : Array.isArray(plansJson)
+                ? plansJson
+                : []
+        ).map((p: any) => {
+          const planSubscribers = activeSubscriptions.filter((s: any) => s.plan_id === p.plan_id);
+          return {
+            ...p,
+            status: p.status || (p.is_active ? "ACTIVE" : "INACTIVE"),
+            subscribers_count: planSubscribers.length,
+          };
+        });
 
         const closedList: Trade[] = Array.isArray(closedJson.trades)
           ? closedJson.trades
@@ -402,46 +445,65 @@ export function useSubscriptionPlans() {
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const res = await fetch("/api/analyst/plans", {
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [plansRes, subscribersRes] = await Promise.all([
+        fetch("/api/analyst/plans", {
           credentials: "same-origin",
           cache: "no-store",
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        const list: SubscriptionPlan[] = Array.isArray(json.plans)
-          ? json.plans
-          : Array.isArray(json.data)
-            ? json.data
-            : Array.isArray(json)
-              ? json
-              : [];
+        }),
+        fetch("/api/analyst/subscribers?status=ACTIVE&limit=1000", {
+          credentials: "same-origin",
+          cache: "no-store",
+        }),
+      ]);
 
-        if (!cancelled) {
-          setPlans(list);
-          setIsError(false);
-        }
-      } catch {
-        if (!cancelled) {
-          setPlans([]);
-          setIsError(true);
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
+      if (!plansRes.ok) throw new Error(`HTTP ${plansRes.status}`);
+
+      const plansJson = await plansRes.json();
+      const subsJson = subscribersRes.ok ? await subscribersRes.json().catch(() => ({})) : {};
+
+      const activeSubscriptions = Array.isArray(subsJson.subscriptions)
+        ? subsJson.subscriptions
+        : Array.isArray(subsJson.data)
+          ? subsJson.data
+          : Array.isArray(subsJson)
+            ? subsJson
+            : [];
+
+      const list: SubscriptionPlan[] = (
+        Array.isArray(plansJson.plans)
+          ? plansJson.plans
+          : Array.isArray(plansJson.data)
+            ? plansJson.data
+            : Array.isArray(plansJson)
+              ? plansJson
+              : []
+      ).map((p: any) => {
+        const planSubscribers = activeSubscriptions.filter((s: any) => s.plan_id === p.plan_id);
+        return {
+          ...p,
+          status: p.status || (p.is_active ? "ACTIVE" : "INACTIVE"),
+          subscribers_count: planSubscribers.length,
+        };
+      });
+
+      setPlans(list);
+      setIsError(false);
+    } catch {
+      setPlans([]);
+      setIsError(true);
+    } finally {
+      setIsLoading(false);
     }
-
-    void load();
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
-  return { plans, isLoading, isError };
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  return { plans, isLoading, isError, refetch: load };
 }
 
 interface SubscriptionPlansStats {
@@ -456,65 +518,84 @@ export function useSubscriptionPlansStats() {
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const res = await fetch("/api/analyst/plans", {
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [plansRes, subscribersRes] = await Promise.all([
+        fetch("/api/analyst/plans", {
           credentials: "same-origin",
           cache: "no-store",
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        const list: SubscriptionPlan[] = Array.isArray(json.plans)
-          ? json.plans
-          : Array.isArray(json.data)
-            ? json.data
-            : Array.isArray(json)
-              ? json
-              : [];
+        }),
+        fetch("/api/analyst/subscribers?status=ACTIVE&limit=1000", {
+          credentials: "same-origin",
+          cache: "no-store",
+        }),
+      ]);
 
-        const totalSubscribers = list.reduce((sum, p) => sum + (p.subscribers_count ?? 0), 0);
+      if (!plansRes.ok) throw new Error(`HTTP ${plansRes.status}`);
 
-        const mrr = list
-          .filter((p) => p.status === "ACTIVE")
-          .reduce((sum, p) => {
-            const monthlyPrice =
-              p.billing_cycle === "YEAR"
-                ? p.price / 12
-                : p.billing_cycle === "QUARTER"
-                  ? p.price / 3
-                  : p.billing_cycle === "WEEK"
-                    ? p.price * 4
-                    : p.price;
-            return sum + monthlyPrice * (p.subscribers_count ?? 0);
-          }, 0);
+      const plansJson = await plansRes.json();
+      const subsJson = subscribersRes.ok ? await subscribersRes.json().catch(() => ({})) : {};
 
-        if (!cancelled) {
-          setStats({
-            total_subscribers: totalSubscribers,
-            monthly_recurring_revenue: Math.round(mrr),
-            total_plans_count: list.length,
-            active_plans_count: list.filter((p) => p.status === "ACTIVE").length,
-          });
-          setIsError(false);
-        }
-      } catch {
-        if (!cancelled) {
-          setStats(null);
-          setIsError(true);
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
+      const activeSubscriptions = Array.isArray(subsJson.subscriptions)
+        ? subsJson.subscriptions
+        : Array.isArray(subsJson.data)
+          ? subsJson.data
+          : Array.isArray(subsJson)
+            ? subsJson
+            : [];
+
+      const list: SubscriptionPlan[] = (
+        Array.isArray(plansJson.plans)
+          ? plansJson.plans
+          : Array.isArray(plansJson.data)
+            ? plansJson.data
+            : Array.isArray(plansJson)
+              ? plansJson
+              : []
+      ).map((p: any) => {
+        const planSubscribers = activeSubscriptions.filter((s: any) => s.plan_id === p.plan_id);
+        return {
+          ...p,
+          status: p.status || (p.is_active ? "ACTIVE" : "INACTIVE"),
+          subscribers_count: planSubscribers.length,
+        };
+      });
+
+      const totalSubscribers = list.reduce((sum, p) => sum + (p.subscribers_count ?? 0), 0);
+
+      const mrr = list
+        .filter((p) => p.status === "ACTIVE")
+        .reduce((sum, p) => {
+          const monthlyPrice =
+            p.billing_cycle === "YEAR"
+              ? p.price / 12
+              : p.billing_cycle === "QUARTER"
+                ? p.price / 3
+                : p.billing_cycle === "WEEK"
+                  ? p.price * 4
+                  : p.price;
+          return sum + monthlyPrice * (p.subscribers_count ?? 0);
+        }, 0);
+
+      setStats({
+        total_subscribers: totalSubscribers,
+        monthly_recurring_revenue: Math.round(mrr),
+        total_plans_count: list.length,
+        active_plans_count: list.filter((p) => p.status === "ACTIVE").length,
+      });
+      setIsError(false);
+    } catch {
+      setStats(null);
+      setIsError(true);
+    } finally {
+      setIsLoading(false);
     }
-
-    void load();
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
-  return { stats, isLoading, isError };
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  return { stats, isLoading, isError, refetch: load };
 }

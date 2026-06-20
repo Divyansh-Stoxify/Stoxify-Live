@@ -30,16 +30,17 @@ const gradients = [
   "linear-gradient(135deg,#EC4899,#DB2777)",
 ];
 
-function getGradient(id: string): string {
+function getGradient(id?: string): string {
+  const safeId = id || "default";
   let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < safeId.length; i++) {
+    hash = safeId.charCodeAt(i) + ((hash << 5) - hash);
   }
   return gradients[Math.abs(hash) % gradients.length];
 }
 
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
+function getInitials(name?: string): string {
+  const parts = (name || "").trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "A";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return parts
@@ -71,7 +72,7 @@ function PlanCard({ plan }: { plan: Plan }) {
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="text-[15px] font-bold tracking-[-0.02em] text-[var(--ink)] truncate">
-            {plan.analyst_name}
+            {plan.analyst_name || "Unknown Analyst"}
           </h3>
           <div className="mt-[3px] flex flex-wrap gap-[5px]">
             <span className="inline-flex items-center rounded-full bg-[var(--brand-light)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--brand)]">

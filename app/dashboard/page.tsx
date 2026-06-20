@@ -36,9 +36,12 @@ function relativeTime(isoDate: string): string {
 }
 
 /** Returns initials from a full name: "Priya Desai" → "PD" */
-function getInitials(name: string): string {
+function getInitials(name?: string): string {
+  if (!name || !name.trim()) return "S";
   return name
-    .split(" ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
     .map((n) => n[0])
     .join("")
     .slice(0, 2)
@@ -53,8 +56,9 @@ const AVATAR_GRADIENTS = [
   "linear-gradient(135deg, #EF4444, #B91C1C)",
   "linear-gradient(135deg, #8B5CF6, #6D28D9)",
 ];
-function avatarGradient(name: string) {
-  const idx = name.charCodeAt(0) % AVATAR_GRADIENTS.length;
+function avatarGradient(name?: string) {
+  const safeName = name?.trim() || "Subscriber";
+  const idx = safeName.charCodeAt(0) % AVATAR_GRADIENTS.length;
   return AVATAR_GRADIENTS[idx];
 }
 
@@ -195,7 +199,7 @@ function SubscriberRow({ subscriber }: { subscriber: Subscriber }) {
       {/* Avatar */}
       {subscriber.user_avatar ? (
         <Image
-          alt={subscriber.user_name}
+          alt={subscriber.user_name || "Subscriber"}
           className="h-9 w-9 shrink-0 rounded-full object-cover"
           src={subscriber.user_avatar}
           width={36}
@@ -213,7 +217,7 @@ function SubscriberRow({ subscriber }: { subscriber: Subscriber }) {
       {/* Name + plan */}
       <div className="flex-1 min-w-0">
         <div className="text-[13px] font-semibold text-[var(--ink)] truncate leading-tight">
-          {subscriber.user_name}
+          {subscriber.user_name || "Anonymous Subscriber"}
         </div>
         <div className="flex items-center gap-1.5 mt-0.5">
           <span className={`h-1.5 w-1.5 rounded-full ${planColor}`} />

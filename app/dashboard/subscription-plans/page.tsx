@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { useSWRConfig } from "swr";
 import { Topbar } from "@/components/dashboard/topbar";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { Icon } from "@/components/stoxify-icon";
@@ -65,12 +64,11 @@ function computeMonthlyRevenue(plan: SubscriptionPlan): number {
 }
 
 export default function SubscriptionPlansPage() {
-  const { mutate } = useSWRConfig();
   const { showSuccessToast } = useDashboard();
 
   // SWR hooks
-  const { plans, isLoading: isPlansLoading } = useSubscriptionPlans();
-  const { stats, isLoading: isStatsLoading } = useSubscriptionPlansStats();
+  const { plans, isLoading: isPlansLoading, refetch: refetchPlans } = useSubscriptionPlans();
+  const { stats, isLoading: isStatsLoading, refetch: refetchStats } = useSubscriptionPlansStats();
 
   // Modal control states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -114,8 +112,8 @@ export default function SubscriptionPlansPage() {
     }
 
     // Re-fetch plans and stats
-    mutate("/subscriptions/analyst/plans");
-    mutate("/subscriptions/analyst/plans/stats");
+    refetchPlans();
+    refetchStats();
   };
 
   const handleOpenCreateModal = () => {
@@ -130,8 +128,8 @@ export default function SubscriptionPlansPage() {
 
   const handleModalSave = (title: string, message: string) => {
     showSuccessToast(title, message);
-    mutate("/subscriptions/analyst/plans");
-    mutate("/subscriptions/analyst/plans/stats");
+    refetchPlans();
+    refetchStats();
   };
 
   return (

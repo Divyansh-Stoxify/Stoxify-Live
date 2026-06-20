@@ -43,16 +43,17 @@ const gradients = [
   "linear-gradient(135deg,#EF4444,#DC2626)",
 ];
 
-function getGradient(id: string): string {
+function getGradient(id?: string): string {
+  const safeId = id || "default";
   let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < safeId.length; i++) {
+    hash = safeId.charCodeAt(i) + ((hash << 5) - hash);
   }
   return gradients[Math.abs(hash) % gradients.length];
 }
 
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
+function getInitials(name?: string): string {
+  const parts = (name || "").trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "A";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return parts
@@ -76,6 +77,11 @@ export default function AnalystDetailPage() {
   const analystId = params.id as string;
   const [plans, setPlans] = useState<Plan[]>([]);
   const [trades, setTrades] = useState<Trade[]>([]);
+  const [subscribedPlans, setSubscribedPlans] = useState<string[]>([]);
+  const [hasSubscriptionToAnalyst, setHasSubscriptionToAnalyst] = useState(false);
+  const [subError, setSubError] = useState<string | null>(null);
+  const [subSuccess, setSubSuccess] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
 
   const analystName = plans[0]?.analyst_name || "Analyst";
@@ -83,7 +89,7 @@ export default function AnalystDetailPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [plansRes, tradesRes] = await Promise.all([
+      const [plansRes, tradesRes, subRes] = await Promise.all([
         fetch(`/api/trader/plans?analyst_id=${analystId}`, {
           credentials: "same-origin",
           cache: "no-store",
@@ -92,20 +98,56 @@ export default function AnalystDetailPage() {
           credentials: "same-origin",
           cache: "no-store",
         }),
+        fetch(`/api/trader/subscriptions?status=ACTIVE`, {
+          credentials: "same-origin",
+          cache: "no-store",
+        }),
       ]);
 
       const plansData = await plansRes.json().catch(() => ({}));
       const tradesData = await tradesRes.json().catch(() => ({}));
+      const subData = await subRes.json().catch(() => ({}));
 
       setPlans(plansData.plans ?? plansData.data ?? []);
       setTrades(tradesData.trades ?? tradesData.data ?? []);
+      
+      const activeSubs = subData.subscriptions ?? subData.data ?? [];
+      setSubscribedPlans(activeSubs.map((s: any) => s.plan_id));
+      setHasSubscriptionToAnalyst(activeSubs.some((s: any) => s.analyst_id === analystId));
     } catch {
       setPlans([]);
       setTrades([]);
+      setSubscribedPlans([]);
+      setHasSubscriptionToAnalyst(false);
     } finally {
       setLoading(false);
     }
   }, [analystId]);
+
+  const handleSubscribe = async (planId: string) => {
+    setSubError(null);
+    setSubSuccess(null);
+    setIsSubmitting((prev) => ({ ...prev, [planId]: true }));
+    try {
+      const res = await fetch("/api/trader/subscriptions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan_id: planId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setSubError(data.error ?? "Failed to subscribe. Please try again.");
+        return;
+      }
+      setSubSuccess("Successfully subscribed to plan!");
+      // Refetch data to update subscription state
+      await fetchData();
+    } catch {
+      setSubError("Network error. Please try again.");
+    } finally {
+      setIsSubmitting((prev) => ({ ...prev, [planId]: false }));
+    }
+  };
 
   useEffect(() => {
     Promise.resolve().then(() => {
@@ -207,52 +249,88 @@ export default function AnalystDetailPage() {
             <Icon name="listChecks" className="h-4 w-4 text-[var(--brand)]" />
             Subscription Plans
           </h2>
+          {subError && (
+            <div className="mb-4 flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 text-[13px] text-red-700">
+              <Icon className="mt-0.5 h-4 w-4 shrink-0" name="x" />
+              <span>{subError}</span>
+            </div>
+          )}
+          {subSuccess && (
+            <div className="mb-4 flex items-start gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-[13px] text-emerald-700">
+              <Icon className="mt-0.5 h-4 w-4 shrink-0" name="circleCheck" />
+              <span>{subSuccess}</span>
+            </div>
+          )}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {plans.map((plan) => (
-              <div
-                key={plan.plan_id}
-                className="rounded-xl border-[1.5px] border-[var(--line)] bg-white p-5 transition-all hover:border-[var(--brand-mid)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-[14px] font-bold text-[var(--ink)]">{plan.name}</h3>
-                  <span className="rounded-full bg-[var(--brand-light)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--brand)]">
-                    {plan.segment}
-                  </span>
-                </div>
-                {plan.description && (
-                  <p className="text-[12px] text-[var(--muted)] leading-relaxed mb-3">
-                    {plan.description}
-                  </p>
-                )}
-                {plan.features && plan.features.length > 0 && (
-                  <ul className="mb-4 flex flex-col gap-1">
-                    {plan.features.map((f) => (
-                      <li
-                        key={f}
-                        className="flex items-center gap-2 text-[12px] text-[var(--muted)]"
-                      >
-                        <Icon name="check" className="h-3 w-3 text-[var(--green)]" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <div className="flex items-center justify-between pt-3 border-t border-[var(--line)]">
-                  <div>
-                    <span className="text-[18px] font-extrabold text-[var(--ink)]">
-                      {formatCurrency(plan.price)}
+            {plans.map((plan) => {
+              const isSubbed = subscribedPlans.includes(plan.plan_id);
+              return (
+                <div
+                  key={plan.plan_id}
+                  className="rounded-xl border-[1.5px] border-[var(--line)] bg-white p-5 transition-all hover:border-[var(--brand-mid)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-[14px] font-bold text-[var(--ink)]">{plan.name}</h3>
+                    <span className="rounded-full bg-[var(--brand-light)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--brand)]">
+                      {plan.segment}
                     </span>
-                    <span className="text-[12px] text-[var(--muted)]"> / {plan.days} days</span>
                   </div>
-                  <button
-                    type="button"
-                    className="rounded-lg bg-[var(--brand)] px-4 py-2 text-[13px] font-bold text-white transition-colors hover:bg-[var(--brand-dark)]"
-                  >
-                    Subscribe
-                  </button>
+                  {plan.description && (
+                    <p className="text-[12px] text-[var(--muted)] leading-relaxed mb-3">
+                      {plan.description}
+                    </p>
+                  )}
+                  {plan.features && plan.features.length > 0 && (
+                    <ul className="mb-4 flex flex-col gap-1">
+                      {plan.features.map((f) => (
+                        <li
+                          key={f}
+                          className="flex items-center gap-2 text-[12px] text-[var(--muted)]"
+                        >
+                          <Icon name="check" className="h-3 w-3 text-[var(--green)]" />
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="flex items-center justify-between pt-3 border-t border-[var(--line)]">
+                    <div>
+                      <span className="text-[18px] font-extrabold text-[var(--ink)]">
+                        {formatCurrency(plan.price)}
+                      </span>
+                      <span className="text-[12px] text-[var(--muted)]"> / {plan.days} days</span>
+                    </div>
+                    {isSubbed ? (
+                      <button
+                        type="button"
+                        disabled
+                        className="rounded-lg bg-[var(--green-light)] px-4 py-2 text-[13px] font-bold text-[var(--green)] border border-[var(--green)]/20 cursor-default"
+                      >
+                        Subscribed
+                      </button>
+                    ) : hasSubscriptionToAnalyst ? (
+                      <button
+                        type="button"
+                        disabled
+                        className="rounded-lg bg-[var(--line)] px-4 py-2 text-[13px] font-bold text-[var(--muted)] border border-[var(--line)] cursor-not-allowed opacity-50"
+                        title="You already have an active subscription to this analyst"
+                      >
+                        Subscribe
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={isSubmitting[plan.plan_id]}
+                        onClick={() => handleSubscribe(plan.plan_id)}
+                        className="rounded-lg bg-[var(--brand)] px-4 py-2 text-[13px] font-bold text-white transition-colors hover:bg-[var(--brand-dark)] disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isSubmitting[plan.plan_id] ? "Subscribing..." : "Subscribe"}
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}

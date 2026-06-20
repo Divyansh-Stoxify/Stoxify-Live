@@ -9,6 +9,7 @@ export interface SubscriptionPlan {
   billing_cycle: PlanBillingCycle;
   status: PlanStatus;
   subscribers_count: number;
+  is_active?: boolean;
 }
 
 export interface Trade {

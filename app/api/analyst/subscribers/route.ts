@@ -22,6 +22,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const { searchParams } = request.nextUrl;
   const query: Record<string, string | undefined> = {
     plan_id: searchParams.get("plan_id") ?? undefined,
+    status: searchParams.get("status") ?? undefined,
     limit: searchParams.get("limit") ?? "50",
     page: searchParams.get("page") ?? "1",
   };

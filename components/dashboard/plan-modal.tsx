@@ -31,7 +31,7 @@ export function PlanModal({ plan, onClose, onSave }: PlanModalProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
 
@@ -50,35 +50,67 @@ export function PlanModal({ plan, onClose, onSave }: PlanModalProps) {
     }
 
     setIsSubmitting(true);
+    setErrors({});
 
-    // Simulate small latency for premium feel
-    setTimeout(() => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const planData = {
-        name: name.trim(),
-        price: parseFloat(price),
-        billing_cycle: billingCycle,
-        status,
-        subscribers_count: plan?.subscribers_count ?? 0, // Retain subscribers or start at 0
-      };
+    let days = 30;
+    if (billingCycle === "WEEK") days = 7;
+    else if (billingCycle === "QUARTER") days = 90;
+    else if (billingCycle === "YEAR") days = 365;
 
+    try {
       if (isEditMode && plan) {
-        // updateMockPlan(plan.plan_id, planData);
+        const res = await fetch(`/api/analyst/plans/${plan.plan_id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: name.trim(),
+            days,
+            price: parseFloat(price),
+          }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setErrors({ form: data.error ?? "Failed to update plan" });
+          return;
+        }
+
         onSave(
           "Plan Updated Successfully",
           `"${name.trim()}" subscription plan has been modified.`
         );
       } else {
-        // createMockPlan(planData);
+        const res = await fetch("/api/analyst/plans", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: name.trim(),
+            description: "",
+            days,
+            price: parseFloat(price),
+            segment: "EQUITY",
+            features: [],
+            is_active: status === "ACTIVE",
+          }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setErrors({ form: data.error ?? "Failed to create plan" });
+          return;
+        }
+
         onSave(
           "Plan Created Successfully",
           `New plan "${name.trim()}" has been created and is now available.`
         );
       }
-
-      setIsSubmitting(false);
       onClose();
-    }, 600);
+    } catch {
+      setErrors({ form: "Unable to reach the server. Please try again." });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -106,6 +138,12 @@ export function PlanModal({ plan, onClose, onSave }: PlanModalProps) {
 
         {/* Form Body */}
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+          {errors.form && (
+            <div className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 text-[13px] text-red-700">
+              <Icon className="mt-0.5 h-4 w-4 shrink-0" name="x" />
+              <span>{errors.form}</span>
+            </div>
+          )}
           {/* Plan Name */}
           <div className="flex flex-col gap-1.5">
             <label className="text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-wider">
