@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { backendUrls, forwardedIpHeaders, signedBackendFetch } from "@/lib/backend/index";
 import { rejectCrossOriginPost } from "@/lib/auth/csrf";
 import { userCookieNames } from "@/lib/auth/cookies";
+import { decodeJwtPayload } from "@/lib/auth/server-session";
 
 /**
  * GET /api/analyst/plans — List the authenticated analyst's own subscription plans.
@@ -20,8 +21,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   const { searchParams } = request.nextUrl;
+  let analystId = searchParams.get("analyst_id") ?? undefined;
+  if (!analystId) {
+    const decoded = decodeJwtPayload(accessToken);
+    if (decoded?.user_id) {
+      analystId = decoded.user_id;
+    }
+  }
+
   const query: Record<string, string | undefined> = {
-    analyst_id: searchParams.get("analyst_id") ?? undefined,
+    analyst_id: analystId,
     segment: searchParams.get("segment") ?? undefined,
     is_active: searchParams.get("is_active") ?? undefined,
     page: searchParams.get("page") ?? "1",

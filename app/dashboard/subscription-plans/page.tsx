@@ -149,14 +149,14 @@ export default function SubscriptionPlansPage() {
             <>
               <MetricCard
                 changeLabel="this month"
-                changePct={12} // +12 subscribers represented as positive direction trend
+                changePct={undefined} // Real stats don't have mock changes
                 icon="users"
                 label="Total Subscribers"
                 value={stats.total_subscribers.toString()}
               />
               <MetricCard
                 changeLabel="this month"
-                changePct={5.2}
+                changePct={undefined} // Real stats don't have mock changes
                 icon="rupee"
                 label="Monthly Recurring Revenue"
                 value={formatCurrency(stats.monthly_recurring_revenue)}
@@ -203,82 +203,141 @@ export default function SubscriptionPlansPage() {
               return (
                 <div
                   key={plan.plan_id}
-                  className="flex flex-col rounded-xl border border-[var(--line)] bg-white p-5 shadow-[0_1px_4px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all"
+                  className="group relative flex flex-col rounded-2xl border border-[var(--line)] bg-white/80 backdrop-blur-md p-6 shadow-sm hover:shadow-[0_22px_40px_rgba(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-300 overflow-hidden animate-[fadeIn_0.3s_ease-out]"
                 >
+                  {/* Decorative glowing gradient top border on active cards */}
+                  {isActive && (
+                    <div className="absolute top-0 left-0 right-0 h-[5px] bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-500" />
+                  )}
+
                   {/* Card Header: Title & Status Badge */}
                   <div className="flex items-start justify-between">
                     <div>
-                      <h3 className="text-[15px] font-bold text-[var(--ink)] leading-tight">
+                      <h3 className="text-[16px] font-extrabold text-[var(--ink)] tracking-tight leading-tight group-hover:text-[var(--brand)] transition-colors">
                         {plan.name}
                       </h3>
-                      <p className="text-[11.5px] text-[var(--muted-2)] mt-0.5">
+                      <p className="text-[12px] text-[var(--muted-2)] font-medium mt-0.5">
                         {getBillingDesc(plan.billing_cycle)}
                       </p>
                     </div>
                     <span
-                      className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10.5px] font-bold ${
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10.5px] font-bold tracking-wide uppercase ${
                         isActive
-                          ? "bg-[var(--green-light)] text-[var(--green)]"
+                          ? "bg-[var(--green-light)] text-[var(--green)] border border-[var(--green)]/15"
                           : "bg-[var(--line)] text-[var(--muted)]"
                       }`}
                     >
-                      {isActive ? "Active" : "Inactive"}
+                      {isActive ? (
+                        <>
+                          <span className="h-1.5 w-1.5 rounded-full bg-[var(--green)] animate-pulse" />
+                          Active
+                        </>
+                      ) : (
+                        "Inactive"
+                      )}
                     </span>
                   </div>
 
-                  {/* Pricing Display */}
-                  <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-[26px] font-extrabold text-[var(--ink)] tracking-tight">
-                      {formatCurrency(plan.price)}
-                    </span>
-                    <span className="text-[12px] font-medium text-[var(--muted)]">
-                      / {getBillingLabel(plan.billing_cycle)}
-                    </span>
+                  {/* Batches Display */}
+                  {plan.batches && plan.batches.length > 0 && (
+                    <div className="mt-4 flex flex-wrap gap-1.5">
+                      {plan.batches.map((b) => {
+                        const isString = typeof b === "string";
+                        const batchId = isString ? b : b.batch_id;
+                        const batchName = isString ? b : b.name;
+                        const isActive = isString ? true : b.is_active !== false;
+
+                        return (
+                          <span
+                            key={batchId}
+                            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all cursor-default ${
+                              isActive
+                                ? "bg-[var(--brand-light)] border border-[var(--brand)]/10 text-[var(--brand)] hover:border-[var(--brand)]/30"
+                                : "bg-slate-100 border border-slate-200 text-slate-400"
+                            }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full shadow-sm ${
+                              isActive
+                                ? "bg-[var(--brand)] shadow-[var(--brand)]/50"
+                                : "bg-slate-300"
+                            }`} />
+                            <span>
+                              {isString ? batchName : `${batchName} (${formatCurrency(b.price)}/${getBillingLabel(b.billing_cycle)})`}
+                            </span>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Manage Batches Link */}
+                  <div className="mt-4">
+                    <a
+                      href={`/dashboard/subscription-plans/${plan.plan_id}/batches`}
+                      className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-[var(--brand)]/20 bg-[var(--brand-light)] py-2.5 text-[12.5px] font-bold text-[var(--brand)] hover:bg-[var(--brand)]/10 hover:border-[var(--brand)]/40 shadow-sm transition-all active:scale-[0.98] text-center"
+                    >
+                      <Icon className="h-3.5 w-3.5 text-[var(--brand)]" name="listChecks" />
+                      <span>Manage Batches & Pricing</span>
+                    </a>
                   </div>
 
-                  {/* Divider */}
-                  <div className="my-5 border-t border-[var(--line)]" />
+                  {/* Pricing Area with subtle card design */}
+                  <div className="mt-5 rounded-xl bg-gradient-to-br from-slate-50/50 to-slate-100/30 border border-slate-100 p-4 flex items-center justify-between shadow-[inset_0_1px_2px_rgba(0,0,0,0.01)]">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-[10px] font-bold text-[var(--muted-2)] uppercase tracking-wider block">
+                        Pricing Tier
+                      </span>
+                      <span className="text-[12px] font-bold text-[var(--brand)] block">
+                        {getBillingDesc(plan.billing_cycle)}
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-0.5">
+                      <span className="text-[28px] font-black text-[var(--ink)] tracking-tight font-mono">
+                        {formatCurrency(plan.price)}
+                      </span>
+                      <span className="text-[12px] font-bold text-[var(--muted)]">
+                        /{getBillingLabel(plan.billing_cycle)}
+                      </span>
+                    </div>
+                  </div>
 
                   {/* Mini-Stats Grid */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
+                  <div className="mt-4.5 grid grid-cols-2 gap-4 rounded-xl border border-dashed border-[var(--line)] p-4 bg-slate-50/20">
+                    <div className="flex flex-col gap-0.5">
                       <span className="text-[10px] font-bold text-[var(--muted-2)] uppercase tracking-wider block">
                         Subscribers
                       </span>
-                      <span className="text-[15px] font-extrabold text-[var(--ink)] mt-1 block">
+                      <span className="text-[18px] font-black text-[var(--ink)] tracking-tight flex items-center gap-1.5">
+                        <Icon className="h-4 w-4 text-[var(--brand)] opacity-80" name="users" />
                         {plan.subscribers_count}
                       </span>
                     </div>
-                    <div>
+                    <div className="flex flex-col gap-0.5 border-l border-[var(--line)] pl-4">
                       <span className="text-[10px] font-bold text-[var(--muted-2)] uppercase tracking-wider block">
                         Est. Revenue
                       </span>
-                      <span className="text-[15px] font-extrabold text-[var(--ink)] mt-1 block">
-                        {formatCurrency(estMonthlyRevenue)}/mo
+                      <span className="text-[18px] font-black text-[var(--ink)] tracking-tight flex items-baseline gap-0.5">
+                        <span className="text-emerald-600">{formatCurrency(estMonthlyRevenue)}</span>
+                        <span className="text-[10.5px] font-semibold text-[var(--muted-2)] lowercase">/mo</span>
                       </span>
                     </div>
                   </div>
 
-                  {/* Divider */}
-                  <div className="my-5 border-t border-[var(--line)]" />
-
                   {/* Actions Row */}
-                  <div className="flex items-center gap-3 mt-auto">
-                    {/* Edit button */}
+                  <div className="flex items-center gap-3 mt-6">
                     <button
-                      className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-[var(--line)] bg-white py-2 text-[12.5px] font-bold text-[var(--ink)] hover:bg-[var(--surface)] transition-all cursor-pointer"
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-[var(--line)] bg-white py-2.5 text-[12.5px] font-bold text-[var(--ink)] hover:bg-[var(--surface)] hover:border-slate-300 shadow-sm transition-all active:scale-[0.98] cursor-pointer"
                       onClick={() => handleOpenEditModal(plan)}
                     >
                       <Icon className="h-3.5 w-3.5 text-[var(--muted-2)]" name="edit" />
-                      <span>Edit</span>
+                      <span>Edit Details</span>
                     </button>
 
-                    {/* Toggle Activation status */}
                     <button
-                      className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg border py-2 text-[12.5px] font-bold transition-all cursor-pointer ${
+                      className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl border py-2.5 text-[12.5px] font-bold shadow-sm transition-all active:scale-[0.98] cursor-pointer ${
                         isActive
-                          ? "border-[var(--red)]/35 text-[var(--red)] hover:bg-[var(--red)]/5"
-                          : "border-[var(--green)]/35 text-[var(--green)] hover:bg-[var(--green)]/5"
+                          ? "border-red-200 bg-red-50/50 text-red-600 hover:bg-red-50 hover:border-red-300"
+                          : "border-emerald-200 bg-emerald-50/50 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300"
                       }`}
                       onClick={() => handleToggleStatus(plan.plan_id, plan.status, plan.name)}
                     >

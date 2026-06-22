@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSWRConfig } from "swr";
 import { Icon } from "@/components/stoxify-icon";
 import type { TradeDirection } from "@/lib/types/analyst";
+import { useSubscriptionPlans } from "@/lib/hooks/use-analyst-dashboard";
 
 interface CreateTradeModalProps {
   onClose: () => void;
@@ -59,6 +60,8 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
   const [stopLoss, setStopLoss] = useState("");
   const [notes, setNotes] = useState("");
   const [batch, setBatch] = useState("");
+  const [selectedPlanId, setSelectedPlanId] = useState("");
+  const { plans } = useSubscriptionPlans();
 
   // Search states
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -285,6 +288,7 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
       target: target,
       target_note: notes.trim() || undefined,
       batch: batch || undefined,
+      plan_id: selectedPlanId || undefined,
     };
 
     try {
@@ -564,8 +568,8 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
               </div>
             </div>
 
-            {/* Toggle Row 2: Position, Category & Batch */}
-            <div className="grid grid-cols-3 gap-4">
+            {/* Toggle Row 2: Position & Category */}
+            <div className="grid grid-cols-2 gap-4">
               {/* Position */}
               <div>
                 <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em] mb-1.5">
@@ -617,23 +621,59 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
                   />
                 </div>
               </div>
+            </div>
 
-              {/* Batch */}
+            {/* Course & Batch Selection */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Plan Selection */}
               <div>
                 <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em] mb-1.5">
-                  Batch{" "}
-                  <span className="text-[9px] font-normal lowercase normal-case">(optional)</span>
+                  Plan / Course
                 </label>
                 <div className="relative">
                   <select
                     className="w-full appearance-none rounded-lg border border-[var(--line)] bg-white py-2 px-3.5 text-[12.5px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)]"
+                    onChange={(e) => {
+                      setSelectedPlanId(e.target.value);
+                      setBatch("");
+                    }}
+                    value={selectedPlanId}
+                  >
+                    <option value="">Select Plan</option>
+                    {plans.map((p) => (
+                      <option key={p.plan_id} value={p.plan_id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  <Icon
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-2)] pointer-events-none h-3 w-3"
+                    name="chevronDown"
+                  />
+                </div>
+              </div>
+
+              {/* Batch Selection */}
+              <div>
+                <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em] mb-1.5">
+                  Batch / Module
+                </label>
+                <div className="relative">
+                  <select
+                    className="w-full appearance-none rounded-lg border border-[var(--line)] bg-white py-2 px-3.5 text-[12.5px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] disabled:opacity-50"
                     onChange={(e) => setBatch(e.target.value)}
                     value={batch}
+                    disabled={!selectedPlanId}
                   >
                     <option value="">Select Batch</option>
-                    <option value="Morning Batch">Morning Batch</option>
-                    <option value="Evening Batch">Evening Batch</option>
-                    <option value="VIP Batch">VIP Batch</option>
+                    {selectedPlanId &&
+                      plans
+                        .find((p) => p.plan_id === selectedPlanId)
+                        ?.batches?.map((b) => (
+                          <option key={b.batch_id} value={b.name}>
+                            {b.name}
+                          </option>
+                        ))}
                   </select>
                   <Icon
                     className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-2)] pointer-events-none h-3 w-3"

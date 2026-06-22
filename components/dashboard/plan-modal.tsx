@@ -26,6 +26,7 @@ export function PlanModal({ plan, onClose, onSave }: PlanModalProps) {
     plan?.billing_cycle ?? "MONTH"
   );
   const [status, setStatus] = useState<PlanStatus>(plan?.status ?? "ACTIVE");
+  // Batches are managed separately via the full page batch editor.
 
   // Error state
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -91,6 +92,7 @@ export function PlanModal({ plan, onClose, onSave }: PlanModalProps) {
             segment: "EQUITY",
             features: [],
             is_active: status === "ACTIVE",
+            batches: [], // initialized empty, managed via full-page batches manager
           }),
         });
 
@@ -146,13 +148,13 @@ export function PlanModal({ plan, onClose, onSave }: PlanModalProps) {
           )}
           {/* Plan Name */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-wider">
+            <label className="text-[11px] font-extrabold text-[var(--muted)] uppercase tracking-wider">
               Plan Name
             </label>
             <input
-              className={`w-full rounded-lg border bg-[var(--surface)] px-3 py-2 text-[13.5px] font-medium text-[var(--ink)] outline-none transition-all focus:border-[var(--brand)] focus:bg-white focus:ring-1 focus:ring-[var(--brand)]/20 ${
+              className={`w-full rounded-xl border bg-[var(--surface)] px-4 py-2.5 text-[13.5px] font-semibold text-[var(--ink)] outline-none transition-all focus:border-[var(--brand)] focus:bg-white focus:ring-2 focus:ring-[var(--brand)]/10 ${
                 errors.name
-                  ? "border-[var(--red)] focus:border-[var(--red)]"
+                  ? "border-[var(--red)] focus:border-[var(--red)] focus:ring-[var(--red)]/10"
                   : "border-[var(--line)]"
               }`}
               placeholder="e.g. Monthly Pro, Annual Premium"
@@ -164,23 +166,23 @@ export function PlanModal({ plan, onClose, onSave }: PlanModalProps) {
               }}
             />
             {errors.name && (
-              <span className="text-[11px] font-semibold text-[var(--red)]">{errors.name}</span>
+              <span className="text-[11px] font-bold text-[var(--red)] mt-0.5">{errors.name}</span>
             )}
           </div>
 
           {/* Pricing */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-wider">
+            <label className="text-[11px] font-extrabold text-[var(--muted)] uppercase tracking-wider">
               Price (INR)
             </label>
             <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] font-semibold text-[var(--muted)]">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[15px] font-bold text-[var(--muted)]">
                 ₹
               </span>
               <input
-                className={`w-full rounded-lg border bg-[var(--surface)] pl-8 pr-3 py-2 text-[13.5px] font-medium text-[var(--ink)] outline-none transition-all focus:border-[var(--brand)] focus:bg-white focus:ring-1 focus:ring-[var(--brand)]/20 ${
+                className={`w-full rounded-xl border bg-[var(--surface)] pl-9 pr-4 py-2.5 text-[13.5px] font-bold text-[var(--ink)] outline-none transition-all focus:border-[var(--brand)] focus:bg-white focus:ring-2 focus:ring-[var(--brand)]/10 ${
                   errors.price
-                    ? "border-[var(--red)] focus:border-[var(--red)]"
+                    ? "border-[var(--red)] focus:border-[var(--red)] focus:ring-[var(--red)]/10"
                     : "border-[var(--line)]"
                 }`}
                 placeholder="e.g. 2500"
@@ -193,7 +195,7 @@ export function PlanModal({ plan, onClose, onSave }: PlanModalProps) {
               />
             </div>
             {errors.price && (
-              <span className="text-[11px] font-semibold text-[var(--red)]">{errors.price}</span>
+              <span className="text-[11px] font-bold text-[var(--red)] mt-0.5">{errors.price}</span>
             )}
           </div>
 
@@ -201,11 +203,11 @@ export function PlanModal({ plan, onClose, onSave }: PlanModalProps) {
           <div className="grid grid-cols-2 gap-4">
             {/* Billing Cycle */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-wider">
+              <label className="text-[11px] font-extrabold text-[var(--muted)] uppercase tracking-wider">
                 Billing Cycle
               </label>
               <select
-                className="w-full rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[13.5px] font-semibold text-[var(--ink)] outline-none focus:border-[var(--brand)] focus:bg-white"
+                className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-2.5 text-[13.5px] font-bold text-[var(--ink)] outline-none focus:border-[var(--brand)] focus:bg-white focus:ring-2 focus:ring-[var(--brand)]/10"
                 value={billingCycle}
                 onChange={(e) => setBillingCycle(e.target.value as PlanBillingCycle)}
               >
@@ -218,11 +220,11 @@ export function PlanModal({ plan, onClose, onSave }: PlanModalProps) {
 
             {/* Status */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-wider">
+              <label className="text-[11px] font-extrabold text-[var(--muted)] uppercase tracking-wider">
                 Status
               </label>
               <select
-                className="w-full rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[13.5px] font-semibold text-[var(--ink)] outline-none focus:border-[var(--brand)] focus:bg-white"
+                className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-2.5 text-[13.5px] font-bold text-[var(--ink)] outline-none focus:border-[var(--brand)] focus:bg-white focus:ring-2 focus:ring-[var(--brand)]/10"
                 value={status}
                 onChange={(e) => setStatus(e.target.value as PlanStatus)}
               >
@@ -232,17 +234,19 @@ export function PlanModal({ plan, onClose, onSave }: PlanModalProps) {
             </div>
           </div>
 
+          {/* Batches are managed separately via the full page batch editor */}
+
           {/* Footer Actions */}
           <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-[var(--line)]">
             <button
-              className="rounded-lg border border-[var(--line)] bg-white px-4 py-2 text-[13px] font-bold text-[var(--muted)] hover:bg-[var(--surface)] transition-all cursor-pointer"
+              className="rounded-xl border border-[var(--line)] bg-white px-5 py-2.5 text-[13px] font-bold text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--ink)] transition-all active:scale-[0.98] cursor-pointer"
               onClick={onClose}
               type="button"
             >
               Cancel
             </button>
             <button
-              className="flex items-center justify-center gap-1.5 rounded-lg bg-[var(--brand)] px-5 py-2 text-[13px] font-bold text-white hover:bg-[var(--brand-dark)] shadow-md shadow-[var(--brand)]/15 transition-all cursor-pointer disabled:opacity-50"
+              className="flex items-center justify-center gap-1.5 rounded-xl bg-[var(--brand)] px-6 py-2.5 text-[13px] font-bold text-white hover:bg-[var(--brand-dark)] shadow-md shadow-[var(--brand)]/15 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
               disabled={isSubmitting}
               type="submit"
             >

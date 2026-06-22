@@ -2,6 +2,15 @@ export type TradeDirection = "LONG" | "SHORT" | "BUY" | "SELL";
 export type PlanBillingCycle = "WEEK" | "MONTH" | "QUARTER" | "YEAR";
 export type PlanStatus = "ACTIVE" | "INACTIVE";
 
+export interface PlanBatch {
+  batch_id: string;
+  name: string;
+  price: number;
+  days: number;
+  billing_cycle: PlanBillingCycle;
+  is_active?: boolean;
+}
+
 export interface SubscriptionPlan {
   plan_id: string;
   name: string;
@@ -10,6 +19,7 @@ export interface SubscriptionPlan {
   status: PlanStatus;
   subscribers_count: number;
   is_active?: boolean;
+  batches?: PlanBatch[];
 }
 
 export interface Trade {
@@ -20,6 +30,7 @@ export interface Trade {
   trade_type?: "SIMPLE" | "PAIR";
   trade_subtype?: "INTRADAY" | "SWING";
   batch?: string;
+  plan_id?: string;
   expiry?: string;
   direction: TradeDirection;
   entry_price: number;
@@ -53,6 +64,8 @@ export interface Subscriber {
   user_avatar?: string;
   user_email?: string;
   plan_name: string;
+  batch_id?: string;
+  batch_name?: string;
   billing_cycle: "WEEK" | "MONTH" | "QUARTER" | "YEAR";
   subscribed_at: string;
   end_date?: string;

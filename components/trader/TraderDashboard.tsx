@@ -43,6 +43,8 @@ type Trade = {
   pnl_percent?: number;
   entry_timestamp: string;
   exit_timestamp?: string;
+  batch?: string;
+  plan_id?: string;
 };
 
 function formatCurrency(value: number): string {
@@ -131,6 +133,11 @@ function TradeCard({ trade }: { trade: Trade }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {trade.batch && (
+            <span className="inline-flex items-center rounded bg-[#f8fafc] px-2 py-[2px] text-[10.5px] font-bold uppercase text-[#475569] border border-[#cbd5e1]/50">
+              {trade.batch}
+            </span>
+          )}
           <span
             className={[
               "rounded-md px-2.5 py-[3px] text-[11px] font-extrabold tracking-[0.05em]",

@@ -6,6 +6,45 @@ import { rejectCrossOriginPost } from "@/lib/auth/csrf";
 import { userCookieNames } from "@/lib/auth/cookies";
 
 /**
+ * GET /api/analyst/plans/[plan_id]
+ * Fetches details of a single subscription plan.
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ plan_id: string }> }
+): Promise<NextResponse> {
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get(userCookieNames.accessToken)?.value;
+  const deviceId = cookieStore.get(userCookieNames.deviceId)?.value ?? "user-web-unknown";
+
+  if (!accessToken) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { plan_id } = await params;
+  if (!plan_id) {
+    return NextResponse.json({ error: "Missing plan_id" }, { status: 400 });
+  }
+
+  try {
+    const backendResponse = await signedBackendFetch({
+      baseUrl: backendUrls.plan,
+      path: `/plans/${plan_id}`,
+      method: "GET",
+      deviceId,
+      accessToken,
+      extraHeaders: forwardedIpHeaders(request),
+    });
+
+    const data = await backendResponse.json().catch(() => ({}));
+    return NextResponse.json(data, { status: backendResponse.status });
+  } catch (error) {
+    console.error("[analyst/plans/[plan_id]] GET failed:", error);
+    return NextResponse.json({ error: "Unable to reach plan service" }, { status: 503 });
+  }
+}
+
+/**
  * PATCH /api/analyst/plans/[plan_id]
  * Updates a subscription plan's details.
  */

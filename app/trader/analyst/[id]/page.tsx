@@ -6,6 +6,15 @@ import { useCallback, useEffect, useState } from "react";
 
 import { Icon } from "@/components/stoxify-icon";
 
+type PlanBatch = {
+  batch_id: string;
+  name: string;
+  price: number;
+  days: number;
+  billing_cycle: string;
+  is_active?: boolean;
+};
+
 type Plan = {
   plan_id: string;
   analyst_id: string;
@@ -17,6 +26,7 @@ type Plan = {
   segment: string;
   features?: string[];
   subscriber_count?: number;
+  batches?: PlanBatch[];
 };
 
 type Trade = {
@@ -77,12 +87,19 @@ export default function AnalystDetailPage() {
   const analystId = params.id as string;
   const [plans, setPlans] = useState<Plan[]>([]);
   const [trades, setTrades] = useState<Trade[]>([]);
-  const [subscribedPlans, setSubscribedPlans] = useState<string[]>([]);
-  const [hasSubscriptionToAnalyst, setHasSubscriptionToAnalyst] = useState(false);
+  const [activeSubscriptions, setActiveSubscriptions] = useState<any[]>([]);
   const [subError, setSubError] = useState<string | null>(null);
   const [subSuccess, setSubSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
+
+  const isSubscribedToPlanOrBatch = (planId: string, batchId?: string) => {
+    return activeSubscriptions.some((s: any) => {
+      if (s.plan_id !== planId) return false;
+      if (batchId) return s.batch_id === batchId;
+      return !s.batch_id;
+    });
+  };
 
   const analystName = plans[0]?.analyst_name || "Analyst";
 
@@ -112,40 +129,42 @@ export default function AnalystDetailPage() {
       setTrades(tradesData.trades ?? tradesData.data ?? []);
       
       const activeSubs = subData.subscriptions ?? subData.data ?? [];
-      setSubscribedPlans(activeSubs.map((s: any) => s.plan_id));
-      setHasSubscriptionToAnalyst(activeSubs.some((s: any) => s.analyst_id === analystId));
+      setActiveSubscriptions(activeSubs);
     } catch {
       setPlans([]);
       setTrades([]);
-      setSubscribedPlans([]);
-      setHasSubscriptionToAnalyst(false);
+      setActiveSubscriptions([]);
     } finally {
       setLoading(false);
     }
   }, [analystId]);
 
-  const handleSubscribe = async (planId: string) => {
+  const handleSubscribe = async (planId: string, batchId?: string) => {
+    const subKey = batchId ? `${planId}_${batchId}` : planId;
     setSubError(null);
     setSubSuccess(null);
-    setIsSubmitting((prev) => ({ ...prev, [planId]: true }));
+    setIsSubmitting((prev) => ({ ...prev, [subKey]: true }));
     try {
       const res = await fetch("/api/trader/subscriptions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan_id: planId }),
+        body: JSON.stringify({
+          plan_id: planId,
+          ...(batchId && { batch_id: batchId }),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setSubError(data.error ?? "Failed to subscribe. Please try again.");
         return;
       }
-      setSubSuccess("Successfully subscribed to plan!");
+      setSubSuccess("Successfully subscribed!");
       // Refetch data to update subscription state
       await fetchData();
     } catch {
       setSubError("Network error. Please try again.");
     } finally {
-      setIsSubmitting((prev) => ({ ...prev, [planId]: false }));
+      setIsSubmitting((prev) => ({ ...prev, [subKey]: false }));
     }
   };
 
@@ -263,69 +282,113 @@ export default function AnalystDetailPage() {
           )}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {plans.map((plan) => {
-              const isSubbed = subscribedPlans.includes(plan.plan_id);
               return (
                 <div
                   key={plan.plan_id}
-                  className="rounded-xl border-[1.5px] border-[var(--line)] bg-white p-5 transition-all hover:border-[var(--brand-mid)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
+                  className="rounded-xl border-[1.5px] border-[var(--line)] bg-white p-5 transition-all hover:border-[var(--brand-mid)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] flex flex-col justify-between"
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-[14px] font-bold text-[var(--ink)]">{plan.name}</h3>
-                    <span className="rounded-full bg-[var(--brand-light)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--brand)]">
-                      {plan.segment}
-                    </span>
-                  </div>
-                  {plan.description && (
-                    <p className="text-[12px] text-[var(--muted)] leading-relaxed mb-3">
-                      {plan.description}
-                    </p>
-                  )}
-                  {plan.features && plan.features.length > 0 && (
-                    <ul className="mb-4 flex flex-col gap-1">
-                      {plan.features.map((f) => (
-                        <li
-                          key={f}
-                          className="flex items-center gap-2 text-[12px] text-[var(--muted)]"
-                        >
-                          <Icon name="check" className="h-3 w-3 text-[var(--green)]" />
-                          {f}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  <div className="flex items-center justify-between pt-3 border-t border-[var(--line)]">
-                    <div>
-                      <span className="text-[18px] font-extrabold text-[var(--ink)]">
-                        {formatCurrency(plan.price)}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-[14px] font-bold text-[var(--ink)]">{plan.name}</h3>
+                      <span className="rounded-full bg-[var(--brand-light)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--brand)]">
+                        {plan.segment}
                       </span>
-                      <span className="text-[12px] text-[var(--muted)]"> / {plan.days} days</span>
                     </div>
-                    {isSubbed ? (
-                      <button
-                        type="button"
-                        disabled
-                        className="rounded-lg bg-[var(--green-light)] px-4 py-2 text-[13px] font-bold text-[var(--green)] border border-[var(--green)]/20 cursor-default"
-                      >
-                        Subscribed
-                      </button>
-                    ) : hasSubscriptionToAnalyst ? (
-                      <button
-                        type="button"
-                        disabled
-                        className="rounded-lg bg-[var(--line)] px-4 py-2 text-[13px] font-bold text-[var(--muted)] border border-[var(--line)] cursor-not-allowed opacity-50"
-                        title="You already have an active subscription to this analyst"
-                      >
-                        Subscribe
-                      </button>
+                    {plan.description && (
+                      <p className="text-[12px] text-[var(--muted)] leading-relaxed mb-3">
+                        {plan.description}
+                      </p>
+                    )}
+                    {plan.features && plan.features.length > 0 && (
+                      <ul className="mb-4 flex flex-col gap-1">
+                        {plan.features.map((f) => (
+                          <li
+                            key={f}
+                            className="flex items-center gap-2 text-[12px] text-[var(--muted)]"
+                          >
+                            <Icon name="check" className="h-3 w-3 text-[var(--green)]" />
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  <div>
+                    {plan.batches && plan.batches.filter((b) => b.is_active !== false).length > 0 ? (
+                      <div className="mt-4 pt-4 border-t border-[var(--line)] flex flex-col gap-3">
+                        <span className="text-[11px] font-extrabold text-[var(--muted-2)] uppercase tracking-wider block">
+                          Select Batch to Subscribe
+                        </span>
+                        <div className="flex flex-col gap-2">
+                          {plan.batches
+                            .filter((b) => b.is_active !== false)
+                            .map((batch) => {
+                              const isBatchSubbed = isSubscribedToPlanOrBatch(plan.plan_id, batch.batch_id);
+                              const subKey = `${plan.plan_id}_${batch.batch_id}`;
+                              const isThisSubmitting = isSubmitting[subKey];
+
+                              return (
+                                <div
+                                  key={batch.batch_id}
+                                  className="flex items-center justify-between p-3 rounded-lg border border-[var(--line)] bg-slate-50/50 hover:bg-slate-50 transition-colors"
+                                >
+                                  <div>
+                                    <div className="text-[12.5px] font-bold text-[var(--ink)] leading-tight">{batch.name}</div>
+                                    <div className="text-[11.5px] text-[var(--muted-2)] font-semibold mt-0.5">
+                                      {formatCurrency(batch.price)} / {batch.days} days
+                                    </div>
+                                  </div>
+                                  {isBatchSubbed ? (
+                                    <button
+                                      type="button"
+                                      disabled
+                                      className="rounded-lg bg-[var(--green-light)] px-3 py-1.5 text-[11.5px] font-bold text-[var(--green)] border border-[var(--green)]/20 cursor-default"
+                                    >
+                                      Subscribed
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      disabled={isThisSubmitting}
+                                      onClick={() => handleSubscribe(plan.plan_id, batch.batch_id)}
+                                      className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-[11.5px] font-bold text-white transition-colors hover:bg-[var(--brand-dark)] disabled:opacity-50 cursor-pointer"
+                                    >
+                                      {isThisSubmitting ? "Subbing..." : "Subscribe"}
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </div>
                     ) : (
-                      <button
-                        type="button"
-                        disabled={isSubmitting[plan.plan_id]}
-                        onClick={() => handleSubscribe(plan.plan_id)}
-                        className="rounded-lg bg-[var(--brand)] px-4 py-2 text-[13px] font-bold text-white transition-colors hover:bg-[var(--brand-dark)] disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isSubmitting[plan.plan_id] ? "Subscribing..." : "Subscribe"}
-                      </button>
+                      <div className="flex items-center justify-between pt-3 border-t border-[var(--line)]">
+                        <div>
+                          <span className="text-[18px] font-extrabold text-[var(--ink)]">
+                            {formatCurrency(plan.price)}
+                          </span>
+                          <span className="text-[12px] text-[var(--muted)]"> / {plan.days} days</span>
+                        </div>
+                        {isSubscribedToPlanOrBatch(plan.plan_id) ? (
+                          <button
+                            type="button"
+                            disabled
+                            className="rounded-lg bg-[var(--green-light)] px-4 py-2 text-[13px] font-bold text-[var(--green)] border border-[var(--green)]/20 cursor-default"
+                          >
+                            Subscribed
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={isSubmitting[plan.plan_id]}
+                            onClick={() => handleSubscribe(plan.plan_id)}
+                            className="rounded-lg bg-[var(--brand)] px-4 py-2 text-[13px] font-bold text-white transition-colors hover:bg-[var(--brand-dark)] disabled:opacity-50 cursor-pointer"
+                          >
+                            {isSubmitting[plan.plan_id] ? "Subscribing..." : "Subscribe"}
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
