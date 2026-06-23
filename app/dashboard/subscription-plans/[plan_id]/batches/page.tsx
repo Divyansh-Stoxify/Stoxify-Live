@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Topbar } from "@/components/dashboard/topbar";
 import { Icon } from "@/components/stoxify-icon";
 import { useDashboard } from "@/components/dashboard/dashboard-context";
+import { CouponDrawer } from "@/components/analyst/coupon-drawer";
 import type { SubscriptionPlan, PlanBatch, PlanBillingCycle } from "@/lib/types/analyst";
 
 function formatCurrency(amount: number): string {
@@ -29,6 +30,7 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
 
   // Drawer / Form state
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isCouponDrawerOpen, setIsCouponDrawerOpen] = useState(false);
   const [editingBatchId, setEditingBatchId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [planType, setPlanType] = useState<"SUBSCRIPTION" | "LIFETIME">("SUBSCRIPTION");
@@ -270,16 +272,25 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => {
-                  resetForm();
-                  setIsDrawerOpen(true);
-                }}
-                className="flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-[13px] font-bold text-white hover:bg-slate-800 transition-all cursor-pointer shadow-sm active:scale-95"
-              >
-                <Icon className="h-4 w-4" name="plus" />
-                <span>Add another Plan</span>
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setIsCouponDrawerOpen(true)}
+                  className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-[13px] font-bold text-slate-700 hover:bg-slate-50 transition-all cursor-pointer shadow-sm active:scale-95"
+                >
+                  <Icon className="h-4 w-4 text-indigo-500" name="ticket" />
+                  <span>Coupons</span>
+                </button>
+                <button
+                  onClick={() => {
+                    resetForm();
+                    setIsDrawerOpen(true);
+                  }}
+                  className="flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-[13px] font-bold text-white hover:bg-slate-800 transition-all cursor-pointer shadow-sm active:scale-95"
+                >
+                  <Icon className="h-4 w-4" name="plus" />
+                  <span>Add another Plan</span>
+                </button>
+              </div>
             </div>
 
             {/* Error / Loading */}
@@ -559,6 +570,12 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
             </button>
           </div>
         </div>
+
+        <CouponDrawer 
+          isOpen={isCouponDrawerOpen} 
+          onClose={() => setIsCouponDrawerOpen(false)} 
+          planId={plan_id} 
+        />
       </div>
     </div>
   );

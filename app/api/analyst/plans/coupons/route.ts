@@ -4,13 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { backendUrls, forwardedIpHeaders, signedBackendFetch } from "@/lib/backend/index";
 import { rejectCrossOriginPost } from "@/lib/auth/csrf";
 import { userCookieNames } from "@/lib/auth/cookies";
-import { decodeJwtPayload } from "@/lib/auth/server-session";
 
-/**
- * GET /api/analyst/plans — List the authenticated analyst's own subscription plans.
- * Passes analyst_id as a query param derived from the JWT (plan-service uses it
- * to scope results to the caller's own plans when they match).
- */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get(userCookieNames.accessToken)?.value;
@@ -20,45 +14,23 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { searchParams } = request.nextUrl;
-  let analystId = searchParams.get("analyst_id") ?? undefined;
-  if (!analystId) {
-    const decoded = decodeJwtPayload(accessToken);
-    if (decoded?.user_id) {
-      analystId = decoded.user_id;
-    }
-  }
-
-  const query: Record<string, string | undefined> = {
-    analyst_id: analystId,
-    segment: searchParams.get("segment") ?? undefined,
-    is_active: searchParams.get("is_active") ?? undefined,
-    page: searchParams.get("page") ?? "1",
-    limit: searchParams.get("limit") ?? "50",
-  };
-
   try {
     const backendResponse = await signedBackendFetch({
       baseUrl: backendUrls.plan,
-      path: "/plans/",
+      path: "/plans/coupons",
       method: "GET",
       deviceId,
       accessToken,
-      query,
       extraHeaders: forwardedIpHeaders(request),
     });
 
     const data = await backendResponse.json().catch(() => ({}));
     return NextResponse.json(data, { status: backendResponse.status });
   } catch (error) {
-    console.error("[analyst/plans] GET failed:", error);
     return NextResponse.json({ error: "Unable to reach plan service" }, { status: 503 });
   }
 }
 
-/**
- * POST /api/analyst/plans — Create a new subscription plan.
- */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const csrfRejection = rejectCrossOriginPost(request);
   if (csrfRejection) return csrfRejection;
@@ -79,7 +51,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const backendResponse = await signedBackendFetch({
       baseUrl: backendUrls.plan,
-      path: "/plans/",
+      path: "/plans/coupons",
       method: "POST",
       deviceId,
       accessToken,
@@ -88,12 +60,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
 
     const data = await backendResponse.json().catch(() => ({}));
-    if (!backendResponse.ok) {
-      console.error("[analyst/plans] POST backend returned error:", data);
-    }
     return NextResponse.json(data, { status: backendResponse.status });
   } catch (error) {
-    console.error("[analyst/plans] POST failed:", error);
     return NextResponse.json({ error: "Unable to reach plan service" }, { status: 503 });
   }
 }

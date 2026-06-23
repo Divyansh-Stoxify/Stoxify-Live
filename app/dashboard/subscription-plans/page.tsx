@@ -219,7 +219,7 @@ export default function SubscriptionPlansPage() {
                   {/* Batches Display */}
                   {plan.batches && plan.batches.length > 0 && (
                     <div className="mt-4 flex flex-wrap gap-1.5">
-                      {plan.batches.map((b) => {
+                      {plan.batches.map((b: any) => {
                         const isString = typeof b === "string";
                         const batchId = isString ? b : b.batch_id;
                         const batchName = isString ? b : b.name;
@@ -255,7 +255,7 @@ export default function SubscriptionPlansPage() {
                       className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-[var(--brand)]/20 bg-[var(--brand-light)] py-2.5 text-[12.5px] font-bold text-[var(--brand)] hover:bg-[var(--brand)]/10 hover:border-[var(--brand)]/40 shadow-sm transition-all active:scale-[0.98] text-center"
                     >
                       <Icon className="h-3.5 w-3.5 text-[var(--brand)]" name="listChecks" />
-                      <span>Manage Subjects & Pricing</span>
+                      <span>Manage Plans & Pricing</span>
                     </a>
                   </div>
 

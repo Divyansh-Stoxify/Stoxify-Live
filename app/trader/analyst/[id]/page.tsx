@@ -99,6 +99,15 @@ export default function AnalystDetailPage() {
   const [isSubmitting, setIsSubmitting] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
 
+  // Checkout State
+  const [checkoutPlan, setCheckoutPlan] = useState<Plan | null>(null);
+  const [checkoutBatch, setCheckoutBatch] = useState<PlanBatch | null>(null);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponSuccess, setCouponSuccess] = useState<string | null>(null);
+  const [finalPrice, setFinalPrice] = useState<number | null>(null);
+  const [verifyingCoupon, setVerifyingCoupon] = useState(false);
+
   const isSubscribedToPlanOrBatch = (planId: string, batchId?: string) => {
     return activeSubscriptions.some((s: any) => {
       if (s.plan_id !== planId) return false;
@@ -145,8 +154,58 @@ export default function AnalystDetailPage() {
     }
   }, [analystId]);
 
-  const handleSubscribe = async (planId: string, batchId?: string) => {
+  const handleVerifyCoupon = async () => {
+    if (!couponCode || !checkoutPlan) return;
+    setVerifyingCoupon(true);
+    setCouponError(null);
+    setCouponSuccess(null);
+    try {
+      const price = checkoutBatch ? (checkoutBatch.discounted_price || checkoutBatch.price) : checkoutPlan.price;
+      const res = await fetch("/api/trader/coupons/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: couponCode,
+          analyst_id: checkoutPlan.analyst_id,
+          plan_id: checkoutPlan.plan_id,
+          price: price
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCouponError(data.error || "Invalid coupon code");
+        setFinalPrice(price);
+      } else {
+        setCouponSuccess(`${data.type === 'PERCENTAGE' ? data.discount_value + '%' : '₹' + data.discount_value} OFF applied!`);
+        setFinalPrice(data.final_price);
+      }
+    } catch {
+      setCouponError("Network error verifying coupon.");
+    } finally {
+      setVerifyingCoupon(false);
+    }
+  };
+
+  const startCheckout = (plan: Plan, batch?: PlanBatch) => {
+    setCheckoutPlan(plan);
+    setCheckoutBatch(batch || null);
+    setCouponCode("");
+    setCouponError(null);
+    setCouponSuccess(null);
+    setFinalPrice(batch ? (batch.discounted_price || batch.price) : plan.price);
+  };
+
+  const closeCheckout = () => {
+    setCheckoutPlan(null);
+    setCheckoutBatch(null);
+  };
+
+  const handleSubscribe = async () => {
+    if (!checkoutPlan) return;
+    const planId = checkoutPlan.plan_id;
+    const batchId = checkoutBatch?.batch_id;
     const subKey = batchId ? `${planId}_${batchId}` : planId;
+    
     setSubError(null);
     setSubSuccess(null);
     setIsSubmitting((prev) => ({ ...prev, [subKey]: true }));
@@ -157,6 +216,7 @@ export default function AnalystDetailPage() {
         body: JSON.stringify({
           plan_id: planId,
           ...(batchId && { batch_id: batchId }),
+          ...(couponSuccess && couponCode && { coupon_code: couponCode })
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -444,7 +504,7 @@ export default function AnalystDetailPage() {
                                       ) : (
                                         <button
                                           type="button" disabled={isThisSubmitting}
-                                          onClick={() => handleSubscribe(plan.plan_id, batch.batch_id)}
+                                          onClick={() => startCheckout(plan, batch)}
                                           className="rounded-xl bg-slate-900 px-5 py-2.5 text-[12.5px] font-bold text-white transition-all hover:bg-black hover:shadow-md disabled:opacity-50 active:scale-95"
                                         >
                                           {isThisSubmitting ? "Processing..." : "Subscribe"}
@@ -475,7 +535,7 @@ export default function AnalystDetailPage() {
                             ) : (
                               <button
                                 type="button" disabled={isSubmitting[plan.plan_id]}
-                                onClick={() => handleSubscribe(plan.plan_id)}
+                                onClick={() => startCheckout(plan)}
                                 className="rounded-xl bg-slate-900 px-6 py-3 text-[13px] font-bold text-white transition-all hover:bg-black hover:shadow-md disabled:opacity-50 active:scale-95"
                               >
                                 {isSubmitting[plan.plan_id] ? "Processing..." : "Subscribe"}
@@ -565,6 +625,90 @@ export default function AnalystDetailPage() {
           </section>
         </div>
       </div>
+
+      {/* Review & Checkout Modal */}
+      {checkoutPlan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
+            
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <h2 className="text-[18px] font-black text-slate-900">Review & Checkout</h2>
+              <button onClick={closeCheckout} className="p-2 rounded-full hover:bg-slate-200 text-slate-500 transition-colors">
+                <Icon name="x" className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-6 flex flex-col gap-6">
+              
+              <div className="flex flex-col gap-1">
+                <h3 className="text-[16px] font-bold text-slate-900">{checkoutPlan.name}</h3>
+                <p className="text-[14px] font-medium text-slate-600">
+                  {checkoutBatch ? checkoutBatch.name : 'Standard Plan'} 
+                  <span className="mx-2 text-slate-300">•</span> 
+                  {checkoutBatch ? checkoutBatch.days : checkoutPlan.days} Days
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-wider">Have a coupon code?</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    placeholder="Enter code"
+                    className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-[14px] font-bold text-slate-900 outline-none focus:border-slate-400"
+                    disabled={!!couponSuccess}
+                  />
+                  {!couponSuccess ? (
+                    <button
+                      onClick={handleVerifyCoupon}
+                      disabled={!couponCode || verifyingCoupon}
+                      className="rounded-xl bg-slate-200 px-4 py-2.5 text-[13px] font-bold text-slate-700 hover:bg-slate-300 transition-colors disabled:opacity-50"
+                    >
+                      {verifyingCoupon ? "..." : "Apply"}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => { setCouponSuccess(null); setCouponCode(""); setFinalPrice(checkoutBatch ? (checkoutBatch.discounted_price || checkoutBatch.price) : checkoutPlan.price); }}
+                      className="rounded-xl bg-red-50 px-4 py-2.5 text-[13px] font-bold text-red-600 hover:bg-red-100 transition-colors"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                {couponError && <span className="text-[12px] font-bold text-red-500 mt-1">{couponError}</span>}
+                {couponSuccess && <span className="text-[12px] font-bold text-emerald-600 mt-1">{couponSuccess}</span>}
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-[16px] font-bold text-slate-700">Total Due</span>
+                <div className="flex flex-col items-end">
+                  {couponSuccess && (
+                    <span className="text-[13px] font-bold text-slate-400 line-through mb-0.5">
+                      {formatCurrency(checkoutBatch ? (checkoutBatch.discounted_price || checkoutBatch.price) : checkoutPlan.price)}
+                    </span>
+                  )}
+                  <span className="text-[24px] font-black text-slate-900">{formatCurrency(finalPrice ?? 0)}</span>
+                </div>
+              </div>
+
+            </div>
+
+            <div className="p-6 border-t border-slate-100 bg-white">
+              <button
+                onClick={handleSubscribe}
+                disabled={isSubmitting[checkoutBatch ? `${checkoutPlan.plan_id}_${checkoutBatch.batch_id}` : checkoutPlan.plan_id]}
+                className="w-full rounded-2xl bg-slate-900 py-4 text-[15px] font-bold text-white transition-all hover:bg-black hover:shadow-lg disabled:opacity-50 active:scale-95"
+              >
+                {isSubmitting[checkoutBatch ? `${checkoutPlan.plan_id}_${checkoutBatch.batch_id}` : checkoutPlan.plan_id] ? "Processing..." : "Proceed to Payment"}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
