@@ -308,7 +308,7 @@ export default function CreateBatchPage() {
                       <div key={tier.batch_id} className={`flex items-center justify-between p-5 rounded-2xl border transition-all ${tier.is_active ? 'border-[var(--line)] bg-white shadow-sm' : 'border-dashed border-[var(--line)] bg-slate-50 opacity-60'}`}>
                         <div className="flex items-center gap-4">
                           <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
-                            <Icon name="tag" className="h-5 w-5 text-slate-500" />
+                            <Icon name="ticket" className="h-5 w-5 text-slate-500" />
                           </div>
                           <div className="flex flex-col gap-1">
                             <span className="text-[15px] font-bold text-[var(--ink)] leading-none">{tier.name}</span>
