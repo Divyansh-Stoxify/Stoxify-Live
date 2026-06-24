@@ -622,7 +622,7 @@ export interface Coupon {
   created_at: string;
 }
 
-export function useAnalystCoupons() {
+export function useAnalystCoupons(planId?: string) {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
@@ -630,7 +630,8 @@ export function useAnalystCoupons() {
   const load = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/analyst/plans/coupons", {
+      const url = planId ? `/api/analyst/plans/coupons?plan_id=${planId}` : "/api/analyst/plans/coupons";
+      const res = await fetch(url, {
         credentials: "same-origin",
         cache: "no-store",
       });
@@ -644,7 +645,7 @@ export function useAnalystCoupons() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [planId]);
 
   useEffect(() => {
     void load();

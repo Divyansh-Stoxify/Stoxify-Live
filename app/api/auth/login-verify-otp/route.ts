@@ -119,7 +119,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   if (!backendResponse.ok || (!data.access_token && !data.is_new_user)) {
     const code = data.code ?? "";
-    const message = ERROR_MAP[code] ?? data.error ?? "Unable to sign in";
+    const message = ERROR_MAP[code] ?? data.message ?? data.error ?? "Unable to sign in";
     return NextResponse.json({ error: message, code }, { status: backendResponse.status || 401 });
   }
 

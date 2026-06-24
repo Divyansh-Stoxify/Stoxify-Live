@@ -77,10 +77,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!backendResponse.ok) {
     const data = (await backendResponse.json().catch(() => ({}))) as {
       error?: string;
+      message?: string;
       code?: string;
     };
     return NextResponse.json(
-      { error: data.error ?? "Failed to send code", code: data.code },
+      { error: data.message ?? data.error ?? "Failed to send code", code: data.code },
       { status: backendResponse.status || 400 }
     );
   }

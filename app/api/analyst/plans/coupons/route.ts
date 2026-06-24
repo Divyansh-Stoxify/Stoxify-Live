@@ -14,6 +14,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { searchParams } = request.nextUrl;
+  const query: Record<string, string> = {};
+  const planId = searchParams.get("plan_id");
+  if (planId) {
+    query.plan_id = planId;
+  }
+
   try {
     const backendResponse = await signedBackendFetch({
       baseUrl: backendUrls.plan,
@@ -21,6 +28,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       method: "GET",
       deviceId,
       accessToken,
+      query,
       extraHeaders: forwardedIpHeaders(request),
     });
 

@@ -23,6 +23,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     status: searchParams.get("status") ?? undefined,
     segment: searchParams.get("segment") ?? undefined,
     trade_type: searchParams.get("trade_type") ?? undefined,
+    plan_id: searchParams.get("plan_id") ?? undefined,
+    batch: searchParams.get("batch") ?? undefined,
     limit: searchParams.get("limit") ?? "50",
     page: searchParams.get("page") ?? "1",
   };

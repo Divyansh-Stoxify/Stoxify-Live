@@ -251,11 +251,11 @@ export default function SubscriptionPlansPage() {
                   {/* Manage Pricing Link */}
                   <div className="mt-4">
                     <a
-                      href={`/dashboard/subscription-plans/${plan.plan_id}/batches`}
+                      href={`/dashboard/subscription-plans/${plan.plan_id}/overview`}
                       className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-[var(--brand)]/20 bg-[var(--brand-light)] py-2.5 text-[12.5px] font-bold text-[var(--brand)] hover:bg-[var(--brand)]/10 hover:border-[var(--brand)]/40 shadow-sm transition-all active:scale-[0.98] text-center"
                     >
-                      <Icon className="h-3.5 w-3.5 text-[var(--brand)]" name="listChecks" />
-                      <span>Manage Plans & Pricing</span>
+                      <Icon className="h-3.5 w-3.5 text-[var(--brand)]" name="layoutDashboard" />
+                      <span>Manage Batch</span>
                     </a>
                   </div>
 

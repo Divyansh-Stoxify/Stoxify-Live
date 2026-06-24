@@ -2,7 +2,6 @@
 
 import React, { use, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Topbar } from "@/components/dashboard/topbar";
 import { Icon } from "@/components/stoxify-icon";
 import { useDashboard } from "@/components/dashboard/dashboard-context";
 import { CouponDrawer } from "@/components/analyst/coupon-drawer";
@@ -246,8 +245,7 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
   const hasUnsavedChanges = plan ? JSON.stringify(plan.batches ?? []) !== JSON.stringify(batches) : false;
 
   return (
-    <div className="min-h-full flex flex-col bg-[#F9FAFB]">
-      <Topbar title="Plans and Pricing" showUserProfile={true} />
+    <div className="flex-1 flex flex-col min-h-0 bg-[#F9FAFB]">
 
       <div className="flex-1 flex max-h-[calc(100vh-64px)] overflow-hidden relative">
         {/* Main Content Area */}

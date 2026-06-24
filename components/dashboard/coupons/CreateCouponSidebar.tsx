@@ -136,9 +136,9 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast }:
               </button>
             </div>
 
-            {/* Select Plans */}
+            {/* Select Batch */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[12px] font-bold text-[var(--ink)]">Select Plans</label>
+              <label className="text-[12px] font-bold text-[var(--ink)]">Select Batch</label>
               <select
                 className="w-full rounded-xl border border-[var(--line)] bg-white px-4 py-2.5 text-[13px] font-semibold outline-none focus:border-[var(--brand)]"
                 value={selectedPlans.length === 0 ? "ALL" : selectedPlans[0]}
@@ -271,3 +271,4 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast }:
     </>
   );
 }
+

@@ -719,7 +719,7 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
               {/* Plan Selection */}
               <div>
                 <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em] mb-1.5">
-                  Plan / Course
+                 Batch
                 </label>
                 <div className="relative">
                   <select
@@ -747,24 +747,33 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
               {/* Batch Selection */}
               <div>
                 <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em] mb-1.5">
-                  Batch / Module
+                  Plan
                 </label>
                 <div className="relative">
                   <select
-                    className="w-full appearance-none rounded-lg border border-[var(--line)] bg-white py-2 px-3.5 text-[12.5px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] disabled:opacity-50"
-                    onChange={(e) => setBatch(e.target.value)}
+                    className="w-full appearance-none rounded-lg border border-[var(--line)] bg-white py-2 px-3.5 text-[12.5px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)]"
+                    onChange={(e) => {
+                      const selectedBatchName = e.target.value;
+                      setBatch(selectedBatchName);
+                      if (selectedBatchName && !selectedPlanId) {
+                        const allBatches = plans.flatMap(p => (p.batches || []).map(b => ({ ...b, plan_id: p.plan_id })));
+                        const foundBatch = allBatches.find(b => b.name === selectedBatchName);
+                        if (foundBatch) {
+                          setSelectedPlanId(foundBatch.plan_id);
+                        }
+                      }
+                    }}
                     value={batch}
-                    disabled={!selectedPlanId}
                   >
                     <option value="">Select Batch</option>
-                    {selectedPlanId &&
-                      plans
-                        .find((p) => p.plan_id === selectedPlanId)
-                        ?.batches?.map((b) => (
-                          <option key={b.batch_id} value={b.name}>
-                            {b.name}
-                          </option>
-                        ))}
+                    {(selectedPlanId
+                      ? plans.find((p) => p.plan_id === selectedPlanId)?.batches || []
+                      : plans.flatMap((p) => p.batches || [])
+                    ).map((b) => (
+                      <option key={b.batch_id} value={b.name}>
+                        {b.name}
+                      </option>
+                    ))}
                   </select>
                   <Icon
                     className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-2)] pointer-events-none h-3 w-3"
