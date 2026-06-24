@@ -1,6 +1,7 @@
 "use client";
 
 import React, { use, useState, useEffect } from "react";
+import Link from "next/link";
 import { Icon } from "@/components/stoxify-icon";
 import { useAnalystCoupons } from "@/lib/hooks/use-analyst-dashboard";
 
@@ -65,70 +66,90 @@ export default function BatchOverviewPage({ params }: { params: Promise<{ plan_i
       <div className="max-w-[1000px]">
         {/* Metric Cards Row */}
         <div className="grid grid-cols-4 gap-4 mb-6">
-          <div className="bg-white border border-[var(--line)] rounded-xl p-4 shadow-sm relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-              <Icon className="h-16 w-16 text-[var(--brand)]" name="eye" />
-            </div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="h-6 w-6 rounded-full bg-amber-50 flex items-center justify-center border border-amber-100">
-                <Icon className="h-3.5 w-3.5 text-amber-500" name="eye" />
+          {/* Card 1: Page Views */}
+          <div className="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-[0_1px_4px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_24px_rgba(0,0,0,0.04)] hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group flex flex-col justify-between min-h-[120px]">
+            {/* Top Accent line on hover */}
+            <div className="absolute top-0 left-0 right-0 h-[4px] transition-colors duration-300 bg-transparent group-hover:bg-amber-500" />
+            
+            {/* Watermark Icon */}
+            <Icon className="absolute -right-4 -bottom-6 h-20 w-20 text-amber-500 opacity-[0.03] group-hover:opacity-[0.08] group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 ease-out pointer-events-none" name="eye" />
+            
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-xl bg-amber-50 flex items-center justify-center border border-amber-100/50 text-amber-500 transition-transform duration-300 group-hover:scale-105">
+                <Icon className="h-4 w-4" name="eye" />
               </div>
-              <span className="text-[12px] font-bold tracking-wide text-[var(--muted)] flex items-center gap-1">
-                Page Views <Icon className="h-3 w-3" name="helpCircle" />
+              <span className="text-[12.5px] font-medium text-[var(--muted)] flex items-center gap-1 group-hover:text-[var(--ink)] transition-colors">
+                Page Views 
+                <Icon className="h-3 w-3 text-[var(--muted-2)] opacity-40 hover:opacity-100 cursor-help transition-opacity" name="helpCircle" title="Total page views of this batch's landing page" />
               </span>
             </div>
-            <div className="text-[24px] font-black text-[var(--ink)] tracking-tight">
+            <div className="text-[32px] font-extrabold leading-none tracking-tight text-[var(--ink)] mt-3.5 tabular-nums">
               1
             </div>
           </div>
 
-          <div className="bg-white border border-[var(--line)] rounded-xl p-4 shadow-sm relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-              <Icon className="h-16 w-16 text-emerald-600" name="rupee" />
-            </div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="h-6 w-6 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-100">
-                <Icon className="h-3.5 w-3.5 text-emerald-600" name="rupee" />
+          {/* Card 2: Total Sales */}
+          <div className="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-[0_1px_4px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_24px_rgba(0,0,0,0.04)] hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group flex flex-col justify-between min-h-[120px]">
+            {/* Top Accent line on hover */}
+            <div className="absolute top-0 left-0 right-0 h-[4px] transition-colors duration-300 bg-transparent group-hover:bg-emerald-500" />
+            
+            {/* Watermark Icon */}
+            <Icon className="absolute -right-4 -bottom-6 h-20 w-20 text-emerald-500 opacity-[0.03] group-hover:opacity-[0.08] group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 ease-out pointer-events-none" name="rupee" />
+            
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-xl bg-emerald-50 flex items-center justify-center border border-emerald-100/50 text-emerald-500 transition-transform duration-300 group-hover:scale-105">
+                <Icon className="h-4 w-4" name="rupee" />
               </div>
-              <span className="text-[12px] font-bold tracking-wide text-[var(--muted)] flex items-center gap-1">
-                Total Sales <Icon className="h-3 w-3" name="helpCircle" />
+              <span className="text-[12.5px] font-medium text-[var(--muted)] flex items-center gap-1 group-hover:text-[var(--ink)] transition-colors">
+                Total Sales 
+                <Icon className="h-3 w-3 text-[var(--muted-2)] opacity-40 hover:opacity-100 cursor-help transition-opacity" name="helpCircle" title="Total revenue generated from subscribers of this batch" />
               </span>
             </div>
-            <div className="text-[24px] font-black text-[var(--ink)] tracking-tight">
+            <div className="text-[32px] font-extrabold leading-none tracking-tight text-[var(--ink)] mt-3.5 tabular-nums">
               ₹0
             </div>
           </div>
 
-          <div className="bg-white border border-[var(--line)] rounded-xl p-4 shadow-sm relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-              <Icon className="h-16 w-16 text-blue-600" name="users" />
-            </div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="h-6 w-6 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100">
-                <Icon className="h-3.5 w-3.5 text-blue-600" name="users" />
+          {/* Card 3: Total Subscriptions */}
+          <div className="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-[0_1px_4px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_24px_rgba(0,0,0,0.04)] hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group flex flex-col justify-between min-h-[120px]">
+            {/* Top Accent line on hover */}
+            <div className="absolute top-0 left-0 right-0 h-[4px] transition-colors duration-300 bg-transparent group-hover:bg-blue-500" />
+            
+            {/* Watermark Icon */}
+            <Icon className="absolute -right-4 -bottom-6 h-20 w-20 text-blue-500 opacity-[0.03] group-hover:opacity-[0.08] group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 ease-out pointer-events-none" name="users" />
+            
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-xl bg-blue-50 flex items-center justify-center border border-blue-100/50 text-blue-500 transition-transform duration-300 group-hover:scale-105">
+                <Icon className="h-4 w-4" name="users" />
               </div>
-              <span className="text-[12px] font-bold tracking-wide text-[var(--muted)] flex items-center gap-1">
-                Total Subscriptions <Icon className="h-3 w-3" name="helpCircle" />
+              <span className="text-[12.5px] font-medium text-[var(--muted)] flex items-center gap-1 group-hover:text-[var(--ink)] transition-colors">
+                Total Subscriptions 
+                <Icon className="h-3 w-3 text-[var(--muted-2)] opacity-40 hover:opacity-100 cursor-help transition-opacity" name="helpCircle" title="Total active subscribers in this batch" />
               </span>
             </div>
-            <div className="text-[24px] font-black text-[var(--ink)] tracking-tight">
+            <div className="text-[32px] font-extrabold leading-none tracking-tight text-[var(--ink)] mt-3.5 tabular-nums">
               --
             </div>
           </div>
 
-          <div className="bg-white border border-[var(--line)] rounded-xl p-4 shadow-sm relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-              <Icon className="h-16 w-16 text-red-600" name="activity" />
-            </div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="h-6 w-6 rounded-full bg-red-50 flex items-center justify-center border border-red-100">
-                <Icon className="h-3.5 w-3.5 text-red-600" name="activity" />
+          {/* Card 4: Churn Rate */}
+          <div className="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-[0_1px_4px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_24px_rgba(0,0,0,0.04)] hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group flex flex-col justify-between min-h-[120px]">
+            {/* Top Accent line on hover */}
+            <div className="absolute top-0 left-0 right-0 h-[4px] transition-colors duration-300 bg-transparent group-hover:bg-red-500" />
+            
+            {/* Watermark Icon */}
+            <Icon className="absolute -right-4 -bottom-6 h-20 w-20 text-red-500 opacity-[0.03] group-hover:opacity-[0.08] group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 ease-out pointer-events-none" name="activity" />
+            
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-xl bg-red-50 flex items-center justify-center border border-red-100/50 text-red-500 transition-transform duration-300 group-hover:scale-105">
+                <Icon className="h-4 w-4" name="activity" />
               </div>
-              <span className="text-[12px] font-bold tracking-wide text-[var(--muted)] flex items-center gap-1">
-                Churn Rate <Icon className="h-3 w-3" name="helpCircle" />
+              <span className="text-[12.5px] font-medium text-[var(--muted)] flex items-center gap-1 group-hover:text-[var(--ink)] transition-colors">
+                Churn Rate 
+                <Icon className="h-3 w-3 text-[var(--muted-2)] opacity-40 hover:opacity-100 cursor-help transition-opacity" name="helpCircle" title="Percentage of subscribers who cancelled their subscription" />
               </span>
             </div>
-            <div className="text-[24px] font-black text-[var(--ink)] tracking-tight">
+            <div className="text-[32px] font-extrabold leading-none tracking-tight text-[var(--ink)] mt-3.5 tabular-nums">
               0%
             </div>
           </div>
@@ -136,44 +157,51 @@ export default function BatchOverviewPage({ params }: { params: Promise<{ plan_i
 
         {/* Widgets Row */}
         <div className="grid grid-cols-3 gap-6">
-          <div className="bg-white border border-[var(--line)] rounded-xl p-5 shadow-sm min-h-[300px] flex flex-col">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-[13px] font-bold tracking-wide text-[var(--muted)] flex items-center gap-1.5">
-                Top Members <Icon className="h-3.5 w-3.5" name="helpCircle" />
+          {/* Widget 1: Top Members */}
+          <div className="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm min-h-[320px] flex flex-col hover:shadow-[0_12px_24px_rgba(0,0,0,0.02)] transition-all duration-300 group/card">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-[14px] font-bold text-[var(--ink)] tracking-tight flex items-center gap-1.5">
+                Top Members 
+                <Icon className="h-3 w-3 text-[var(--muted-2)] opacity-40 hover:opacity-100 cursor-help transition-opacity" name="helpCircle" title="List of members currently subscribed to this batch workspace" />
               </h3>
-              <Icon className="h-3.5 w-3.5 text-[var(--muted-2)]" name="arrowRight" style={{ transform: "rotate(-45deg)" }} />
+              <Link 
+                href={`/dashboard/subscription-plans/${plan_id}/members`}
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-50 border border-slate-100 text-[var(--muted-2)] hover:bg-[var(--brand-light)] hover:text-[var(--brand)] hover:border-[var(--brand)]/20 transition-all cursor-pointer"
+              >
+                <Icon className="h-3 w-3" name="arrowRight" style={{ transform: "rotate(-45deg)" }} />
+              </Link>
             </div>
             
-            <div className="flex-1 flex flex-col overflow-y-auto pr-1">
+            <div className="flex-1 flex flex-col overflow-y-auto pr-1 no-scrollbar">
               {isSubscribersLoading ? (
                 <div className="space-y-3">
-                  <div className="h-10 rounded bg-[var(--line)] animate-pulse w-full"></div>
-                  <div className="h-10 rounded bg-[var(--line)] animate-pulse w-full"></div>
+                  <div className="h-12 rounded-xl bg-[var(--line)]/50 animate-pulse w-full"></div>
+                  <div className="h-12 rounded-xl bg-[var(--line)]/50 animate-pulse w-full"></div>
                 </div>
               ) : subscribers.length > 0 ? (
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2.5">
                   {subscribers.slice(0, 5).map((sub) => (
-                    <div key={sub.subscription_id} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-[var(--line)]">
+                    <div key={sub.subscription_id} className="flex items-center gap-3 p-2.5 hover:bg-slate-50/80 rounded-xl transition-all border border-transparent hover:border-[var(--line)]/50 group/item">
                       {sub.user_avatar ? (
-                        <img alt={sub.user_name} className="h-9 w-9 shrink-0 rounded-full object-cover border border-[var(--line)]" src={sub.user_avatar} />
+                        <img alt={sub.user_name} className="h-9 w-9 shrink-0 rounded-xl object-cover border border-[var(--line)]/60 transition-transform duration-300 group-hover/item:scale-105" src={sub.user_avatar} />
                       ) : (
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold text-white" style={{ background: avatarGradient(sub.user_name) }}>
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[11px] font-extrabold text-white transition-transform duration-300 group-hover/item:scale-105" style={{ background: avatarGradient(sub.user_name) }}>
                           {getInitials(sub.user_name)}
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <div className="text-[13px] font-bold text-[var(--ink)] truncate">{sub.user_name}</div>
-                        <div className="text-[11.5px] text-[var(--muted-2)] truncate mt-0.5">{sub.user_email || "No email"}</div>
+                        <div className="text-[13px] font-bold text-[var(--ink)] truncate group-hover/item:text-[var(--brand)] transition-colors">{sub.user_name}</div>
+                        <div className="text-[11px] text-[var(--muted-2)] truncate mt-0.5">{sub.user_email || "No email"}</div>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-center py-4">
-                  <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
-                    <Icon className="h-5 w-5 text-slate-400" name="users" />
+                  <div className="h-12 w-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mb-3 text-slate-400 transition-transform duration-300 group-hover/card:scale-105">
+                    <Icon className="h-5 w-5" name="users" />
                   </div>
-                  <h4 className="text-[13px] font-bold text-[var(--ink)] mb-1">No members yet</h4>
+                  <h4 className="text-[13.5px] font-bold text-[var(--ink)] mb-0.5">No members yet</h4>
                   <p className="text-[11.5px] text-[var(--muted-2)] max-w-[180px] leading-relaxed">
                     No one has subscribed to your batch yet.
                   </p>
@@ -182,33 +210,41 @@ export default function BatchOverviewPage({ params }: { params: Promise<{ plan_i
             </div>
           </div>
 
-          <div className="bg-white border border-[var(--line)] rounded-xl p-5 shadow-sm min-h-[300px] flex flex-col">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-[13px] font-bold tracking-wide text-[var(--muted)] flex items-center gap-1.5">
-                Recent Transactions <Icon className="h-3.5 w-3.5" name="helpCircle" />
+          {/* Widget 2: Recent Transactions */}
+          <div className="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm min-h-[320px] flex flex-col hover:shadow-[0_12px_24px_rgba(0,0,0,0.02)] transition-all duration-300 group/card">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-[14px] font-bold text-[var(--ink)] tracking-tight flex items-center gap-1.5">
+                Recent Transactions 
+                <Icon className="h-3 w-3 text-[var(--muted-2)] opacity-40 hover:opacity-100 cursor-help transition-opacity" name="helpCircle" title="Recent billing history and subscription payments" />
               </h3>
-              <Icon className="h-3.5 w-3.5 text-[var(--muted-2)]" name="arrowRight" style={{ transform: "rotate(-45deg)" }} />
+              <Link 
+                href={`/dashboard/subscription-plans/${plan_id}/transactions`}
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-50 border border-slate-100 text-[var(--muted-2)] hover:bg-[var(--brand-light)] hover:text-[var(--brand)] hover:border-[var(--brand)]/20 transition-all cursor-pointer"
+              >
+                <Icon className="h-3 w-3" name="arrowRight" style={{ transform: "rotate(-45deg)" }} />
+              </Link>
             </div>
-            <div className="flex-1 flex flex-col overflow-y-auto pr-1">
+            
+            <div className="flex-1 flex flex-col overflow-y-auto pr-1 no-scrollbar">
               {isSubscribersLoading ? (
                 <div className="space-y-3">
-                  <div className="h-10 rounded bg-[var(--line)] animate-pulse w-full"></div>
-                  <div className="h-10 rounded bg-[var(--line)] animate-pulse w-full"></div>
+                  <div className="h-12 rounded-xl bg-[var(--line)]/50 animate-pulse w-full"></div>
+                  <div className="h-12 rounded-xl bg-[var(--line)]/50 animate-pulse w-full"></div>
                 </div>
               ) : subscribers.length > 0 ? (
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2.5">
                   {subscribers.slice(0, 5).map((sub) => (
-                    <div key={sub.subscription_id} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-[var(--line)]">
-                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                         <div className="h-8 w-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 border border-emerald-100">
-                           <Icon className="h-3.5 w-3.5 text-emerald-500" name="receipt" />
+                    <div key={sub.subscription_id} className="flex items-center justify-between p-2.5 hover:bg-slate-50/80 rounded-xl transition-all border border-transparent hover:border-[var(--line)]/50 group/item">
+                      <div className="flex items-center gap-3 min-w-0 pr-2">
+                         <div className="h-9 w-9 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0 border border-emerald-100/50 text-emerald-600 transition-transform duration-300 group-hover/item:scale-105">
+                           <Icon className="h-4 w-4" name="receipt" />
                          </div>
                          <div className="min-w-0">
-                           <div className="text-[12.5px] font-bold text-[var(--ink)] truncate">{sub.user_name}</div>
-                           <div className="text-[11px] text-[var(--muted-2)] truncate mt-0.5">{sub.plan_name}</div>
+                           <div className="text-[13px] font-bold text-[var(--ink)] truncate group-hover/item:text-[var(--brand)] transition-colors">{sub.user_name}</div>
+                           <div className="text-[11.5px] text-[var(--muted-2)] truncate mt-0.5">{sub.plan_name}</div>
                          </div>
                       </div>
-                      <div className="text-[13px] font-black text-emerald-600 shrink-0">
+                      <div className="text-[12.5px] font-bold text-emerald-700 shrink-0 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100/30 shadow-2xs">
                         +{formatCurrency(sub.amount ?? 0)}
                       </div>
                     </div>
@@ -216,10 +252,10 @@ export default function BatchOverviewPage({ params }: { params: Promise<{ plan_i
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-center py-4">
-                  <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
-                    <Icon className="h-5 w-5 text-slate-400" name="receipt" />
+                  <div className="h-12 w-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mb-3 text-slate-400 transition-transform duration-300 group-hover/card:scale-105">
+                    <Icon className="h-5 w-5" name="receipt" />
                   </div>
-                  <h4 className="text-[13px] font-bold text-[var(--ink)] mb-1">No transactions</h4>
+                  <h4 className="text-[13.5px] font-bold text-[var(--ink)] mb-0.5">No transactions</h4>
                   <p className="text-[11.5px] text-[var(--muted-2)] max-w-[180px] leading-relaxed">
                     No transactions have been made yet.
                   </p>
@@ -228,45 +264,52 @@ export default function BatchOverviewPage({ params }: { params: Promise<{ plan_i
             </div>
           </div>
 
-          <div className="bg-white border border-[var(--line)] rounded-xl p-5 shadow-sm min-h-[300px] flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[13px] font-bold tracking-wide text-[var(--muted)] flex items-center gap-1.5">
-                Discounts <Icon className="h-3.5 w-3.5" name="helpCircle" />
+          {/* Widget 3: Discounts */}
+          <div className="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm min-h-[320px] flex flex-col hover:shadow-[0_12px_24px_rgba(0,0,0,0.02)] transition-all duration-300 group/card">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-[14px] font-bold text-[var(--ink)] tracking-tight flex items-center gap-1.5">
+                Discounts 
+                <Icon className="h-3 w-3 text-[var(--muted-2)] opacity-40 hover:opacity-100 cursor-help transition-opacity" name="helpCircle" title="Active coupons and discount campaigns for this batch" />
               </h3>
-              <Icon className="h-3.5 w-3.5 text-[var(--muted-2)]" name="arrowRight" style={{ transform: "rotate(-45deg)" }} />
+              <Link 
+                href={`/dashboard/subscription-plans/${plan_id}/discounts`}
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-50 border border-slate-100 text-[var(--muted-2)] hover:bg-[var(--brand-light)] hover:text-[var(--brand)] hover:border-[var(--brand)]/20 transition-all cursor-pointer"
+              >
+                <Icon className="h-3 w-3" name="arrowRight" style={{ transform: "rotate(-45deg)" }} />
+              </Link>
             </div>
             
-            {/* Real Discount Data */}
-            <div className="mt-2 flex-1 overflow-y-auto pr-1">
+            <div className="flex-1 flex flex-col overflow-y-auto pr-1 no-scrollbar">
               {isCouponsLoading ? (
-                <div className="space-y-2">
-                  <div className="h-8 rounded bg-[var(--line)] animate-pulse w-full"></div>
-                  <div className="h-8 rounded bg-[var(--line)] animate-pulse w-full"></div>
+                <div className="space-y-3">
+                  <div className="h-12 rounded-xl bg-[var(--line)]/50 animate-pulse w-full"></div>
+                  <div className="h-12 rounded-xl bg-[var(--line)]/50 animate-pulse w-full"></div>
                 </div>
               ) : coupons && coupons.length > 0 ? (
-                <>
-                  <div className="grid grid-cols-2 text-[10px] font-bold uppercase tracking-wider text-[var(--muted-2)] bg-slate-50 px-3 py-2 rounded-lg mb-2">
-                    <div>CODE</div>
-                    <div className="text-right">TIMES USED</div>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    {coupons.slice(0, 5).map((coupon) => (
-                      <div key={coupon.code} className="grid grid-cols-2 items-center text-[12px] font-semibold text-[var(--ink)] px-3 py-2 border border-[var(--line)] rounded-lg shadow-sm bg-white hover:border-pink-200 hover:bg-pink-50/30 transition-colors">
-                        <div className="flex items-center gap-1.5 truncate pr-2">
-                          <div className="h-4 w-4 shrink-0 rounded-full bg-pink-100 flex items-center justify-center">
-                            <Icon className="h-2.5 w-2.5 text-pink-500" name="ticket" />
-                          </div>
-                          <span className="truncate" title={coupon.code}>{coupon.code}</span>
+                <div className="flex flex-col gap-2.5">
+                  {coupons.slice(0, 5).map((coupon) => (
+                    <div key={coupon.code} className="flex items-center justify-between text-[12.5px] font-semibold text-[var(--ink)] px-3.5 py-2.5 border border-dashed border-[var(--line)] rounded-xl bg-slate-50/35 hover:border-pink-300 hover:bg-pink-50/20 transition-all duration-200 group/coupon">
+                      <div className="flex items-center gap-2 min-w-0 pr-2">
+                        <div className="h-6 w-6 shrink-0 rounded-lg bg-pink-50 border border-pink-100/50 flex items-center justify-center text-pink-500 transition-transform group-hover/coupon:scale-105">
+                          <Icon className="h-3 w-3" name="ticket" />
                         </div>
-                        <div className="text-right">{coupon.quantity_used || 0}</div>
+                        <span className="font-mono font-bold tracking-wider truncate text-[13px] text-[var(--ink)]" title={coupon.code}>{coupon.code}</span>
                       </div>
-                    ))}
-                  </div>
-                </>
+                      <div className="text-[11px] font-bold text-[var(--muted)] bg-white border border-[var(--line)] px-2 py-0.5 rounded-full shadow-2xs shrink-0">
+                        {coupon.quantity_used || 0} used
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-center py-6">
-                  <Icon className="h-8 w-8 text-slate-300 mb-2" name="ticket" />
-                  <p className="text-[12px] text-[var(--muted-2)]">No active coupons available.</p>
+                <div className="flex flex-col items-center justify-center h-full text-center py-4">
+                  <div className="h-12 w-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mb-3 text-slate-400 transition-transform duration-300 group-hover/card:scale-105">
+                    <Icon className="h-5 w-5" name="ticket" />
+                  </div>
+                  <h4 className="text-[13.5px] font-bold text-[var(--ink)] mb-0.5">No active coupons</h4>
+                  <p className="text-[11.5px] text-[var(--muted-2)] max-w-[180px] leading-relaxed">
+                    No active discounts are available for this batch yet.
+                  </p>
                 </div>
               )}
             </div>
