@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { Topbar } from "@/components/dashboard/topbar";
-import { useAnalystProfile } from "@/lib/hooks/use-analyst-dashboard";
+import { useAnalystProfile } from "@/hooks/use-analyst-dashboard";
 import { useDashboard } from "@/components/dashboard/dashboard-context";
 import { Icon } from "@/components/stoxify-icon";
 

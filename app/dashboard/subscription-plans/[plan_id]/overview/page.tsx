@@ -3,7 +3,7 @@
 import React, { use, useState, useEffect } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/stoxify-icon";
-import { useAnalystCoupons } from "@/lib/hooks/use-analyst-dashboard";
+import { useAnalystCoupons } from "@/hooks/use-analyst-dashboard";
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-IN", {

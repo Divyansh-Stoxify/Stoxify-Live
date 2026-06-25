@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Topbar } from "@/components/dashboard/topbar";
 import { Icon } from "@/components/stoxify-icon";
-import { useAnalystCoupons } from "@/lib/hooks/use-analyst-dashboard";
+import { useAnalystCoupons } from "@/hooks/use-analyst-dashboard";
 import { useDashboard } from "@/components/dashboard/dashboard-context";
 import { CreateCouponModal } from "@/components/dashboard/coupons/CreateCouponModal";
 import { CreateCouponSidebar } from "@/components/dashboard/coupons/CreateCouponSidebar";

@@ -6,7 +6,7 @@ import { Topbar } from "@/components/dashboard/topbar";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { Icon } from "@/components/stoxify-icon";
 import { useDashboard } from "@/components/dashboard/dashboard-context";
-import { useSubscriptionPlans, useSubscriptionPlansStats } from "@/lib/hooks/use-analyst-dashboard";
+import { useSubscriptionPlans, useSubscriptionPlansStats } from "@/hooks/use-analyst-dashboard";
 import type { SubscriptionPlan } from "@/lib/types/analyst";
 
 // Helper to format currency in Indian numbering system (Lakh/Crore)

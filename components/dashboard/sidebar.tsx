@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useActiveTrades } from "@/lib/hooks/use-analyst-dashboard";
+import { useActiveTrades } from "@/hooks/use-analyst-dashboard";
 import { Icon } from "@/components/stoxify-icon";
 
 // ─── Nav Config ───────────────────────────────────────────────────────────────

@@ -7,8 +7,8 @@ import {
   useActiveTrades,
   usePendingTrades,
   useClosedTrades,
-} from "@/lib/hooks/use-analyst-dashboard";
-import { useLiveTradesStats } from "@/lib/hooks/use-analyst-dashboard";
+} from "@/hooks/use-analyst-dashboard";
+import { useLiveTradesStats } from "@/hooks/use-analyst-dashboard";
 import { useDashboard } from "@/components/dashboard/dashboard-context";
 import { BroadcastModal } from "@/components/dashboard/broadcast-modal";
 import type { Trade } from "@/lib/types/analyst";

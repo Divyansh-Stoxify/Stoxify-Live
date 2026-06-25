@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSWRConfig } from "swr";
 import { Icon } from "@/components/stoxify-icon";
 import type { TradeDirection } from "@/lib/types/analyst";
-import { useSubscriptionPlans } from "@/lib/hooks/use-analyst-dashboard";
+import { useSubscriptionPlans } from "@/hooks/use-analyst-dashboard";
 
 interface CreateTradeModalProps {
   onClose: () => void;

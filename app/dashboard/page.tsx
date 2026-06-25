@@ -9,8 +9,8 @@ import {
   useDashboardMetrics,
   useActiveTrades,
   useRecentSubscribers,
-} from "@/lib/hooks/use-analyst-dashboard";
-import { useWebSocket } from "@/lib/hooks/use-websocket";
+} from "@/hooks/use-analyst-dashboard";
+import { useWebSocket } from "@/hooks/use-websocket";
 import { useDashboard } from "@/components/dashboard/dashboard-context";
 import type { Trade, Subscriber } from "@/lib/types/analyst";
 

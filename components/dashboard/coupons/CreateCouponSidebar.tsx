@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Icon } from "@/components/stoxify-icon";
-import { useSubscriptionPlans } from "@/lib/hooks/use-analyst-dashboard";
+import { useSubscriptionPlans } from "@/hooks/use-analyst-dashboard";
 
 interface CreateCouponSidebarProps {
   type: "PERCENTAGE" | "FLAT";
@@ -271,4 +271,4 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast }:
     </>
   );
 }
-
+

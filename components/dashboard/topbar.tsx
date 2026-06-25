@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Icon } from "@/components/stoxify-icon";
-import { useAnalystProfile } from "@/lib/hooks/use-analyst-dashboard";
+import { useAnalystProfile } from "@/hooks/use-analyst-dashboard";
 import { useDashboard } from "@/components/dashboard/dashboard-context";
 
 interface TopbarProps {
