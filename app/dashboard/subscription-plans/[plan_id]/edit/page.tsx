@@ -12,7 +12,7 @@ const SEGMENTS = ["EQUITY", "FNO", "COMMODITY", "CURRENCY"];
 const HORIZONS = ["INTRADAY", "SWING", "SHORT", "MEDIUM", "LONG TERM"];
 const RISK_LEVELS = ["LOW", "MEDIUM", "HIGH"];
 
-export default function EditBatchPage({ params }: { params: Promise<{ plan_id: string }> }) {
+export default function EditPlanPage({ params }: { params: Promise<{ plan_id: string }> }) {
   const router = useRouter();
   const { showSuccessToast } = useDashboard();
   const { plan_id } = use(params);
@@ -151,10 +151,10 @@ export default function EditBatchPage({ params }: { params: Promise<{ plan_id: s
     e.preventDefault();
     const newErrors: Record<string, string> = {};
 
-    if (!name.trim()) newErrors.name = "Batch name is required";
+    if (!name.trim()) newErrors.name = "Plan name is required";
     if (segments.length === 0) newErrors.segments = "Select at least one segment";
     if (horizons.length === 0) newErrors.horizons = "Select at least one horizon";
-    if (pricingTiers.length === 0) newErrors.form = "At least one plan is mandatory while updating a batch.";
+    if (pricingTiers.length === 0) newErrors.form = "At least one pricing tier is mandatory while updating a plan.";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -180,7 +180,7 @@ export default function EditBatchPage({ params }: { params: Promise<{ plan_id: s
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setErrors({ form: data.error ?? "Failed to update batch" });
+        setErrors({ form: data.error ?? "Failed to update plan" });
         return;
       }
 
@@ -191,8 +191,8 @@ export default function EditBatchPage({ params }: { params: Promise<{ plan_id: s
       });
 
       showSuccessToast(
-        "Batch Updated",
-        `"${name.trim()}" batch has been successfully modified.`
+        "Plan Updated",
+        `"${name.trim()}" plan has been successfully modified.`
       );
       
       router.push("/dashboard/subscription-plans");
@@ -221,7 +221,7 @@ export default function EditBatchPage({ params }: { params: Promise<{ plan_id: s
 
   return (
     <>
-      <Topbar title="Edit Batch" showUserProfile={true} />
+      <Topbar title="Edit Plan" showUserProfile={true} />
 
       <div className="flex-1 p-6 md:p-8 flex flex-col gap-8 overflow-y-auto bg-[#fafafa] relative">
         <div className="w-full max-w-4xl mx-auto mt-4">
@@ -235,10 +235,10 @@ export default function EditBatchPage({ params }: { params: Promise<{ plan_id: s
             </button>
             <div>
               <h1 className="text-[24px] font-black text-[var(--ink)] tracking-tight leading-none">
-                Edit Batch
+                Edit Plan
               </h1>
               <p className="text-[14px] text-[var(--muted-2)] font-medium mt-1.5">
-                Update the foundational details, risk parameters, and pricing tiers for this batch.
+                Update the foundational details, risk parameters, and pricing tiers for this plan.
               </p>
             </div>
           </div>
@@ -246,7 +246,7 @@ export default function EditBatchPage({ params }: { params: Promise<{ plan_id: s
           {isLoading ? (
             <div className="rounded-3xl border border-[var(--line)] bg-white p-12 shadow-sm flex flex-col items-center justify-center gap-4">
               <Icon className="h-8 w-8 text-[var(--brand)] animate-spin" name="loader" />
-              <p className="text-[14px] font-semibold text-[var(--muted)]">Loading batch details...</p>
+              <p className="text-[14px] font-semibold text-[var(--muted)]">Loading plan details...</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -271,7 +271,7 @@ export default function EditBatchPage({ params }: { params: Promise<{ plan_id: s
                     </h2>
                     <div className="flex flex-col gap-5">
                       <div className="flex flex-col gap-2">
-                        <label className="text-[13px] font-bold text-[var(--ink)]">Batch Name</label>
+                        <label className="text-[13px] font-bold text-[var(--ink)]">Plan Name</label>
                         <input
                           className={`w-full rounded-2xl border bg-[#fafafa] px-5 py-3.5 text-[14px] font-semibold text-[var(--ink)] outline-none transition-all placeholder:text-[var(--muted-2)] focus:border-[var(--brand)] focus:bg-white focus:ring-4 focus:ring-[var(--brand)]/10 ${errors.name ? "border-[var(--red)] focus:border-[var(--red)]" : "border-[var(--line)]"}`}
                           placeholder="e.g. FNO Mastery, Swing Trading Alpha"
@@ -285,7 +285,7 @@ export default function EditBatchPage({ params }: { params: Promise<{ plan_id: s
                         <label className="text-[13px] font-bold text-[var(--ink)]">Description (Optional)</label>
                         <textarea
                           className="w-full rounded-2xl border border-[var(--line)] bg-[#fafafa] px-5 py-3.5 text-[14px] font-medium text-[var(--ink)] outline-none transition-all placeholder:text-[var(--muted-2)] focus:border-[var(--brand)] focus:bg-white focus:ring-4 min-h-[100px] resize-y"
-                          placeholder="Describe what this batch offers..."
+                          placeholder="Describe what this plan offers..."
                           value={description}
                           onChange={(e) => setDescription(e.target.value)}
                         />

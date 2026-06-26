@@ -11,7 +11,6 @@ import { Icon } from "@/components/stoxify-icon";
 const TABS = [
   { name: "Profile Information", icon: "user" as const },
   { name: "SEBI Verification", icon: "shieldCheck" as const },
-  { name: "Security", icon: "lock" as const },
   { name: "Notifications", icon: "bell" as const },
   { name: "Bank & Payouts", icon: "bank" as const },
 ];
@@ -23,6 +22,264 @@ const AVATAR_POOL = [
   "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200", // Man 3
   "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=200", // Man 4
 ];
+
+// ─── Notifications Tab ────────────────────────────────────────────────────────
+
+interface NotificationPreferences {
+  channels: { email: boolean; push: boolean };
+  categories: { trades: boolean; subscriptions: boolean; account: boolean };
+}
+
+const DEFAULT_PREFS: NotificationPreferences = {
+  channels: { email: true, push: true },
+  categories: { trades: true, subscriptions: true, account: true },
+};
+
+/** Small accessible toggle switch. */
+function Toggle({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+        checked ? "bg-[var(--brand)]" : "bg-slate-200"
+      }`}
+    >
+      <span
+        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+          checked ? "translate-x-[22px]" : "translate-x-0.5"
+        }`}
+      />
+    </button>
+  );
+}
+
+function PrefRow({
+  title,
+  description,
+  checked,
+  onChange,
+}: {
+  title: string;
+  description: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3.5">
+      <div className="min-w-0">
+        <div className="text-[13.5px] font-bold text-slate-800">{title}</div>
+        <div className="text-[12px] text-slate-400 mt-0.5">{description}</div>
+      </div>
+      <Toggle checked={checked} onChange={onChange} label={title} />
+    </div>
+  );
+}
+
+function NotificationsTab() {
+  const { showSuccessToast } = useDashboard();
+  const [prefs, setPrefs] = useState<NotificationPreferences>(DEFAULT_PREFS);
+  const [initial, setInitial] = useState<NotificationPreferences>(DEFAULT_PREFS);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/analyst/notifications/preferences", {
+          credentials: "same-origin",
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const loaded: NotificationPreferences = {
+          channels: {
+            email: data?.channels?.email ?? DEFAULT_PREFS.channels.email,
+            push: data?.channels?.push ?? DEFAULT_PREFS.channels.push,
+          },
+          categories: {
+            trades: data?.categories?.trades ?? DEFAULT_PREFS.categories.trades,
+            subscriptions:
+              data?.categories?.subscriptions ?? DEFAULT_PREFS.categories.subscriptions,
+            account: data?.categories?.account ?? DEFAULT_PREFS.categories.account,
+          },
+        };
+        if (!cancelled) {
+          setPrefs(loaded);
+          setInitial(loaded);
+          setIsError(false);
+        }
+      } catch {
+        if (!cancelled) setIsError(true);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const isDirty = JSON.stringify(prefs) !== JSON.stringify(initial);
+
+  const setChannel = (key: keyof NotificationPreferences["channels"], next: boolean) =>
+    setPrefs((p) => ({ ...p, channels: { ...p.channels, [key]: next } }));
+
+  const setCategory = (key: keyof NotificationPreferences["categories"], next: boolean) =>
+    setPrefs((p) => ({ ...p, categories: { ...p.categories, [key]: next } }));
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const res = await fetch("/api/analyst/notifications/preferences", {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(prefs),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        showSuccessToast("Save Failed", err.error ?? "Unable to save notification preferences.");
+        return;
+      }
+      const saved = await res.json();
+      const next: NotificationPreferences = {
+        channels: { ...prefs.channels, ...(saved?.channels ?? {}) },
+        categories: { ...prefs.categories, ...(saved?.categories ?? {}) },
+      };
+      setPrefs(next);
+      setInitial(next);
+      showSuccessToast("Preferences Saved", "Your notification settings have been updated.");
+    } catch {
+      showSuccessToast("Network Error", "Unable to reach the server. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div
+      role="tabpanel"
+      id="panel-notifications"
+      aria-labelledby="tab-notifications"
+      className="flex flex-col gap-6 outline-none"
+    >
+      {/* Header */}
+      <div>
+        <h2 className="text-[17px] font-bold text-slate-800 leading-tight">Notifications</h2>
+        <p className="text-[13px] text-slate-400 mt-1">
+          Choose how and what you want to be notified about. In-app alerts are always on.
+        </p>
+      </div>
+
+      <hr className="border-slate-100" />
+
+      {isError ? (
+        <div className="rounded-lg border border-red-100 bg-red-50 p-4 text-[13px] text-red-600">
+          Unable to load your notification preferences. Make sure the notification service is
+          running.
+        </div>
+      ) : isLoading ? (
+        <div className="flex flex-col gap-3">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="flex items-center justify-between py-2">
+              <div className="space-y-1.5">
+                <div className="h-3.5 w-40 animate-pulse rounded bg-slate-100" />
+                <div className="h-2.5 w-56 animate-pulse rounded bg-slate-100" />
+              </div>
+              <div className="h-6 w-11 animate-pulse rounded-full bg-slate-100" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <>
+          {/* Delivery channels */}
+          <div>
+            <h3 className="text-[13px] font-bold uppercase tracking-[0.04em] text-slate-400">
+              Delivery Channels
+            </h3>
+            <div className="mt-1 divide-y divide-slate-100">
+              <PrefRow
+                title="Email"
+                description="Receive notifications at your registered email address."
+                checked={prefs.channels.email}
+                onChange={(v) => setChannel("email", v)}
+              />
+              <PrefRow
+                title="Push Notifications"
+                description="Get push alerts on your devices."
+                checked={prefs.channels.push}
+                onChange={(v) => setChannel("push", v)}
+              />
+            </div>
+          </div>
+
+          {/* Categories */}
+          <div>
+            <h3 className="text-[13px] font-bold uppercase tracking-[0.04em] text-slate-400">
+              What to notify me about
+            </h3>
+            <div className="mt-1 divide-y divide-slate-100">
+              <PrefRow
+                title="Trade Alerts"
+                description="New trades, modifications and closures."
+                checked={prefs.categories.trades}
+                onChange={(v) => setCategory("trades", v)}
+              />
+              <PrefRow
+                title="Subscriptions"
+                description="Subscription activations, renewals and cancellations."
+                checked={prefs.categories.subscriptions}
+                onChange={(v) => setCategory("subscriptions", v)}
+              />
+              <PrefRow
+                title="Account & Security"
+                description="Account approval and important account updates."
+                checked={prefs.categories.account}
+                onChange={(v) => setCategory("account", v)}
+              />
+            </div>
+          </div>
+
+          <hr className="border-slate-100" />
+
+          {/* Actions */}
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setPrefs(initial)}
+              disabled={!isDirty || isSaving}
+              className="px-4 py-2 border border-slate-200 rounded-lg text-[13px] font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+              type="button"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={!isDirty || isSaving}
+              className="px-4 py-2 bg-[var(--brand)] hover:bg-[var(--brand-dark)] rounded-lg text-[13px] font-bold text-white transition-colors cursor-pointer shadow-sm shadow-[var(--brand)]/15 disabled:opacity-50 disabled:cursor-not-allowed"
+              type="button"
+            >
+              {isSaving ? "Saving..." : "Save Changes"}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function ProfilePage() {
   const { profile, mutate } = useAnalystProfile();
@@ -873,24 +1130,7 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {activeTab !== "Profile Information" &&
-            activeTab !== "SEBI Verification" &&
-            activeTab !== "Bank & Payouts" && (
-              <div
-                role="tabpanel"
-                id={`panel-${activeTab.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
-                aria-labelledby={`tab-${activeTab.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
-                className="py-20 text-center flex flex-col items-center justify-center outline-none"
-              >
-                <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mb-3">
-                  <i className="fa-solid fa-gear text-slate-400 text-[18px] animate-spin" />
-                </div>
-                <h3 className="text-[15px] font-bold text-slate-700">{activeTab}</h3>
-                <p className="text-[12.5px] text-slate-400 mt-1 max-w-[280px]">
-                  This settings tab interface is currently simulated as a visual placeholder.
-                </p>
-              </div>
-            )}
+          {activeTab === "Notifications" && <NotificationsTab />}
         </div>
       </div>
     </>

@@ -1,4 +1,4 @@
-import { signedBackendFetch, backendUrls } from "./lib/backend/index.js";
+import { signedBackendFetch, backendUrls } from "../lib/backend";
 
 async function main() {
   const body = {

@@ -293,7 +293,7 @@ export default function DashboardPage() {
               />
               <MetricCard
                 icon="folder"
-                label="Total Batches"
+                label="Total Plans"
                 value={String(metrics.total_batches.value)}
               />
               <MetricCard

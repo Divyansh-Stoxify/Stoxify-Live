@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Icon } from "@/components/stoxify-icon";
 import type { PlanBatch } from "@/lib/types/analyst";
@@ -22,6 +22,13 @@ type Plan = {
   batches?: PlanBatch[];
   subscriber_count?: number;
   is_active: boolean;
+};
+
+type GroupedAnalyst = {
+  analyst_id: string;
+  analyst_name: string;
+  plans: Plan[];
+  segments: string[];
 };
 
 const SEGMENTS = ["ALL", "EQUITY", "FNO", "COMMODITY", "CURRENCY"] as const;
@@ -72,15 +79,9 @@ function getStartingPrice(plan: Plan) {
   return plan.price;
 }
 
-function PlanCard({ plan }: { plan: Plan }) {
-  const startingPrice = getStartingPrice(plan);
-  const displaySegments = plan.segments && plan.segments.length > 0 ? plan.segments : (plan.segment ? [plan.segment] : []);
-  
-  const getRiskStyles = (risk: string) => {
-    if (risk === "HIGH") return "text-red-700 bg-red-50 border-red-200";
-    if (risk === "LOW") return "text-emerald-700 bg-emerald-50 border-emerald-200";
-    return "text-orange-700 bg-orange-50 border-orange-200";
-  };
+function AnalystCard({ analyst }: { analyst: GroupedAnalyst }) {
+  const startingPrices = analyst.plans.map(p => getStartingPrice(p));
+  const minStartingPrice = startingPrices.length > 0 ? Math.min(...startingPrices) : 0;
 
   return (
     <article className="group flex flex-col rounded-2xl border border-[var(--line)] bg-white p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.06)] hover:border-blue-200">
@@ -89,92 +90,80 @@ function PlanCard({ plan }: { plan: Plan }) {
       <div className="flex items-start gap-4 mb-5">
         <div
           className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl text-[15px] font-black text-white shadow-sm"
-          style={{ background: getGradient(plan.analyst_id) }}
+          style={{ background: getGradient(analyst.analyst_id) }}
         >
-          {getInitials(plan.analyst_name)}
+          {getInitials(analyst.analyst_name)}
         </div>
         <div className="flex-1 min-w-0 pt-0.5">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
             <h3 className="text-[15px] font-bold tracking-tight text-[var(--ink)] truncate">
-              {plan.analyst_name || "Unknown Analyst"}
+              {analyst.analyst_name || "Unknown Analyst"}
             </h3>
-            {/* Minimal Verification checkmark could go here if added in future */}
+            <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-extrabold text-emerald-700 border border-emerald-100 shrink-0">
+              <Icon name="shieldCheck" className="h-3 w-3 text-emerald-600" />
+              SEBI
+            </span>
           </div>
           <div className="mt-1 flex flex-wrap gap-1.5">
-            {displaySegments.slice(0, 3).map(seg => (
+            {analyst.segments.slice(0, 3).map(seg => (
               <span key={seg} className="inline-flex items-center text-[11px] font-bold text-[var(--muted)]">
-                {seg}
+                {seg === "FNO" ? "F&O" : seg.charAt(0) + seg.slice(1).toLowerCase()}
                 <span className="ml-1.5 text-[var(--line-2)] last:hidden">•</span>
               </span>
             ))}
-            {displaySegments.length > 3 && (
+            {analyst.segments.length > 3 && (
               <span className="inline-flex items-center text-[11px] font-bold text-[var(--muted)]">
-                +{displaySegments.length - 3}
+                +{analyst.segments.length - 3}
               </span>
             )}
           </div>
         </div>
       </div>
 
-      {/* Main Title & Description */}
-      <div className="mb-5">
-        <h4 className="text-[17px] font-black text-[var(--ink)] mb-1.5 leading-tight group-hover:text-blue-600 transition-colors">
-          {plan.name}
-        </h4>
-        {plan.description && (
-          <p className="text-[13px] font-medium leading-relaxed text-[var(--muted-2)] line-clamp-2">
-            {plan.description}
-          </p>
-        )}
-      </div>
-
-      {/* Info Badges Row */}
-      <div className="flex flex-wrap gap-2 mb-5">
-        {plan.risk_level && (
-          <div className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 ${getRiskStyles(plan.risk_level)}`}>
-            <Icon name="shieldCheck" className="h-3 w-3" />
-            <span className="text-[11px] font-extrabold tracking-wide">{plan.risk_level} RISK</span>
-          </div>
-        )}
+      {/* Advisory Plans Section */}
+      <div className="flex-1 flex flex-col gap-3 mb-6">
+        <div className="flex items-center justify-between border-b border-[var(--line)] pb-2">
+          <span className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider">
+            {analyst.plans.length} {analyst.plans.length === 1 ? "Advisory Plan" : "Advisory Plans"}
+          </span>
+        </div>
         
-        {plan.horizons && plan.horizons.length > 0 && (
-          <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-slate-600">
-            <Icon name="timer" className="h-3 w-3" />
-            <span className="text-[11px] font-bold tracking-wide">
-              {plan.horizons.slice(0, 2).join(", ")}
-              {plan.horizons.length > 2 && " ..."}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Tiers Summary */}
-      <div className="mb-5 flex-1 flex flex-col gap-2">
-        <span className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider">Available Plans</span>
-        {plan.batches && plan.batches.length > 0 ? (
-          <div className="flex flex-col gap-1.5">
-            {plan.batches.slice(0, 3).map(batch => (
-              <div key={batch.batch_id} className="flex items-center justify-between border-b border-slate-100 last:border-0 pb-1.5 last:pb-0">
-                <span className="text-[13px] font-semibold text-[var(--ink)]">{batch.name}</span>
-                <div className="flex items-center gap-2">
-                  {batch.discounted_price && (
-                    <span className="text-[11px] font-semibold line-through text-slate-400">₹{batch.price}</span>
+        <div className="flex flex-col gap-2.5">
+          {analyst.plans.slice(0, 3).map(plan => {
+            const planStartingPrice = getStartingPrice(plan);
+            return (
+              <div 
+                key={plan.plan_id} 
+                className="flex flex-col gap-0.5 p-3 rounded-xl border border-slate-100 bg-slate-50/50 group-hover:bg-white group-hover:border-slate-200 transition-all duration-300"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <h4 className="text-[13px] font-bold text-slate-800 leading-snug truncate">
+                    {plan.name}
+                  </h4>
+                  <span className="text-[12.5px] font-extrabold text-slate-900 shrink-0">
+                    {formatPrice(planStartingPrice)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] font-semibold text-[var(--muted-2)]">
+                  {plan.risk_level && (
+                    <span className="uppercase tracking-wider">
+                      {plan.risk_level} Risk
+                    </span>
                   )}
-                  <span className="text-[13px] font-black text-slate-800">₹{batch.discounted_price || batch.price}</span>
+                  {plan.risk_level && plan.horizons && plan.horizons.length > 0 && <span>•</span>}
+                  {plan.horizons && plan.horizons.length > 0 && (
+                    <span>{plan.horizons.slice(0, 1).join("")}</span>
+                  )}
                 </div>
               </div>
-            ))}
-            {plan.batches.length > 3 && (
-              <div className="text-[11px] font-semibold text-blue-600 mt-1">
-                +{plan.batches.length - 3} more options
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="text-[13px] font-semibold text-slate-500 italic">
-            Standard pricing available.
-          </div>
-        )}
+            );
+          })}
+          {analyst.plans.length > 3 && (
+            <div className="text-[11px] font-bold text-blue-600 mt-1 pl-1">
+              +{analyst.plans.length - 3} more plans available
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Footer / CTA */}
@@ -183,12 +172,12 @@ function PlanCard({ plan }: { plan: Plan }) {
           <span className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-wider mb-0.5">Starting From</span>
           <div className="flex items-baseline gap-1">
             <span className="text-[18px] font-black text-[var(--ink)] tracking-tight">
-              {formatPrice(startingPrice)}
+              {formatPrice(minStartingPrice)}
             </span>
           </div>
         </div>
         <Link
-          href={`/trader/analyst/${plan.analyst_id}`}
+          href={`/trader/analyst/${analyst.analyst_id}`}
           className="flex items-center gap-2 rounded-xl bg-[var(--ink)] px-4 py-2.5 text-[13px] font-bold text-white transition-all hover:bg-black hover:shadow-md active:scale-95"
         >
           View Plans
@@ -266,13 +255,43 @@ export default function DiscoverPage() {
     fetchPlans();
   }, [fetchPlans]);
 
-  const filteredPlans = search
-    ? plans.filter(
-        (p) =>
-          p.analyst_name.toLowerCase().includes(search.toLowerCase()) ||
-          p.name.toLowerCase().includes(search.toLowerCase())
-      )
-    : plans;
+  // Group plans by analyst
+  const groupedAnalysts = useMemo(() => {
+    const groups: Record<string, GroupedAnalyst> = {};
+    plans.forEach((plan) => {
+      if (!groups[plan.analyst_id]) {
+        groups[plan.analyst_id] = {
+          analyst_id: plan.analyst_id,
+          analyst_name: plan.analyst_name,
+          plans: [],
+          segments: [],
+        };
+      }
+      groups[plan.analyst_id].plans.push(plan);
+      
+      const planSegments = plan.segments && plan.segments.length > 0 
+        ? plan.segments 
+        : (plan.segment ? [plan.segment] : []);
+      planSegments.forEach((seg) => {
+        if (!groups[plan.analyst_id].segments.includes(seg)) {
+          groups[plan.analyst_id].segments.push(seg);
+        }
+      });
+    });
+    return Object.values(groups);
+  }, [plans]);
+
+  const filteredAnalysts = useMemo(() => {
+    if (!search) return groupedAnalysts;
+    const searchLower = search.toLowerCase();
+    return groupedAnalysts.filter((analyst) => {
+      const matchesAnalystName = analyst.analyst_name.toLowerCase().includes(searchLower);
+      const matchesPlanName = analyst.plans.some((plan) =>
+        plan.name.toLowerCase().includes(searchLower)
+      );
+      return matchesAnalystName || matchesPlanName;
+    });
+  }, [groupedAnalysts, search]);
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
@@ -340,7 +359,7 @@ export default function DiscoverPage() {
             <SkeletonPlanCard />
             <SkeletonPlanCard />
           </div>
-        ) : filteredPlans.length === 0 ? (
+        ) : filteredAnalysts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center rounded-3xl border border-[var(--line)] bg-white shadow-sm">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-500">
               <Icon name="search" className="h-6 w-6" />
@@ -356,8 +375,8 @@ export default function DiscoverPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
-            {filteredPlans.map((plan) => (
-              <PlanCard key={plan.plan_id} plan={plan} />
+            {filteredAnalysts.map((analyst) => (
+              <AnalystCard key={analyst.analyst_id} analyst={analyst} />
             ))}
           </div>
         )}

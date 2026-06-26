@@ -32,7 +32,7 @@ function avatarGradient(name?: string) {
   return AVATAR_GRADIENTS[idx];
 }
 
-export default function BatchOverviewPage({ params }: { params: Promise<{ plan_id: string }> }) {
+export default function PlanOverviewPage({ params }: { params: Promise<{ plan_id: string }> }) {
   const { plan_id } = use(params);
   const { coupons, isLoading: isCouponsLoading } = useAnalystCoupons(plan_id);
   
@@ -80,7 +80,7 @@ export default function BatchOverviewPage({ params }: { params: Promise<{ plan_i
               </div>
               <span className="text-[12.5px] font-medium text-[var(--muted)] flex items-center gap-1 group-hover:text-[var(--ink)] transition-colors">
                 Page Views 
-                <Icon className="h-3 w-3 text-[var(--muted-2)] opacity-40 hover:opacity-100 cursor-help transition-opacity" name="helpCircle" title="Total page views of this batch's landing page" />
+                <Icon className="h-3 w-3 text-[var(--muted-2)] opacity-40 hover:opacity-100 cursor-help transition-opacity" name="helpCircle" title="Total page views of this plan's landing page" />
               </span>
             </div>
             <div className="text-[32px] font-extrabold leading-none tracking-tight text-[var(--ink)] mt-3.5 tabular-nums">
@@ -102,7 +102,7 @@ export default function BatchOverviewPage({ params }: { params: Promise<{ plan_i
               </div>
               <span className="text-[12.5px] font-medium text-[var(--muted)] flex items-center gap-1 group-hover:text-[var(--ink)] transition-colors">
                 Total Sales 
-                <Icon className="h-3 w-3 text-[var(--muted-2)] opacity-40 hover:opacity-100 cursor-help transition-opacity" name="helpCircle" title="Total revenue generated from subscribers of this batch" />
+                <Icon className="h-3 w-3 text-[var(--muted-2)] opacity-40 hover:opacity-100 cursor-help transition-opacity" name="helpCircle" title="Total revenue generated from subscribers of this plan" />
               </span>
             </div>
             <div className="text-[32px] font-extrabold leading-none tracking-tight text-[var(--ink)] mt-3.5 tabular-nums">
@@ -124,7 +124,7 @@ export default function BatchOverviewPage({ params }: { params: Promise<{ plan_i
               </div>
               <span className="text-[12.5px] font-medium text-[var(--muted)] flex items-center gap-1 group-hover:text-[var(--ink)] transition-colors">
                 Total Subscriptions 
-                <Icon className="h-3 w-3 text-[var(--muted-2)] opacity-40 hover:opacity-100 cursor-help transition-opacity" name="helpCircle" title="Total active subscribers in this batch" />
+                <Icon className="h-3 w-3 text-[var(--muted-2)] opacity-40 hover:opacity-100 cursor-help transition-opacity" name="helpCircle" title="Total active subscribers in this plan" />
               </span>
             </div>
             <div className="text-[32px] font-extrabold leading-none tracking-tight text-[var(--ink)] mt-3.5 tabular-nums">
@@ -162,7 +162,7 @@ export default function BatchOverviewPage({ params }: { params: Promise<{ plan_i
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-[14px] font-bold text-[var(--ink)] tracking-tight flex items-center gap-1.5">
                 Top Members 
-                <Icon className="h-3 w-3 text-[var(--muted-2)] opacity-40 hover:opacity-100 cursor-help transition-opacity" name="helpCircle" title="List of members currently subscribed to this batch workspace" />
+                <Icon className="h-3 w-3 text-[var(--muted-2)] opacity-40 hover:opacity-100 cursor-help transition-opacity" name="helpCircle" title="List of members currently subscribed to this plan workspace" />
               </h3>
               <Link 
                 href={`/dashboard/subscription-plans/${plan_id}/members`}
@@ -203,7 +203,7 @@ export default function BatchOverviewPage({ params }: { params: Promise<{ plan_i
                   </div>
                   <h4 className="text-[13.5px] font-bold text-[var(--ink)] mb-0.5">No members yet</h4>
                   <p className="text-[11.5px] text-[var(--muted-2)] max-w-[180px] leading-relaxed">
-                    No one has subscribed to your batch yet.
+                    No one has subscribed to your plan yet.
                   </p>
                 </div>
               )}
@@ -269,7 +269,7 @@ export default function BatchOverviewPage({ params }: { params: Promise<{ plan_i
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-[14px] font-bold text-[var(--ink)] tracking-tight flex items-center gap-1.5">
                 Discounts 
-                <Icon className="h-3 w-3 text-[var(--muted-2)] opacity-40 hover:opacity-100 cursor-help transition-opacity" name="helpCircle" title="Active coupons and discount campaigns for this batch" />
+                <Icon className="h-3 w-3 text-[var(--muted-2)] opacity-40 hover:opacity-100 cursor-help transition-opacity" name="helpCircle" title="Active coupons and discount campaigns for this plan" />
               </h3>
               <Link 
                 href={`/dashboard/subscription-plans/${plan_id}/discounts`}
@@ -308,7 +308,7 @@ export default function BatchOverviewPage({ params }: { params: Promise<{ plan_i
                   </div>
                   <h4 className="text-[13.5px] font-bold text-[var(--ink)] mb-0.5">No active coupons</h4>
                   <p className="text-[11.5px] text-[var(--muted-2)] max-w-[180px] leading-relaxed">
-                    No active discounts are available for this batch yet.
+                    No active discounts are available for this plan yet.
                   </p>
                 </div>
               )}
