@@ -89,7 +89,7 @@ export default async function AnalystLandingPage({ params }: PageProps) {
               {plans.length > 0 && (
                 <div className="flex items-center gap-2 mb-4">
                   <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-md">
-                    {plans.length} Active {plans.length === 1 ? 'Plan' : 'Plans'}
+                    {plans.length} Active {plans.length === 1 ? 'Batch' : 'Batches'}
                   </span>
                 </div>
               )}
@@ -125,12 +125,12 @@ export default async function AnalystLandingPage({ params }: PageProps) {
       {/* Batches Section */}
       <div className="flex-1 py-16">
         <div className="max-w-5xl mx-auto px-6">
-          <h2 className="text-2xl font-bold text-slate-900 mb-8 text-center">Available Subscription Plans</h2>
+          <h2 className="text-2xl font-bold text-slate-900 mb-8 text-center">Available Batches</h2>
           
           {plans.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
               <Box className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-              <p className="text-slate-500 font-medium">No active plans available at the moment.</p>
+              <p className="text-slate-500 font-medium">No active batches available at the moment.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

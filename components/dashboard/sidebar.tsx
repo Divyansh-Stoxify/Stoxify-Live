@@ -13,7 +13,7 @@ const MAIN_NAV_ITEMS = [
   { href: "/dashboard/subscribers", label: "Subscribers", icon: "users" as const },
   {
     href: "/dashboard/subscription-plans",
-    label: "Plans",
+    label: "Batches",
     icon: "creditCard" as const,
   },
   { href: "/dashboard/discounts", label: "Discounts", icon: "ticket" as const },

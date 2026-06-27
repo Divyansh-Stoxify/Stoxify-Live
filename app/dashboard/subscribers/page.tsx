@@ -271,7 +271,7 @@ export default function SubscribersPage() {
                 onChange={(e) => setSelectedPlan(e.target.value)}
                 className="bg-[var(--line-2)] hover:bg-[var(--surface)] text-[12.5px] font-bold text-[var(--ink)] border border-[var(--line)] rounded-lg px-3 py-2 outline-none cursor-pointer transition-colors"
               >
-                <option value="ALL">All Plans</option>
+                <option value="ALL">All Batches</option>
                 {plans.map((p) => (
                   <option key={p.plan_id} value={p.name}>
                     {p.name}

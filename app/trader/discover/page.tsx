@@ -24,14 +24,21 @@ type Plan = {
   is_active: boolean;
 };
 
-type GroupedAnalyst = {
-  analyst_id: string;
-  analyst_name: string;
-  plans: Plan[];
-  segments: string[];
-};
-
 const SEGMENTS = ["ALL", "EQUITY", "FNO", "COMMODITY", "CURRENCY"] as const;
+
+const RISK_LEVELS = [
+  { key: "LOW", label: "Low" },
+  { key: "MEDIUM", label: "Med" },
+  { key: "HIGH", label: "High" },
+] as const;
+
+type SortKey = "popularity" | "price_asc" | "price_desc";
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "popularity", label: "Popularity" },
+  { key: "price_asc", label: "Price: Low to High" },
+  { key: "price_desc", label: "Price: High to Low" },
+];
 
 const gradients = [
   "linear-gradient(135deg, #3B82F6 0%, #2D5BE3 100%)",
@@ -71,158 +78,136 @@ function formatPrice(value: number): string {
   }).format(value);
 }
 
-function getStartingPrice(plan: Plan) {
+function getStartingPrice(plan: Plan): number {
   if (plan.batches && plan.batches.length > 0) {
-    const prices = plan.batches.map(b => b.discounted_price || b.price);
-    return Math.min(...prices);
+    const prices = plan.batches
+      .filter((b) => b.is_active !== false)
+      .map((b) => b.discounted_price || b.price);
+    if (prices.length > 0) return Math.min(...prices);
   }
   return plan.price;
 }
 
-function AnalystCard({ analyst }: { analyst: GroupedAnalyst }) {
-  const startingPrices = analyst.plans.map(p => getStartingPrice(p));
-  const minStartingPrice = startingPrices.length > 0 ? Math.min(...startingPrices) : 0;
+function formatSegment(seg: string): string {
+  if (seg === "FNO") return "F&O";
+  if (seg === "ALL") return "All";
+  return seg.charAt(0) + seg.slice(1).toLowerCase();
+}
+
+const RISK_META: Record<string, { label: string; dot: string; text: string }> = {
+  LOW: { label: "Low", dot: "bg-emerald-500", text: "text-emerald-600" },
+  MEDIUM: { label: "Med.", dot: "bg-amber-500", text: "text-amber-600" },
+  HIGH: { label: "High", dot: "bg-red-500", text: "text-red-600" },
+};
+
+function PlanRow({ plan }: { plan: Plan }) {
+  const startingPrice = getStartingPrice(plan);
+  const displaySegments =
+    plan.segments && plan.segments.length > 0
+      ? plan.segments
+      : plan.segment
+        ? [plan.segment]
+        : [];
+  const risk = plan.risk_level
+    ? RISK_META[plan.risk_level.toUpperCase()]
+    : undefined;
+  const horizon = plan.horizons && plan.horizons.length > 0 ? plan.horizons[0] : null;
 
   return (
-    <article className="group flex flex-col rounded-2xl border border-[var(--line)] bg-white p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.06)] hover:border-blue-200">
-      
-      {/* Top Header: Avatar + Analyst Name + Segments */}
-      <div className="flex items-start gap-4 mb-5">
+    <Link
+      href={`/trader/analyst/${plan.analyst_id}`}
+      className="group grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] items-center gap-4 sm:gap-6 px-5 py-4 transition-colors hover:bg-[var(--line-2)]"
+    >
+      {/* Left: avatar + name + description */}
+      <div className="flex items-start gap-3.5 min-w-0">
         <div
-          className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl text-[15px] font-black text-white shadow-sm"
-          style={{ background: getGradient(analyst.analyst_id) }}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[13px] font-black text-white shadow-sm"
+          style={{ background: getGradient(plan.analyst_id) }}
         >
-          {getInitials(analyst.analyst_name)}
+          {getInitials(plan.analyst_name)}
         </div>
-        <div className="flex-1 min-w-0 pt-0.5">
+        <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="text-[15px] font-bold tracking-tight text-[var(--ink)] truncate">
-              {analyst.analyst_name || "Unknown Analyst"}
+            <h3 className="text-[14.5px] font-bold tracking-tight text-blue-600 truncate group-hover:underline">
+              {plan.name}
             </h3>
-            <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-extrabold text-emerald-700 border border-emerald-100 shrink-0">
-              <Icon name="shieldCheck" className="h-3 w-3 text-emerald-600" />
-              SEBI
-            </span>
-          </div>
-          <div className="mt-1 flex flex-wrap gap-1.5">
-            {analyst.segments.slice(0, 3).map(seg => (
-              <span key={seg} className="inline-flex items-center text-[11px] font-bold text-[var(--muted)]">
-                {seg === "FNO" ? "F&O" : seg.charAt(0) + seg.slice(1).toLowerCase()}
-                <span className="ml-1.5 text-[var(--line-2)] last:hidden">•</span>
-              </span>
-            ))}
-            {analyst.segments.length > 3 && (
-              <span className="inline-flex items-center text-[11px] font-bold text-[var(--muted)]">
-                +{analyst.segments.length - 3}
+            {risk && (
+              <span className={`hidden sm:inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider ${risk.text}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${risk.dot}`} />
+                {risk.label} Risk
               </span>
             )}
           </div>
-        </div>
-      </div>
-
-      {/* Advisory Plans Section */}
-      <div className="flex-1 flex flex-col gap-3 mb-6">
-        <div className="flex items-center justify-between border-b border-[var(--line)] pb-2">
-          <span className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider">
-            {analyst.plans.length} {analyst.plans.length === 1 ? "Advisory Plan" : "Advisory Plans"}
-          </span>
-        </div>
-        
-        <div className="flex flex-col gap-2.5">
-          {analyst.plans.slice(0, 3).map(plan => {
-            const planStartingPrice = getStartingPrice(plan);
-            return (
-              <div 
-                key={plan.plan_id} 
-                className="flex flex-col gap-0.5 p-3 rounded-xl border border-slate-100 bg-slate-50/50 group-hover:bg-white group-hover:border-slate-200 transition-all duration-300"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <h4 className="text-[13px] font-bold text-slate-800 leading-snug truncate">
-                    {plan.name}
-                  </h4>
-                  <span className="text-[12.5px] font-extrabold text-slate-900 shrink-0">
-                    {formatPrice(planStartingPrice)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[10px] font-semibold text-[var(--muted-2)]">
-                  {plan.risk_level && (
-                    <span className="uppercase tracking-wider">
-                      {plan.risk_level} Risk
-                    </span>
-                  )}
-                  {plan.risk_level && plan.horizons && plan.horizons.length > 0 && <span>•</span>}
-                  {plan.horizons && plan.horizons.length > 0 && (
-                    <span>{plan.horizons.slice(0, 1).join("")}</span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-          {analyst.plans.length > 3 && (
-            <div className="text-[11px] font-bold text-blue-600 mt-1 pl-1">
-              +{analyst.plans.length - 3} more plans available
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Footer / CTA */}
-      <div className="mt-auto flex items-center justify-between pt-4 border-t border-[var(--line)]">
-        <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-wider mb-0.5">Starting From</span>
-          <div className="flex items-baseline gap-1">
-            <span className="text-[18px] font-black text-[var(--ink)] tracking-tight">
-              {formatPrice(minStartingPrice)}
+          <p className="mt-0.5 text-[12.5px] font-medium leading-snug text-[var(--muted)] line-clamp-2">
+            {plan.description || `Advisory plan by ${plan.analyst_name}`}
+          </p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-bold text-[var(--muted-2)]">
+            <span className="inline-flex items-center gap-1 text-[var(--muted)]">
+              <Icon name="shieldCheck" className="h-3 w-3 text-emerald-600" />
+              {plan.analyst_name}
             </span>
+            {displaySegments.slice(0, 2).map((seg) => (
+              <span key={seg} className="inline-flex items-center">
+                <span className="mr-2 text-[var(--line)]">•</span>
+                {formatSegment(seg)}
+              </span>
+            ))}
           </div>
         </div>
-        <Link
-          href={`/trader/analyst/${analyst.analyst_id}`}
-          className="flex items-center gap-2 rounded-xl bg-[var(--ink)] px-4 py-2.5 text-[13px] font-bold text-white transition-all hover:bg-black hover:shadow-md active:scale-95"
-        >
-          View Plans
-          <Icon name="arrowRight" className="h-4 w-4" />
-        </Link>
       </div>
-    </article>
+
+      {/* Right: metric columns */}
+      <div className="flex items-center gap-6 sm:gap-8 pl-[58px] sm:pl-0">
+        <div className="flex flex-col">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-2)]">
+            Plans Start With :
+          </span>
+          <span className="mt-0.5 text-[14px] font-extrabold text-[var(--ink)]">
+            {formatPrice(startingPrice)}
+          </span>
+        </div>
+
+        <div className="hidden md:flex flex-col w-[90px]">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-2)]">
+            Horizon
+          </span>
+          <span className="mt-0.5 text-[13px] font-bold text-[var(--ink)] capitalize truncate">
+            {horizon ? horizon.toLowerCase().replace(/_/g, " ") : "—"}
+          </span>
+        </div>
+
+        <div className="flex flex-col w-[64px]">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-2)]">
+            Risk
+          </span>
+          {risk ? (
+            <span className={`mt-0.5 inline-flex items-center gap-1 text-[13px] font-bold ${risk.text}`}>
+              <span className={`h-2 w-2 rounded-full ${risk.dot}`} />
+              {risk.label}
+            </span>
+          ) : (
+            <span className="mt-0.5 text-[13px] font-bold text-[var(--muted-2)]">—</span>
+          )}
+        </div>
+
+        <Icon
+          name="arrowRight"
+          className="hidden sm:block h-4 w-4 text-[var(--muted-2)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--ink)]"
+        />
+      </div>
+    </Link>
   );
 }
 
-function SkeletonPlanCard() {
+function SkeletonRow() {
   return (
-    <div className="rounded-2xl border border-[var(--line)] bg-white p-6 animate-pulse flex flex-col h-full">
-      <div className="flex items-start gap-4 mb-5">
-        <div className="h-[46px] w-[46px] rounded-xl bg-[var(--line)]" />
-        <div className="flex-1 pt-1">
-          <div className="h-4 w-28 rounded bg-[var(--line)] mb-2.5" />
-          <div className="h-2.5 w-20 rounded bg-[var(--line)]" />
-        </div>
+    <div className="flex items-center gap-4 px-5 py-4 animate-pulse">
+      <div className="h-11 w-11 rounded-xl bg-[var(--line)]" />
+      <div className="flex-1">
+        <div className="h-3.5 w-40 rounded bg-[var(--line)] mb-2" />
+        <div className="h-2.5 w-64 rounded bg-[var(--line)]" />
       </div>
-      <div className="h-5 w-3/4 rounded bg-[var(--line)] mb-2" />
-      <div className="h-3 w-full rounded bg-[var(--line)] mb-1" />
-      <div className="h-3 w-2/3 rounded bg-[var(--line)] mb-5" />
-      <div className="flex gap-2 mb-5">
-        <div className="h-6 w-20 rounded-lg bg-[var(--line)]" />
-        <div className="h-6 w-24 rounded-lg bg-[var(--line)]" />
-      </div>
-      <div className="space-y-3 mb-6 flex-1">
-        <div className="h-3 w-16 rounded bg-[var(--line)] mb-4" />
-        <div className="flex justify-between">
-          <div className="h-4 w-24 rounded bg-[var(--line)]" />
-          <div className="h-4 w-16 rounded bg-[var(--line)]" />
-        </div>
-        <div className="flex justify-between">
-          <div className="h-4 w-20 rounded bg-[var(--line)]" />
-          <div className="h-4 w-16 rounded bg-[var(--line)]" />
-        </div>
-      </div>
-      <div className="flex justify-between items-center pt-4 border-t border-[var(--line)] mt-auto">
-        <div className="space-y-1.5">
-          <div className="h-2.5 w-16 rounded bg-[var(--line)]" />
-          <div className="h-5 w-24 rounded bg-[var(--line)]" />
-        </div>
-        <div className="h-10 w-28 rounded-xl bg-[var(--line)]" />
-      </div>
+      <div className="h-8 w-20 rounded bg-[var(--line)]" />
     </div>
   );
 }
@@ -232,6 +217,9 @@ export default function DiscoverPage() {
   const [loading, setLoading] = useState(true);
   const [segment, setSegment] = useState<string>("ALL");
   const [search, setSearch] = useState("");
+  const [riskFilter, setRiskFilter] = useState<Set<string>>(new Set());
+  const [horizonFilter, setHorizonFilter] = useState<Set<string>>(new Set());
+  const [sort, setSort] = useState<SortKey>("popularity");
 
   const fetchPlans = useCallback(async () => {
     setLoading(true);
@@ -255,62 +243,84 @@ export default function DiscoverPage() {
     fetchPlans();
   }, [fetchPlans]);
 
-  // Group plans by analyst
-  const groupedAnalysts = useMemo(() => {
-    const groups: Record<string, GroupedAnalyst> = {};
-    plans.forEach((plan) => {
-      if (!groups[plan.analyst_id]) {
-        groups[plan.analyst_id] = {
-          analyst_id: plan.analyst_id,
-          analyst_name: plan.analyst_name,
-          plans: [],
-          segments: [],
-        };
-      }
-      groups[plan.analyst_id].plans.push(plan);
-      
-      const planSegments = plan.segments && plan.segments.length > 0 
-        ? plan.segments 
-        : (plan.segment ? [plan.segment] : []);
-      planSegments.forEach((seg) => {
-        if (!groups[plan.analyst_id].segments.includes(seg)) {
-          groups[plan.analyst_id].segments.push(seg);
-        }
-      });
-    });
-    return Object.values(groups);
+  // Available horizons derived from current result set.
+  const availableHorizons = useMemo(() => {
+    const set = new Set<string>();
+    plans.forEach((p) => p.horizons?.forEach((h) => set.add(h)));
+    return Array.from(set);
   }, [plans]);
 
-  const filteredAnalysts = useMemo(() => {
-    if (!search) return groupedAnalysts;
-    const searchLower = search.toLowerCase();
-    return groupedAnalysts.filter((analyst) => {
-      const matchesAnalystName = analyst.analyst_name.toLowerCase().includes(searchLower);
-      const matchesPlanName = analyst.plans.some((plan) =>
-        plan.name.toLowerCase().includes(searchLower)
-      );
-      return matchesAnalystName || matchesPlanName;
+  const toggleRisk = (key: string) => {
+    setRiskFilter((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
     });
-  }, [groupedAnalysts, search]);
+  };
+
+  const toggleHorizon = (key: string) => {
+    setHorizonFilter((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const resetFilters = () => {
+    setRiskFilter(new Set());
+    setHorizonFilter(new Set());
+    setSearch("");
+  };
+
+  const activeFilterCount = riskFilter.size + horizonFilter.size;
+
+  const filteredPlans = useMemo(() => {
+    const searchLower = search.trim().toLowerCase();
+    const result = plans.filter((plan) => {
+      if (riskFilter.size > 0) {
+        const r = (plan.risk_level || "").toUpperCase();
+        if (!riskFilter.has(r)) return false;
+      }
+      if (horizonFilter.size > 0) {
+        const hasHorizon = plan.horizons?.some((h) => horizonFilter.has(h));
+        if (!hasHorizon) return false;
+      }
+      if (searchLower) {
+        const inName = plan.name.toLowerCase().includes(searchLower);
+        const inAnalyst = plan.analyst_name.toLowerCase().includes(searchLower);
+        if (!inName && !inAnalyst) return false;
+      }
+      return true;
+    });
+
+    result.sort((a, b) => {
+      if (sort === "price_asc") return getStartingPrice(a) - getStartingPrice(b);
+      if (sort === "price_desc") return getStartingPrice(b) - getStartingPrice(a);
+      return (b.subscriber_count ?? 0) - (a.subscriber_count ?? 0);
+    });
+
+    return result;
+  }, [plans, riskFilter, horizonFilter, search, sort]);
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
       <div className="px-6 py-8 lg:px-8 lg:py-10 max-w-[1200px] mx-auto">
-        
         {/* Header */}
         <div className="mb-8 max-w-2xl">
           <h1 className="text-[28px] font-black tracking-tight text-[var(--ink)] mb-2">
-            Discover Analysts
+            Discover Batches
           </h1>
           <p className="text-[14px] text-[var(--muted)] font-medium leading-relaxed">
-            Browse top SEBI-registered Research Analysts. Compare strategies, analyze risk levels, and subscribe to premium advisory plans that fit your trading style.
+            Browse advisory plans from top SEBI-registered Research Analysts. Filter by
+            risk and horizon, compare pricing, and subscribe to plans that fit your trading
+            style.
           </p>
         </div>
 
-        {/* Filters */}
-        <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          
-          {/* Segment Pills */}
+        {/* Segment Tabs + Search */}
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex rounded-xl border border-[var(--line)] bg-white p-1 overflow-x-auto hide-scrollbar shadow-sm">
             {SEGMENTS.map((seg) => (
               <button
@@ -324,16 +334,11 @@ export default function DiscoverPage() {
                     : "text-[var(--muted)] hover:text-[var(--ink)] hover:bg-slate-50",
                 ].join(" ")}
               >
-                {seg === "FNO"
-                  ? "F&O"
-                  : seg === "ALL"
-                    ? "All"
-                    : seg.charAt(0) + seg.slice(1).toLowerCase()}
+                {formatSegment(seg)}
               </button>
             ))}
           </div>
 
-          {/* Search */}
           <div className="relative w-full sm:w-[320px]">
             <Icon
               name="search"
@@ -349,37 +354,164 @@ export default function DiscoverPage() {
           </div>
         </div>
 
-        {/* Plans Grid */}
-        {loading ? (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            <SkeletonPlanCard />
-            <SkeletonPlanCard />
-            <SkeletonPlanCard />
-            <SkeletonPlanCard />
-            <SkeletonPlanCard />
-            <SkeletonPlanCard />
-          </div>
-        ) : filteredAnalysts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center rounded-3xl border border-[var(--line)] bg-white shadow-sm">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-500">
-              <Icon name="search" className="h-6 w-6" />
+        {/* Two-column: filter rail + list */}
+        <div className="grid grid-cols-1 lg:grid-cols-[230px_1fr] gap-6 items-start">
+          {/* Filter Sidebar */}
+          <aside className="rounded-2xl border border-[var(--line)] bg-white p-5 shadow-sm lg:sticky lg:top-6">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-extrabold text-[var(--ink)]">Filters</span>
+                {activeFilterCount > 0 && (
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-900 px-1.5 text-[10px] font-bold text-white">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)] transition-colors"
+              >
+                Reset
+              </button>
             </div>
-            <h3 className="text-[17px] font-bold text-[var(--ink)] mb-1.5">
-              {search ? "No matching analysts" : "No analysts available"}
-            </h3>
-            <p className="text-[14px] text-[var(--muted)] font-medium max-w-[320px]">
-              {search
-                ? "Try a different search term or clear your segment filters."
-                : "New SEBI-registered analysts are being onboarded. Check back soon!"}
-            </p>
+
+            {/* Risk Level */}
+            <div className="mb-6">
+              <h4 className="text-[12px] font-extrabold text-[var(--ink)] mb-1">Risk Level</h4>
+              <p className="text-[11px] font-medium text-[var(--muted-2)] mb-3">
+                Based on plan strategy
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {RISK_LEVELS.map(({ key, label }) => {
+                  const active = riskFilter.has(key);
+                  const meta = RISK_META[key];
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => toggleRisk(key)}
+                      className={[
+                        "flex flex-col items-center gap-1.5 rounded-xl border py-3 transition-all",
+                        active
+                          ? "border-slate-900 bg-slate-50 shadow-sm"
+                          : "border-[var(--line)] bg-white hover:border-slate-300",
+                      ].join(" ")}
+                    >
+                      <span className={`h-2.5 w-2.5 rounded-full ${meta.dot}`} />
+                      <span
+                        className={`text-[11px] font-bold ${active ? "text-[var(--ink)]" : "text-[var(--muted)]"}`}
+                      >
+                        {label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Horizon */}
+            <div>
+              <h4 className="text-[12px] font-extrabold text-[var(--ink)] mb-1">Horizon</h4>
+              <p className="text-[11px] font-medium text-[var(--muted-2)] mb-3">
+                Trade holding period
+              </p>
+              {availableHorizons.length === 0 ? (
+                <p className="text-[11px] font-medium text-[var(--muted-2)]">
+                  No horizons available
+                </p>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  {availableHorizons.map((h) => {
+                    const active = horizonFilter.has(h);
+                    return (
+                      <button
+                        key={h}
+                        type="button"
+                        onClick={() => toggleHorizon(h)}
+                        className="flex items-center gap-2.5 py-1.5 text-left group/h"
+                      >
+                        <span
+                          className={[
+                            "flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-all",
+                            active
+                              ? "border-slate-900 bg-slate-900"
+                              : "border-[var(--line)] bg-white group-hover/h:border-slate-400",
+                          ].join(" ")}
+                        >
+                          {active && <Icon name="check" className="h-3 w-3 text-white" />}
+                        </span>
+                        <span
+                          className={`text-[12.5px] font-semibold capitalize ${active ? "text-[var(--ink)]" : "text-[var(--muted)]"}`}
+                        >
+                          {h.toLowerCase().replace(/_/g, " ")}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </aside>
+
+          {/* List */}
+          <div className="rounded-2xl border border-[var(--line)] bg-white shadow-sm overflow-hidden">
+            {/* List header: count + sort */}
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--line)]">
+              <span className="text-[12.5px] font-bold text-[var(--muted)]">
+                {loading
+                  ? "Loading…"
+                  : `${filteredPlans.length} ${filteredPlans.length === 1 ? "plan" : "plans"}`}
+              </span>
+              <label className="flex items-center gap-2 text-[12.5px] font-bold text-[var(--muted)]">
+                Sort by
+                <select
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value as SortKey)}
+                  className="rounded-lg border border-[var(--line)] bg-white px-2.5 py-1.5 text-[12.5px] font-bold text-[var(--ink)] outline-none cursor-pointer focus:border-blue-500"
+                >
+                  {SORT_OPTIONS.map((o) => (
+                    <option key={o.key} value={o.key}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {loading ? (
+              <div className="divide-y divide-[var(--line)]">
+                <SkeletonRow />
+                <SkeletonRow />
+                <SkeletonRow />
+                <SkeletonRow />
+                <SkeletonRow />
+              </div>
+            ) : filteredPlans.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-500">
+                  <Icon name="search" className="h-6 w-6" />
+                </div>
+                <h3 className="text-[16px] font-bold text-[var(--ink)] mb-1.5">
+                  {search || activeFilterCount > 0
+                    ? "No matching plans"
+                    : "No plans available"}
+                </h3>
+                <p className="text-[13.5px] text-[var(--muted)] font-medium max-w-[320px]">
+                  {search || activeFilterCount > 0
+                    ? "Try a different search term or clear your filters."
+                    : "New SEBI-registered analysts are being onboarded. Check back soon!"}
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-[var(--line)]">
+                {filteredPlans.map((plan) => (
+                  <PlanRow key={plan.plan_id} plan={plan} />
+                ))}
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
-            {filteredAnalysts.map((analyst) => (
-              <AnalystCard key={analyst.analyst_id} analyst={analyst} />
-            ))}
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

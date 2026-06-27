@@ -321,30 +321,31 @@ export function LoginModal({
                 >
                   Phone number
                 </label>
-                <input
-                  className={`w-full rounded-lg border px-3.5 py-2.5 text-[13px] transition-all placeholder:text-[var(--muted-2)] focus:outline-none ${
+                <div className={`flex w-full rounded-lg border transition-all ${
                     fieldErrors.identifier
-                      ? "border-[var(--red)] focus:border-[var(--red)] bg-[var(--red-light)]/10"
-                      : "border-[var(--line)] focus:border-[var(--brand)] focus:bg-white"
-                  }`}
-                  id="login-modal-identifier"
-                  name="identifier"
-                  onChange={(e) => {
-                    let val = e.target.value;
-                    if (/^\d+$/.test(val)) {
-                      val = val.slice(0, 10);
-                    } else if (/^\+\d*$/.test(val)) {
-                      val = val.slice(0, 13);
-                    }
-                    setIdentifier(val);
-                    if (fieldErrors.identifier) setFieldErrors({});
-                  }}
-                  placeholder="10-digit mobile number"
-                  type="number"
-                  value={identifier}
-                  autoComplete="username"
-                  autoFocus
-                />
+                      ? "border-[var(--red)] bg-[var(--red-light)]/10"
+                      : "border-[var(--line)] focus-within:border-[var(--brand)] focus-within:bg-white"
+                  }`}>
+                  <span className="flex items-center px-3 text-[13px] text-[var(--muted)] border-r border-inherit select-none">
+                    +91
+                  </span>
+                  <input
+                    className="flex-1 rounded-r-lg bg-transparent px-3.5 py-2.5 text-[13px] placeholder:text-[var(--muted-2)] focus:outline-none"
+                    id="login-modal-identifier"
+                    name="identifier"
+                    onChange={(e) => {
+                      let val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                      setIdentifier(val);
+                      if (fieldErrors.identifier) setFieldErrors({});
+                    }}
+                    placeholder="10-digit mobile number"
+                    type="text"
+                    inputMode="numeric"
+                    value={identifier}
+                    autoComplete="username"
+                    autoFocus
+                  />
+                </div>
                 {fieldErrors.identifier && (
                   <p className="mt-1 text-[11px] text-[var(--red)] font-medium">
                     {fieldErrors.identifier}

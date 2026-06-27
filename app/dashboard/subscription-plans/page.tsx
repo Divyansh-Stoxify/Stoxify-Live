@@ -68,7 +68,7 @@ export default function SubscriptionPlansPage() {
 
   return (
     <>
-      <Topbar title="Plans" showUserProfile={true} />
+      <Topbar title="Batches" showUserProfile={true} />
 
       <div className="flex-1 p-6 flex flex-col gap-6 overflow-y-auto">
         {/* ─── Metrics / KPIs Strip ─── */}
@@ -96,9 +96,9 @@ export default function SubscriptionPlansPage() {
                 value={formatCurrency(stats.monthly_recurring_revenue)}
               />
               <MetricCard
-                changeLabel={`Out of ${stats.total_plans_count} total plans`}
+                changeLabel={`Out of ${stats.total_plans_count} total batches`}
                 icon="creditCard"
-                label="Active Plans"
+                label="Active Batches"
                 value={stats.active_plans_count.toString()}
               />
             </>
@@ -107,13 +107,13 @@ export default function SubscriptionPlansPage() {
 
         {/* ─── Manage Plans Section Header ─── */}
         <div className="flex items-center justify-between mt-2">
-          <h2 className="text-[18px] font-bold text-[var(--ink)] tracking-tight">Manage Plans</h2>
+          <h2 className="text-[18px] font-bold text-[var(--ink)] tracking-tight">Manage Batches</h2>
           <button
             className="flex items-center gap-1.5 rounded-lg bg-[var(--brand)] px-4 py-2 text-[12.5px] font-bold text-white hover:bg-[var(--brand-dark)] shadow-md shadow-[var(--brand)]/15 transition-all cursor-pointer"
             onClick={handleOpenCreateModal}
           >
             <Icon className="h-3.5 w-3.5" name="plus" />
-            <span>Create New Plan</span>
+            <span>Create New Batch</span>
           </button>
         </div>
 
@@ -126,7 +126,7 @@ export default function SubscriptionPlansPage() {
           </div>
         ) : plans.length === 0 ? (
           <div className="rounded-xl border border-[var(--line)] bg-white p-12 text-center text-[var(--muted-2)] text-[14px]">
-            No plans found. Click &quot;Create New Plan&quot; to get started.
+            No batches found. Click &quot;Create New Batch&quot; to get started.
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-6 max-[1120px]:grid-cols-2 max-[768px]:grid-cols-1">
@@ -150,7 +150,7 @@ export default function SubscriptionPlansPage() {
                       <h3 className="text-[16px] font-bold text-slate-900 tracking-tight leading-tight group-hover:text-[var(--brand)] transition-colors">
                         {plan.name}
                       </h3>
-                      <p className="text-[12px] text-slate-400 font-medium mt-0.5">Subscription Plan</p>
+                      <p className="text-[12px] text-slate-400 font-medium mt-0.5">Subscription Batch</p>
                     </div>
                     <span
                       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10.5px] font-bold tracking-wide uppercase border ${
@@ -255,7 +255,7 @@ export default function SubscriptionPlansPage() {
                       className="flex-[2] flex items-center justify-center gap-1.5 rounded-xl bg-[var(--brand)] py-2.5 text-[12.5px] font-bold text-white hover:bg-[var(--brand-dark)] shadow-sm hover:shadow-[0_4px_12px_rgba(31,122,224,0.2)] transition-all active:scale-[0.98] text-center"
                     >
                       <Icon className="h-3.5 w-3.5 text-white" name="layoutDashboard" />
-                      <span>Manage Plan</span>
+                      <span>Manage Batch</span>
                     </a>
                   </div>
                 </div>

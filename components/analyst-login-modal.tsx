@@ -250,23 +250,29 @@ export function AnalystLoginModal({ isOpen, onClose }: { isOpen: boolean; onClos
               >
                 Phone Number
               </label>
-              <input
-                id="phone"
-                type="text"
-                placeholder="10-digit mobile number"
-                value={phoneInput}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, "").slice(0, 10);
-                  setPhoneInput(val);
-                  if (fieldErrors.phone) setFieldErrors({});
-                }}
-                disabled={isSubmitting}
-                className={`w-full rounded-lg border px-3.5 py-2.5 text-[13px] transition-all placeholder:text-[var(--muted-2)] focus:outline-none ${
+              <div className={`flex w-full rounded-lg border transition-all ${
                   fieldErrors.phone
-                    ? "border-red-500 bg-red-50/10 focus:border-red-500"
-                    : "border-[var(--line)] focus:border-[var(--brand)] focus:bg-white"
-                }`}
-              />
+                    ? "border-red-500 bg-red-50/10"
+                    : "border-[var(--line)] focus-within:border-[var(--brand)] focus-within:bg-white"
+                }`}>
+                <span className="flex items-center px-3 text-[13px] text-[var(--muted)] border-r border-inherit select-none">
+                  +91
+                </span>
+                <input
+                  id="phone"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="10-digit mobile number"
+                  value={phoneInput}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                    setPhoneInput(val);
+                    if (fieldErrors.phone) setFieldErrors({});
+                  }}
+                  disabled={isSubmitting}
+                  className="flex-1 rounded-r-lg bg-transparent px-3.5 py-2.5 text-[13px] placeholder:text-[var(--muted-2)] focus:outline-none"
+                />
+              </div>
               {fieldErrors.phone && (
                 <p className="mt-1.5 text-[11px] text-red-600 font-semibold">{fieldErrors.phone}</p>
               )}

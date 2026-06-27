@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import Script from "next/script";
 
@@ -107,6 +107,14 @@ export default function AnalystDetailPage() {
   const [couponSuccess, setCouponSuccess] = useState<string | null>(null);
   const [finalPrice, setFinalPrice] = useState<number | null>(null);
   const [verifyingCoupon, setVerifyingCoupon] = useState(false);
+  const [successInfo, setSuccessInfo] = useState<{
+    planName: string;
+    tierName: string;
+    amount: number;
+    paymentId: string;
+    endDate?: string;
+  } | null>(null);
+  const router = useRouter();
 
   const isSubscribedToPlanOrBatch = (planId: string, batchId?: string) => {
     return activeSubscriptions.some((s: any) => {
@@ -205,7 +213,17 @@ export default function AnalystDetailPage() {
     const planId = checkoutPlan.plan_id;
     const batchId = checkoutBatch?.batch_id;
     const subKey = batchId ? `${planId}_${batchId}` : planId;
-    
+
+    // Final safety net against a 409 — bail if this tier is already owned.
+    if (isSubscribedToPlanOrBatch(planId, batchId)) {
+      setSubError("You already have an active subscription to this tier.");
+      return;
+    }
+    // Capture display details now — the checkout modal is closed on success.
+    const planName = checkoutPlan.name;
+    const tierName = checkoutBatch?.name ?? "Monthly subscription";
+    const amountPaid = finalPrice ?? (checkoutBatch ? (checkoutBatch.discounted_price || checkoutBatch.price) : checkoutPlan.price);
+
     setSubError(null);
     setSubSuccess(null);
     setIsSubmitting((prev) => ({ ...prev, [subKey]: true }));
@@ -225,7 +243,29 @@ export default function AnalystDetailPage() {
         setIsSubmitting((prev) => ({ ...prev, [subKey]: false }));
         return;
       }
-      
+
+      // Free / fully-discounted plan — backend activated it directly, no payment.
+      if (data.free) {
+        setSubSuccess("Successfully subscribed!");
+        await fetchData();
+        setIsSubmitting((prev) => ({ ...prev, [subKey]: false }));
+        return;
+      }
+
+      // Razorpay SDK blocked (ad-blocker / Brave Shields) or not yet loaded.
+      if (typeof window === "undefined" || !(window as any).Razorpay) {
+        setSubError("Payment window was blocked. Disable ad-blocker/Brave Shields for this site and try again.");
+        setIsSubmitting((prev) => ({ ...prev, [subKey]: false }));
+        return;
+      }
+
+      // Backend must return a real order to start checkout.
+      if (!data.razorpay_order_id) {
+        setSubError("Could not start payment. Please try again.");
+        setIsSubmitting((prev) => ({ ...prev, [subKey]: false }));
+        return;
+      }
+
       const rzpOptions = {
         key: data.key_id || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: data.amount,
@@ -248,7 +288,14 @@ export default function AnalystDetailPage() {
             if (!verifyRes.ok) {
               setSubError(verifyData.error ?? "Payment verification failed.");
             } else {
-              setSubSuccess("Successfully subscribed!");
+              closeCheckout();
+              setSuccessInfo({
+                planName,
+                tierName,
+                amount: amountPaid,
+                paymentId: response.razorpay_payment_id,
+                endDate: verifyData.subscription?.end_date,
+              });
               await fetchData();
             }
           } catch (err) {
@@ -628,83 +675,157 @@ export default function AnalystDetailPage() {
 
       {/* Review & Checkout Modal */}
       {checkoutPlan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
-            
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-              <h2 className="text-[18px] font-black text-slate-900">Review & Checkout</h2>
-              <button onClick={closeCheckout} className="p-2 rounded-full hover:bg-slate-200 text-slate-500 transition-colors">
-                <Icon name="x" className="h-5 w-5" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
+
+            {/* Header */}
+            <div className="px-6 py-5 flex items-center justify-between border-b border-slate-100">
+              <div>
+                <h2 className="text-[17px] font-black text-slate-900 tracking-tight">Review & Checkout</h2>
+                <p className="text-[12px] font-medium text-slate-400 mt-0.5">Confirm your subscription details</p>
+              </div>
+              <button onClick={closeCheckout} className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors">
+                <Icon name="x" className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="p-6 flex flex-col gap-6">
-              
-              <div className="flex flex-col gap-1">
-                <h3 className="text-[16px] font-bold text-slate-900">{checkoutPlan.name}</h3>
-                <p className="text-[14px] font-medium text-slate-600">
-                  {checkoutBatch ? checkoutBatch.name : 'Standard Plan'} 
-                  <span className="mx-2 text-slate-300">•</span> 
-                  {checkoutBatch ? checkoutBatch.days : checkoutPlan.days} Days
-                </p>
+            <div className="px-6 py-5 flex flex-col gap-5">
+
+              {/* Plan Info */}
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col gap-0.5">
+                  <h3 className="text-[15px] font-black text-slate-900 leading-snug">{checkoutPlan.name}</h3>
+                  <p className="text-[13px] font-medium text-slate-500">
+                    {checkoutBatch ? checkoutBatch.name : 'Monthly subscription'}
+                    <span className="mx-1.5 text-slate-300">·</span>
+                    {checkoutBatch ? checkoutBatch.days : checkoutPlan.days} Days
+                  </p>
+                </div>
+                <span className="shrink-0 inline-flex items-center rounded-full bg-blue-50 border border-blue-100 px-2.5 py-1 text-[11px] font-bold text-blue-700">
+                  Advisory
+                </span>
               </div>
 
-              <div className="flex flex-col gap-2 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-wider">Have a coupon code?</label>
+              {/* Coupon Section */}
+              <div className="rounded-xl border border-slate-200 p-4">
+                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Have a coupon code?</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                     placeholder="Enter code"
-                    className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-[14px] font-bold text-slate-900 outline-none focus:border-slate-400"
+                    className="flex-1 rounded-lg border border-slate-200 px-3.5 py-2.5 text-[13.5px] font-bold text-slate-900 placeholder:text-slate-400 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all"
                     disabled={!!couponSuccess}
                   />
                   {!couponSuccess ? (
                     <button
                       onClick={handleVerifyCoupon}
                       disabled={!couponCode || verifyingCoupon}
-                      className="rounded-xl bg-slate-200 px-4 py-2.5 text-[13px] font-bold text-slate-700 hover:bg-slate-300 transition-colors disabled:opacity-50"
+                      className="rounded-lg bg-slate-100 px-4 py-2.5 text-[13px] font-bold text-slate-700 hover:bg-slate-200 transition-colors disabled:opacity-40"
                     >
                       {verifyingCoupon ? "..." : "Apply"}
                     </button>
                   ) : (
                     <button
                       onClick={() => { setCouponSuccess(null); setCouponCode(""); setFinalPrice(checkoutBatch ? (checkoutBatch.discounted_price || checkoutBatch.price) : checkoutPlan.price); }}
-                      className="rounded-xl bg-red-50 px-4 py-2.5 text-[13px] font-bold text-red-600 hover:bg-red-100 transition-colors"
+                      className="rounded-lg bg-red-50 px-4 py-2.5 text-[13px] font-bold text-red-600 hover:bg-red-100 transition-colors"
                     >
                       Remove
                     </button>
                   )}
                 </div>
-                {couponError && <span className="text-[12px] font-bold text-red-500 mt-1">{couponError}</span>}
-                {couponSuccess && <span className="text-[12px] font-bold text-emerald-600 mt-1">{couponSuccess}</span>}
+                {couponError && <p className="text-[12px] font-semibold text-red-500 mt-2">{couponError}</p>}
+                {couponSuccess && <p className="text-[12px] font-semibold text-emerald-600 mt-2">✓ {couponSuccess}</p>}
               </div>
 
-              <div className="flex items-center justify-between pt-2">
-                <span className="text-[16px] font-bold text-slate-700">Total Due</span>
+              {/* Total Due */}
+              <div className="flex items-center justify-between py-3 border-t border-slate-100">
+                <span className="text-[14px] font-bold text-slate-600">Total Due</span>
                 <div className="flex flex-col items-end">
                   {couponSuccess && (
-                    <span className="text-[13px] font-bold text-slate-400 line-through mb-0.5">
+                    <span className="text-[12px] font-bold text-slate-400 line-through mb-0.5">
                       {formatCurrency(checkoutBatch ? (checkoutBatch.discounted_price || checkoutBatch.price) : checkoutPlan.price)}
                     </span>
                   )}
-                  <span className="text-[24px] font-black text-slate-900">{formatCurrency(finalPrice ?? 0)}</span>
+                  <span className="text-[22px] font-black text-slate-900 tracking-tight">{formatCurrency(finalPrice ?? 0)}</span>
                 </div>
               </div>
 
             </div>
 
-            <div className="p-6 border-t border-slate-100 bg-white">
-              <button
-                onClick={handleSubscribe}
-                disabled={isSubmitting[checkoutBatch ? `${checkoutPlan.plan_id}_${checkoutBatch.batch_id}` : checkoutPlan.plan_id]}
-                className="w-full rounded-2xl bg-slate-900 py-4 text-[15px] font-bold text-white transition-all hover:bg-black hover:shadow-lg disabled:opacity-50 active:scale-95"
-              >
-                {isSubmitting[checkoutBatch ? `${checkoutPlan.plan_id}_${checkoutBatch.batch_id}` : checkoutPlan.plan_id] ? "Processing..." : "Proceed to Payment"}
-              </button>
+            {/* CTA */}
+            <div className="px-6 pb-6">
+              {(() => {
+                const owned = isSubscribedToPlanOrBatch(checkoutPlan.plan_id, checkoutBatch?.batch_id);
+                const submitting = isSubmitting[checkoutBatch ? `${checkoutPlan.plan_id}_${checkoutBatch.batch_id}` : checkoutPlan.plan_id];
+                return (
+                  <button
+                    onClick={handleSubscribe}
+                    disabled={owned || submitting}
+                    className="w-full rounded-xl bg-slate-900 py-3.5 text-[14.5px] font-bold text-white transition-all hover:bg-black hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+                  >
+                    {owned ? "Already Subscribed" : submitting ? "Processing..." : "Proceed to Payment"}
+                  </button>
+                );
+              })()}
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Payment Success Modal */}
+      {successInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
+            <div className="px-6 pt-8 pb-6 flex flex-col items-center text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 ring-8 ring-emerald-50/60">
+                <Icon name="circleCheck" className="h-9 w-9 text-emerald-500" />
+              </div>
+              <h2 className="mt-5 text-[19px] font-black text-slate-900 tracking-tight">Payment Successful</h2>
+              <p className="mt-1 text-[13px] font-medium text-slate-500">
+                You&apos;re now subscribed to <span className="font-bold text-slate-700">{successInfo.planName}</span>.
+              </p>
+
+              <div className="mt-6 w-full rounded-xl border border-slate-200 divide-y divide-slate-100">
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className="text-[12.5px] font-semibold text-slate-400">Plan</span>
+                  <span className="text-[12.5px] font-bold text-slate-800">{successInfo.planName} · {successInfo.tierName}</span>
+                </div>
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className="text-[12.5px] font-semibold text-slate-400">Amount Paid</span>
+                  <span className="text-[12.5px] font-bold text-slate-800">{formatCurrency(successInfo.amount)}</span>
+                </div>
+                {successInfo.endDate && (
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <span className="text-[12.5px] font-semibold text-slate-400">Valid Until</span>
+                    <span className="text-[12.5px] font-bold text-slate-800">
+                      {new Date(successInfo.endDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className="text-[12.5px] font-semibold text-slate-400">Payment ID</span>
+                  <span className="text-[12px] font-mono font-semibold text-slate-500">{successInfo.paymentId}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 pb-6 flex flex-col gap-2.5">
+              <button
+                onClick={() => router.push("/trader/subscriptions")}
+                className="w-full rounded-xl bg-slate-900 py-3.5 text-[14.5px] font-bold text-white transition-all hover:bg-black hover:shadow-lg active:scale-[0.98]"
+              >
+                View My Subscriptions
+              </button>
+              <button
+                onClick={() => setSuccessInfo(null)}
+                className="w-full rounded-xl bg-white py-3 text-[13.5px] font-bold text-slate-500 hover:bg-slate-50 transition-colors"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}

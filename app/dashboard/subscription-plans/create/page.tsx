@@ -88,6 +88,7 @@ export default function CreatePlanPage() {
   const [soHasDiscount, setSoHasDiscount] = useState(false);
   const [soDiscountedPrice, setSoDiscountedPrice] = useState("");
   const [soIsActive, setSoIsActive] = useState(true);
+  const [soDiscountError, setSoDiscountError] = useState("");
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -112,6 +113,7 @@ export default function CreatePlanPage() {
   };
 
   const openSlideOver = (tier?: PlanBatch) => {
+    setSoDiscountError("");
     if (tier) {
       setEditingTierId(tier.batch_id);
       setSoName(tier.name);
@@ -156,6 +158,12 @@ export default function CreatePlanPage() {
     const priceNum = Number(soPrice);
     const discountedNum = soHasDiscount && soDiscountedPrice ? Number(soDiscountedPrice) : undefined;
 
+    if (discountedNum !== undefined && discountedNum >= priceNum) {
+      setSoDiscountError("Discounted price cannot be more than the plan price");
+      return;
+    }
+    setSoDiscountError("");
+
     const newTier: PlanBatch = {
       batch_id: editingTierId || `batch_${nanoid(6)}`,
       name: soName.trim(),
@@ -179,10 +187,10 @@ export default function CreatePlanPage() {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
 
-    if (!name.trim()) newErrors.name = "Plan name is required";
+    if (!name.trim()) newErrors.name = "Batch name is required";
     if (segments.length === 0) newErrors.segments = "Select at least one segment";
     if (horizons.length === 0) newErrors.horizons = "Select at least one horizon";
-    if (pricingTiers.length === 0) newErrors.form = "At least one pricing tier is mandatory while creating a plan.";
+    if (pricingTiers.length === 0) newErrors.form = "At least one pricing tier is mandatory while creating a batch.";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -211,13 +219,13 @@ export default function CreatePlanPage() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setErrors({ form: data.error ?? "Failed to create plan" });
+        setErrors({ form: data.error ?? "Failed to create batch" });
         return;
       }
 
       showSuccessToast(
-        "Plan Created Successfully",
-        `New plan "${name.trim()}" has been created.`
+        "Batch Created Successfully",
+        `New batch "${name.trim()}" has been created.`
       );
       
       router.push("/dashboard/subscription-plans");
@@ -283,7 +291,7 @@ export default function CreatePlanPage() {
 
   return (
     <>
-      <Topbar title="Create New Plan" showUserProfile={true} />
+      <Topbar title="Create New Batch" showUserProfile={true} />
 
       <div className="flex-1 p-6 md:p-8 flex flex-col gap-8 overflow-y-auto bg-[#fafafa] relative">
         <div className="w-full max-w-5xl mx-auto mt-4">
@@ -297,10 +305,10 @@ export default function CreatePlanPage() {
             </button>
             <div>
               <h1 className="text-[24px] font-black text-[var(--ink)] tracking-tight leading-none">
-                Create New Plan
+                Create New Batch
               </h1>
               <p className="text-[14px] text-[var(--muted-2)] font-medium mt-1.5">
-                Configure the foundational details, risk parameters, and pricing tiers for your new subscription plan.
+                Configure the foundational details, risk parameters, and pricing tiers for your new advisory batch.
               </p>
             </div>
           </div>
@@ -328,7 +336,7 @@ export default function CreatePlanPage() {
                   <div className="flex flex-col gap-5">
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-[13px] font-bold text-[var(--ink)]">Plan Name</label>
+                        <label className="text-[13px] font-bold text-[var(--ink)]">Batch Name</label>
                         <span className={`text-[11px] font-bold ${name.length > 45 ? "text-amber-500 animate-pulse" : "text-[var(--muted-2)]"}`}>
                           {name.length}/50
                         </span>
@@ -352,7 +360,7 @@ export default function CreatePlanPage() {
                       </div>
                       <textarea
                         className="w-full rounded-2xl border border-[var(--line)] bg-[#fafafa] px-5 py-3.5 text-[14px] font-medium text-[var(--ink)] outline-none transition-all placeholder:text-[var(--muted-2)] focus:border-[var(--brand)] focus:bg-white focus:ring-4 min-h-[100px] resize-y"
-                        placeholder="Describe what this plan offers..."
+                        placeholder="Describe what this batch offers..."
                         maxLength={300}
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
@@ -553,10 +561,10 @@ export default function CreatePlanPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <h3 className="text-[15px] font-extrabold text-[var(--ink)] tracking-tight leading-tight truncate">
-                          {name.trim() || "Plan Name"}
+                          {name.trim() || "Batch Name"}
                         </h3>
                         <p className="text-[11px] text-[var(--muted-2)] font-bold mt-0.5">
-                          Subscription Plan
+                          Subscription Batch
                         </p>
                       </div>
                       <span
@@ -579,7 +587,7 @@ export default function CreatePlanPage() {
 
                     {/* Description in Preview */}
                     <p className="text-[12.5px] text-[var(--muted)] font-medium mt-3.5 line-clamp-3 leading-relaxed break-words min-h-[42px]">
-                      {description.trim() || "Add a descriptive overview of this advisory plan to showcase its target returns, setup strategy, and focus area."}
+                      {description.trim() || "Add a descriptive overview of this advisory batch to showcase its target returns, setup strategy, and focus area."}
                     </p>
 
                     {/* Segment and Horizons */}
@@ -714,7 +722,7 @@ export default function CreatePlanPage() {
                         className="w-full flex items-center justify-center gap-2 rounded-2xl bg-black px-6 py-4 text-[14px] font-bold text-white hover:opacity-90 transition-all shadow-[0_4px_14px_0_rgba(0,0,0,0.25)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 cursor-pointer"
                         disabled={isSubmitting} type="submit"
                       >
-                        {isSubmitting ? <><Icon className="h-5 w-5 animate-spin" name="loader" /><span>Creating Plan...</span></> : <span>Publish Plan</span>}
+                        {isSubmitting ? <><Icon className="h-5 w-5 animate-spin" name="loader" /><span>Creating Batch...</span></> : <span>Publish Batch</span>}
                       </button>
                     </div>
                   </div>
@@ -854,19 +862,25 @@ export default function CreatePlanPage() {
                   </div>
                   
                   {soHasDiscount && (
-                    <div className="relative animate-[fadeIn_0.2s_ease-out]">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <span className="text-[14px] font-bold text-emerald-600">₹</span>
+                    <div className="flex flex-col gap-1.5 animate-[fadeIn_0.2s_ease-out]">
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                          <span className="text-[14px] font-bold text-emerald-600">₹</span>
+                        </div>
+                        <input
+                          type="number" min="0" value={soDiscountedPrice}
+                          onChange={e => { setSoDiscountedPrice(e.target.value); if (soDiscountError) setSoDiscountError(""); }}
+                          placeholder="Promotional Price"
+                          className={`w-full rounded-xl border bg-white pl-8 pr-16 py-3 text-[14px] font-semibold text-[var(--ink)] outline-none transition-all focus:ring-4 ${soDiscountError ? "border-[var(--red)] focus:border-[var(--red)] focus:ring-[var(--red)]/10" : "border-[var(--line)] focus:border-emerald-500 focus:ring-emerald-500/10"}`}
+                        />
+                        {Number(soPrice) > 0 && Number(soDiscountedPrice) > 0 && Number(soDiscountedPrice) < Number(soPrice) && (
+                          <span className="absolute right-4 inset-y-0 flex items-center text-[11px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md my-auto h-fit">
+                            {calculateDiscountPct(Number(soPrice), Number(soDiscountedPrice))}% OFF
+                          </span>
+                        )}
                       </div>
-                      <input
-                        type="number" min="0" value={soDiscountedPrice} onChange={e => setSoDiscountedPrice(e.target.value)}
-                        placeholder="Promotional Price"
-                        className="w-full rounded-xl border border-[var(--line)] bg-white pl-8 pr-16 py-3 text-[14px] font-semibold text-[var(--ink)] outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-                      />
-                      {Number(soPrice) > 0 && Number(soDiscountedPrice) > 0 && Number(soDiscountedPrice) < Number(soPrice) && (
-                        <span className="absolute right-4 inset-y-0 flex items-center text-[11px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md my-auto h-fit">
-                          {calculateDiscountPct(Number(soPrice), Number(soDiscountedPrice))}% OFF
-                        </span>
+                      {soDiscountError && (
+                        <span className="text-[12px] font-bold text-[var(--red)] px-1">{soDiscountError}</span>
                       )}
                     </div>
                   )}

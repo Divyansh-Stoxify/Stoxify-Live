@@ -56,7 +56,7 @@ export default function BatchLayout({
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-[#F9FAFB]">
-      <Topbar title="Plans" showUserProfile={true} />
+      <Topbar title="Batches" showUserProfile={true} />
 
       <div className="flex flex-1 overflow-hidden relative">
         {/* Secondary Sidebar for the Batch */}
@@ -68,13 +68,13 @@ export default function BatchLayout({
               className="group inline-flex items-center gap-1.5 text-[12px] font-bold text-[var(--muted-2)] hover:text-[var(--ink)] transition-colors mb-3"
             >
               <Icon className="h-3 w-3 transition-transform group-hover:-translate-x-0.5 duration-200" name="arrowRight" style={{ transform: "rotate(180deg)" }} />
-              Back to Plans
+              Back to Batches
             </Link>
             <h2 className="text-[15px] font-bold text-[var(--ink)] tracking-tight truncate" title={plan?.name || "Loading..."}>
               {plan ? plan.name : "Loading..."}
             </h2>
             <p className="text-[10px] font-bold text-[var(--muted-2)] uppercase tracking-wider mt-0.5">
-              Plan Workspace
+              Batch Workspace
             </p>
           </div>
 

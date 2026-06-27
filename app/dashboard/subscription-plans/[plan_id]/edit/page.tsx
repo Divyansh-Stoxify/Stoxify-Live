@@ -39,6 +39,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
   const [soHasDiscount, setSoHasDiscount] = useState(false);
   const [soDiscountedPrice, setSoDiscountedPrice] = useState("");
   const [soIsActive, setSoIsActive] = useState(true);
+  const [soDiscountError, setSoDiscountError] = useState("");
 
   const [isLoading, setIsLoading] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -84,6 +85,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
   };
 
   const openSlideOver = (tier?: PlanBatch) => {
+    setSoDiscountError("");
     if (tier) {
       setEditingTierId(tier.batch_id);
       setSoName(tier.name);
@@ -128,6 +130,12 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
     const priceNum = Number(soPrice);
     const discountedNum = soHasDiscount && soDiscountedPrice ? Number(soDiscountedPrice) : undefined;
 
+    if (discountedNum !== undefined && discountedNum >= priceNum) {
+      setSoDiscountError("Discounted price cannot be more than the plan price");
+      return;
+    }
+    setSoDiscountError("");
+
     const newTier: PlanBatch = {
       batch_id: editingTierId || `batch_${nanoid(6)}`,
       name: soName.trim(),
@@ -151,10 +159,10 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
     e.preventDefault();
     const newErrors: Record<string, string> = {};
 
-    if (!name.trim()) newErrors.name = "Plan name is required";
+    if (!name.trim()) newErrors.name = "Batch name is required";
     if (segments.length === 0) newErrors.segments = "Select at least one segment";
     if (horizons.length === 0) newErrors.horizons = "Select at least one horizon";
-    if (pricingTiers.length === 0) newErrors.form = "At least one pricing tier is mandatory while updating a plan.";
+    if (pricingTiers.length === 0) newErrors.form = "At least one pricing tier is mandatory while updating a batch.";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -180,7 +188,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setErrors({ form: data.error ?? "Failed to update plan" });
+        setErrors({ form: data.error ?? "Failed to update batch" });
         return;
       }
 
@@ -191,8 +199,8 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
       });
 
       showSuccessToast(
-        "Plan Updated",
-        `"${name.trim()}" plan has been successfully modified.`
+        "Batch Updated",
+        `"${name.trim()}" batch has been successfully modified.`
       );
       
       router.push("/dashboard/subscription-plans");
@@ -221,7 +229,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
 
   return (
     <>
-      <Topbar title="Edit Plan" showUserProfile={true} />
+      <Topbar title="Edit Batch" showUserProfile={true} />
 
       <div className="flex-1 p-6 md:p-8 flex flex-col gap-8 overflow-y-auto bg-[#fafafa] relative">
         <div className="w-full max-w-4xl mx-auto mt-4">
@@ -235,10 +243,10 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
             </button>
             <div>
               <h1 className="text-[24px] font-black text-[var(--ink)] tracking-tight leading-none">
-                Edit Plan
+                Edit Batch
               </h1>
               <p className="text-[14px] text-[var(--muted-2)] font-medium mt-1.5">
-                Update the foundational details, risk parameters, and pricing tiers for this plan.
+                Update the foundational details, risk parameters, and pricing tiers for this batch.
               </p>
             </div>
           </div>
@@ -246,7 +254,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
           {isLoading ? (
             <div className="rounded-3xl border border-[var(--line)] bg-white p-12 shadow-sm flex flex-col items-center justify-center gap-4">
               <Icon className="h-8 w-8 text-[var(--brand)] animate-spin" name="loader" />
-              <p className="text-[14px] font-semibold text-[var(--muted)]">Loading plan details...</p>
+              <p className="text-[14px] font-semibold text-[var(--muted)]">Loading batch details...</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -271,7 +279,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
                     </h2>
                     <div className="flex flex-col gap-5">
                       <div className="flex flex-col gap-2">
-                        <label className="text-[13px] font-bold text-[var(--ink)]">Plan Name</label>
+                        <label className="text-[13px] font-bold text-[var(--ink)]">Batch Name</label>
                         <input
                           className={`w-full rounded-2xl border bg-[#fafafa] px-5 py-3.5 text-[14px] font-semibold text-[var(--ink)] outline-none transition-all placeholder:text-[var(--muted-2)] focus:border-[var(--brand)] focus:bg-white focus:ring-4 focus:ring-[var(--brand)]/10 ${errors.name ? "border-[var(--red)] focus:border-[var(--red)]" : "border-[var(--line)]"}`}
                           placeholder="e.g. FNO Mastery, Swing Trading Alpha"
@@ -285,7 +293,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
                         <label className="text-[13px] font-bold text-[var(--ink)]">Description (Optional)</label>
                         <textarea
                           className="w-full rounded-2xl border border-[var(--line)] bg-[#fafafa] px-5 py-3.5 text-[14px] font-medium text-[var(--ink)] outline-none transition-all placeholder:text-[var(--muted-2)] focus:border-[var(--brand)] focus:bg-white focus:ring-4 min-h-[100px] resize-y"
-                          placeholder="Describe what this plan offers..."
+                          placeholder="Describe what this batch offers..."
                           value={description}
                           onChange={(e) => setDescription(e.target.value)}
                         />
@@ -530,15 +538,21 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
                 </label>
                 
                 {soHasDiscount && (
-                  <div className="relative mt-1">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <span className="text-[14px] font-medium text-[var(--muted)]">₹</span>
+                  <div className="mt-1 flex flex-col gap-1.5">
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <span className="text-[14px] font-medium text-[var(--muted)]">₹</span>
+                      </div>
+                      <input
+                        type="number" min="0" value={soDiscountedPrice}
+                        onChange={e => { setSoDiscountedPrice(e.target.value); if (soDiscountError) setSoDiscountError(""); }}
+                        placeholder="Discounted Price"
+                        className={`w-full rounded-xl border bg-white pl-8 pr-4 py-3 text-[14px] font-medium text-[var(--ink)] outline-none transition-all focus:ring-4 ${soDiscountError ? "border-[var(--red)] focus:border-[var(--red)] focus:ring-[var(--red)]/10" : "border-[var(--line)] focus:border-emerald-500 focus:ring-emerald-500/10"}`}
+                      />
                     </div>
-                    <input
-                      type="number" min="0" value={soDiscountedPrice} onChange={e => setSoDiscountedPrice(e.target.value)}
-                      placeholder="Discounted Price"
-                      className="w-full rounded-xl border border-[var(--line)] bg-white pl-8 pr-4 py-3 text-[14px] font-medium text-[var(--ink)] outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-                    />
+                    {soDiscountError && (
+                      <span className="text-[12px] font-bold text-[var(--red)] px-1">{soDiscountError}</span>
+                    )}
                   </div>
                 )}
               </div>

@@ -147,7 +147,7 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast }:
                   else setSelectedPlans([e.target.value]);
                 }}
               >
-                <option value="ALL">All plans selected</option>
+                <option value="ALL">All batches selected</option>
                 {plans.map((p) => (
                   <option key={p.plan_id} value={p.plan_id}>
                     {p.name}

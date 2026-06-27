@@ -31,6 +31,23 @@ type Subscription = {
   };
 };
 
+type Transaction = {
+  transaction_id: string;
+  type: "PAYMENT" | "REFUND";
+  status: "CREATED" | "CAPTURED" | "FAILED" | "REFUNDED";
+  subscription_id: string;
+  plan_name?: string;
+  analyst_name?: string;
+  amount: number;
+  currency?: string;
+  razorpay_payment_id?: string;
+  razorpay_order_id?: string;
+  coupon_applied?: string;
+  discount_amount?: number;
+  reason?: string;
+  created_at: string;
+};
+
 const gradients = [
   "linear-gradient(135deg,#3B82F6,#2D5BE3)",
   "linear-gradient(135deg,#8B5CF6,#6D28D9)",
@@ -70,6 +87,35 @@ function daysRemaining(endDate: string): number {
   const diff = new Date(endDate).getTime() - Date.now();
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 }
+
+function formatCurrency(amount: number, currency = "INR"): string {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+function formatDateTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+// Visual status mapping for the transactions list / receipt.
+const TXN_STATUS: Record<
+  Transaction["status"],
+  { label: string; cls: string }
+> = {
+  CAPTURED: { label: "Paid", cls: "bg-[var(--green-light)] text-[var(--green)]" },
+  CREATED: { label: "Pending", cls: "bg-[var(--orange-light)] text-[var(--orange)]" },
+  FAILED: { label: "Failed", cls: "bg-[var(--red-light)] text-[var(--red)]" },
+  REFUNDED: { label: "Refunded", cls: "bg-slate-200 text-slate-600" },
+};
 
 function SubscriptionCard({ sub }: { sub: Subscription }) {
   const isActive = sub.status === "ACTIVE";
@@ -165,8 +211,10 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
   // Local User State
   const [userData, setUserData] = useState<ProfileUser>(user);
 
-  // Navigation Tabs (Settings / Subscriptions only)
-  const [activeTab, setActiveTab] = useState<"settings" | "subscriptions">("settings");
+  // Navigation Tabs (Settings / Subscriptions / Transactions)
+  const [activeTab, setActiveTab] = useState<"settings" | "subscriptions" | "transactions">(
+    "settings"
+  );
 
   // Profile Edit fields
   const [nameInput, setNameInput] = useState(user.name || "");
@@ -184,14 +232,19 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
   const [loadingSubs, setLoadingSubs] = useState(true);
   const [subTab, setSubTab] = useState<"ACTIVE" | "EXPIRED" | "CANCELLED">("ACTIVE");
 
+  // Transactions Tab states
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loadingTxns, setLoadingTxns] = useState(true);
+  const [receipt, setReceipt] = useState<Transaction | null>(null);
+
   // Sync activeTab on URL parameter mount
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab");
       Promise.resolve().then(() => {
-        if (tabParam === "subscriptions") {
-          setActiveTab("subscriptions");
+        if (tabParam === "subscriptions" || tabParam === "transactions") {
+          setActiveTab(tabParam);
         } else {
           setActiveTab("settings");
         }
@@ -199,7 +252,7 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
     }
   }, []);
 
-  const handleTabChange = (tab: "settings" | "subscriptions") => {
+  const handleTabChange = (tab: "settings" | "subscriptions" | "transactions") => {
     setActiveTab(tab);
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
@@ -243,6 +296,26 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
       fetchProfileSubscriptions();
     });
   }, [fetchProfileSubscriptions]);
+
+  // Fetch Transactions (payment history) data
+  const fetchTransactions = useCallback(async () => {
+    setLoadingTxns(true);
+    try {
+      const res = await fetch("/api/trader/transactions?limit=100");
+      const data = await res.json().catch(() => ({}));
+      setTransactions(data.transactions ?? data.data ?? []);
+    } catch (err) {
+      console.error("Failed to fetch transactions:", err);
+    } finally {
+      setLoadingTxns(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      fetchTransactions();
+    });
+  }, [fetchTransactions]);
 
   // Update Profile handler (Backend Supported PATCH /me)
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -401,6 +474,22 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
                     Subscriptions
                   </button>
                 </li>
+                <li>
+                  <button
+                    onClick={() => handleTabChange("transactions")}
+                    className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 text-[13.5px] font-bold transition-all text-left ${
+                      activeTab === "transactions"
+                        ? "bg-emerald-50/60 text-emerald-700"
+                        : "text-[var(--muted)] hover:bg-slate-50 hover:text-[var(--ink)]"
+                    }`}
+                  >
+                    <Icon
+                      name="creditCard"
+                      className={`h-4.5 w-4.5 ${activeTab === "transactions" ? "text-emerald-600" : "text-slate-400"}`}
+                    />
+                    Transactions
+                  </button>
+                </li>
                 <li className="mt-4 pt-4 border-t border-slate-100">
                   <LogoutButton className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-[13.5px] font-bold text-red-600 transition-all hover:bg-red-50 text-left">
                     <Icon name="x" className="h-4.5 w-4.5 text-red-500" />
@@ -445,6 +534,16 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
               }`}
             >
               Subscriptions
+            </button>
+            <button
+              onClick={() => handleTabChange("transactions")}
+              className={`pb-3.5 text-[14px] font-bold tracking-tight border-b-2 transition-all relative ${
+                activeTab === "transactions"
+                  ? "border-emerald-600 text-emerald-800 font-extrabold"
+                  : "border-transparent text-[var(--muted)] hover:text-[var(--ink)]"
+              }`}
+            >
+              Transactions
             </button>
           </div>
 
@@ -696,8 +795,156 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
               )}
             </div>
           )}
+
+          {/* ─── TAB VIEW: TRANSACTIONS ─── */}
+          {activeTab === "transactions" && (
+            <div className="space-y-4 animate-fade-in duration-200">
+              {loadingTxns ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="h-[68px] rounded-xl border border-slate-200 bg-white animate-pulse"
+                    />
+                  ))}
+                </div>
+              ) : transactions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/30">
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-[var(--muted)]">
+                    <Icon name="creditCard" className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-[14px] font-bold text-[var(--ink)] mb-1 select-none">
+                    No transactions yet
+                  </h3>
+                  <p className="text-[12.5px] text-[var(--muted)] max-w-[280px] select-none">
+                    Your payment history and receipts will appear here once you subscribe to a plan.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                  {transactions.map((txn, i) => {
+                    const meta = TXN_STATUS[txn.status] ?? TXN_STATUS.CREATED;
+                    const isRefund = txn.type === "REFUND";
+                    return (
+                      <div
+                        key={txn.transaction_id}
+                        className={`flex items-center gap-4 px-5 py-3.5 ${i !== 0 ? "border-t border-slate-100" : ""}`}
+                      >
+                        <div
+                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${isRefund ? "bg-slate-100 text-slate-500" : "bg-emerald-50 text-emerald-600"}`}
+                        >
+                          <Icon name={isRefund ? "banknote" : "creditCard"} className="h-4.5 w-4.5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[13.5px] font-bold text-[var(--ink)] truncate">
+                            {txn.plan_name || txn.analyst_name || txn.subscription_id}
+                          </div>
+                          <div className="text-[11.5px] text-[var(--muted)] truncate">
+                            {formatDateTime(txn.created_at)}
+                            {txn.analyst_name ? ` · ${txn.analyst_name}` : ""}
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div
+                            className={`text-[13.5px] font-extrabold ${isRefund ? "text-slate-500" : "text-[var(--ink)]"}`}
+                          >
+                            {isRefund ? "-" : ""}
+                            {formatCurrency(txn.amount, txn.currency)}
+                          </div>
+                          <span
+                            className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${meta.cls}`}
+                          >
+                            {meta.label}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setReceipt(txn)}
+                          className="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11.5px] font-bold text-[var(--muted)] transition-colors hover:border-slate-400 hover:text-[var(--ink)]"
+                        >
+                          Receipt
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* ─── RECEIPT MODAL ─── */}
+      {receipt && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 print:bg-white print:p-0"
+          onClick={() => setReceipt(null)}
+        >
+          <div
+            id="txn-receipt"
+            className="w-full max-w-[440px] rounded-2xl bg-white p-7 shadow-2xl print:max-w-none print:shadow-none"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <div className="text-[18px] font-extrabold text-[var(--ink)]">Stoxify</div>
+                <div className="text-[11px] text-[var(--muted)]">Payment Receipt</div>
+              </div>
+              <span
+                className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${(TXN_STATUS[receipt.status] ?? TXN_STATUS.CREATED).cls}`}
+              >
+                {(TXN_STATUS[receipt.status] ?? TXN_STATUS.CREATED).label}
+              </span>
+            </div>
+
+            <div className="rounded-xl bg-slate-50 border border-slate-100 p-4 mb-5 text-center">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1">
+                {receipt.type === "REFUND" ? "Refunded" : "Amount Paid"}
+              </div>
+              <div className="text-[26px] font-extrabold text-[var(--ink)]">
+                {formatCurrency(receipt.amount, receipt.currency)}
+              </div>
+            </div>
+
+            <dl className="space-y-2.5 text-[12.5px] mb-6">
+              {[
+                ["Invoice No.", receipt.transaction_id],
+                ["Date", formatDateTime(receipt.created_at)],
+                ["Plan", receipt.plan_name || "—"],
+                ["Analyst", receipt.analyst_name || "—"],
+                ["Subscription", receipt.subscription_id],
+                receipt.razorpay_payment_id ? ["Payment ID", receipt.razorpay_payment_id] : null,
+                receipt.coupon_applied ? ["Coupon", receipt.coupon_applied] : null,
+                receipt.reason ? ["Reason", receipt.reason] : null,
+              ]
+                .filter((row): row is [string, string] => Array.isArray(row))
+                .map(([label, value]) => (
+                  <div key={label} className="flex items-start justify-between gap-4">
+                    <dt className="text-[var(--muted)] font-semibold shrink-0">{label}</dt>
+                    <dd className="text-[var(--ink)] font-bold text-right break-all">{value}</dd>
+                  </div>
+                ))}
+            </dl>
+
+            <div className="flex gap-2 print:hidden">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="flex-1 rounded-full bg-emerald-700 px-4 py-2.5 text-[12.5px] font-bold text-white hover:bg-emerald-800 transition-colors"
+              >
+                Download / Print
+              </button>
+              <button
+                type="button"
+                onClick={() => setReceipt(null)}
+                className="rounded-full border border-slate-200 px-4 py-2.5 text-[12.5px] font-bold text-[var(--muted)] hover:text-[var(--ink)] transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
