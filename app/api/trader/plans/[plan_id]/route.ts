@@ -4,7 +4,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { backendUrls, forwardedIpHeaders, signedBackendFetch } from "@/lib/backend/index";
 import { userCookieNames } from "@/lib/auth/cookies";
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
+/**
+ * GET /api/trader/plans/[plan_id]
+ * Fetches details of a single plan for a trader. Traders hold PWR_PLAN_READ_ALL
+ * (same power the discovery list uses), which the backend GET /plans/:plan_id
+ * route also requires — so this passthrough works for trader sessions.
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ plan_id: string }> }
+): Promise<NextResponse> {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get(userCookieNames.accessToken)?.value;
   const deviceId = cookieStore.get(userCookieNames.deviceId)?.value ?? "user-web-unknown";
@@ -13,37 +22,25 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { searchParams } = request.nextUrl;
-  const query: Record<string, string | undefined> = {
-    analyst_id: searchParams.get("analyst_id") ?? undefined,
-    segments: searchParams.get("segments") ?? searchParams.get("segment") ?? undefined,
-    risk_levels: searchParams.get("risk_levels") ?? undefined,
-    horizons: searchParams.get("horizons") ?? undefined,
-    search: searchParams.get("search") ?? undefined,
-    min_price: searchParams.get("min_price") ?? undefined,
-    max_price: searchParams.get("max_price") ?? undefined,
-    sort: searchParams.get("sort") ?? undefined,
-    page: searchParams.get("page") ?? undefined,
-    is_active: searchParams.get("is_active") ?? "true",
-    limit: searchParams.get("limit") ?? "50",
-  };
+  const { plan_id } = await params;
+  if (!plan_id) {
+    return NextResponse.json({ error: "Missing plan_id" }, { status: 400 });
+  }
 
   try {
     const backendResponse = await signedBackendFetch({
       baseUrl: backendUrls.plan,
-      path: "/plans/",
+      path: `/plans/${plan_id}`,
       method: "GET",
       deviceId,
       accessToken,
-      query,
       extraHeaders: forwardedIpHeaders(request),
     });
 
     const data = await backendResponse.json().catch(() => ({}));
-
     return NextResponse.json(data, { status: backendResponse.status });
   } catch (error) {
-    console.error("[trader/plans] signedBackendFetch failed:", error);
+    console.error("[trader/plans/[plan_id]] GET failed:", error);
     return NextResponse.json({ error: "Unable to reach plan service" }, { status: 503 });
   }
 }

@@ -115,7 +115,7 @@ function PlanRow({ plan }: { plan: Plan }) {
 
   return (
     <Link
-      href={`/trader/analyst/${plan.analyst_id}`}
+      href={`/trader/plan/${plan.plan_id}`}
       className="group grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] items-center gap-4 sm:gap-6 px-5 py-4 transition-colors hover:bg-[var(--line-2)]"
     >
       {/* Left: avatar + name + description */}
@@ -212,21 +212,42 @@ function SkeletonRow() {
   );
 }
 
+type Facet = { value: string; count: number };
+type Facets = { segments: Facet[]; risk_levels: Facet[]; horizons: Facet[] };
+
 export default function DiscoverPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [facets, setFacets] = useState<Facets>({ segments: [], risk_levels: [], horizons: [] });
   const [loading, setLoading] = useState(true);
   const [segment, setSegment] = useState<string>("ALL");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [riskFilter, setRiskFilter] = useState<Set<string>>(new Set());
   const [horizonFilter, setHorizonFilter] = useState<Set<string>>(new Set());
   const [sort, setSort] = useState<SortKey>("popularity");
 
+  // Debounce the search box so we don't fire a backend request per keystroke.
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(id);
+  }, [search]);
+
+  // Serialize the active filters into the query string shared by the list and
+  // facets endpoints. The backend does all filtering/sorting now.
+  const filterParams = useMemo(() => {
+    const params = new URLSearchParams({ is_active: "true", limit: "50" });
+    if (segment !== "ALL") params.set("segments", segment);
+    if (riskFilter.size > 0) params.set("risk_levels", Array.from(riskFilter).join(","));
+    if (horizonFilter.size > 0) params.set("horizons", Array.from(horizonFilter).join(","));
+    if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
+    params.set("sort", sort);
+    return params;
+  }, [segment, riskFilter, horizonFilter, debouncedSearch, sort]);
+
   const fetchPlans = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ is_active: "true", limit: "50" });
-      if (segment !== "ALL") params.set("segment", segment);
-      const res = await fetch(`/api/trader/plans?${params.toString()}`, {
+      const res = await fetch(`/api/trader/plans?${filterParams.toString()}`, {
         credentials: "same-origin",
         cache: "no-store",
       });
@@ -237,18 +258,50 @@ export default function DiscoverPage() {
     } finally {
       setLoading(false);
     }
-  }, [segment]);
+  }, [filterParams]);
 
   useEffect(() => {
     fetchPlans();
   }, [fetchPlans]);
 
-  // Available horizons derived from current result set.
-  const availableHorizons = useMemo(() => {
-    const set = new Set<string>();
-    plans.forEach((p) => p.horizons?.forEach((h) => set.add(h)));
-    return Array.from(set);
-  }, [plans]);
+  // Facets drive the sidebar's selectable options + counts, independent of the
+  // current page. Refetched as filters change so counts stay accurate.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/trader/plans/facets?${filterParams.toString()}`, {
+          credentials: "same-origin",
+          cache: "no-store",
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!cancelled) {
+          setFacets({
+            segments: data.segments ?? [],
+            risk_levels: data.risk_levels ?? [],
+            horizons: data.horizons ?? [],
+          });
+        }
+      } catch {
+        if (!cancelled) setFacets({ segments: [], risk_levels: [], horizons: [] });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [filterParams]);
+
+  // Available horizons come from the facets endpoint so options don't vanish
+  // once the result set is narrowed.
+  const availableHorizons = useMemo(
+    () => facets.horizons.map((h) => h.value),
+    [facets.horizons]
+  );
+  const riskCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    facets.risk_levels.forEach((r) => map.set(r.value, r.count));
+    return map;
+  }, [facets.risk_levels]);
 
   const toggleRisk = (key: string) => {
     setRiskFilter((prev) => {
@@ -276,33 +329,8 @@ export default function DiscoverPage() {
 
   const activeFilterCount = riskFilter.size + horizonFilter.size;
 
-  const filteredPlans = useMemo(() => {
-    const searchLower = search.trim().toLowerCase();
-    const result = plans.filter((plan) => {
-      if (riskFilter.size > 0) {
-        const r = (plan.risk_level || "").toUpperCase();
-        if (!riskFilter.has(r)) return false;
-      }
-      if (horizonFilter.size > 0) {
-        const hasHorizon = plan.horizons?.some((h) => horizonFilter.has(h));
-        if (!hasHorizon) return false;
-      }
-      if (searchLower) {
-        const inName = plan.name.toLowerCase().includes(searchLower);
-        const inAnalyst = plan.analyst_name.toLowerCase().includes(searchLower);
-        if (!inName && !inAnalyst) return false;
-      }
-      return true;
-    });
-
-    result.sort((a, b) => {
-      if (sort === "price_asc") return getStartingPrice(a) - getStartingPrice(b);
-      if (sort === "price_desc") return getStartingPrice(b) - getStartingPrice(a);
-      return (b.subscriber_count ?? 0) - (a.subscriber_count ?? 0);
-    });
-
-    return result;
-  }, [plans, riskFilter, horizonFilter, search, sort]);
+  // Filtering and sorting now happen on the backend; render the result as-is.
+  const filteredPlans = plans;
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
@@ -386,6 +414,7 @@ export default function DiscoverPage() {
                 {RISK_LEVELS.map(({ key, label }) => {
                   const active = riskFilter.has(key);
                   const meta = RISK_META[key];
+                  const count = riskCounts.get(key) ?? 0;
                   return (
                     <button
                       key={key}
@@ -404,6 +433,7 @@ export default function DiscoverPage() {
                       >
                         {label}
                       </span>
+                      <span className="text-[10px] font-bold text-[var(--muted-2)]">{count}</span>
                     </button>
                   );
                 })}
@@ -422,7 +452,7 @@ export default function DiscoverPage() {
                 </p>
               ) : (
                 <div className="flex flex-col gap-1">
-                  {availableHorizons.map((h) => {
+                  {facets.horizons.map(({ value: h, count }) => {
                     const active = horizonFilter.has(h);
                     return (
                       <button
@@ -442,10 +472,11 @@ export default function DiscoverPage() {
                           {active && <Icon name="check" className="h-3 w-3 text-white" />}
                         </span>
                         <span
-                          className={`text-[12.5px] font-semibold capitalize ${active ? "text-[var(--ink)]" : "text-[var(--muted)]"}`}
+                          className={`flex-1 text-[12.5px] font-semibold capitalize ${active ? "text-[var(--ink)]" : "text-[var(--muted)]"}`}
                         >
                           {h.toLowerCase().replace(/_/g, " ")}
                         </span>
+                        <span className="text-[11px] font-bold text-[var(--muted-2)]">{count}</span>
                       </button>
                     );
                   })}

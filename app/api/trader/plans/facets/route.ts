@@ -20,18 +20,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     risk_levels: searchParams.get("risk_levels") ?? undefined,
     horizons: searchParams.get("horizons") ?? undefined,
     search: searchParams.get("search") ?? undefined,
-    min_price: searchParams.get("min_price") ?? undefined,
-    max_price: searchParams.get("max_price") ?? undefined,
-    sort: searchParams.get("sort") ?? undefined,
-    page: searchParams.get("page") ?? undefined,
     is_active: searchParams.get("is_active") ?? "true",
-    limit: searchParams.get("limit") ?? "50",
   };
 
   try {
     const backendResponse = await signedBackendFetch({
       baseUrl: backendUrls.plan,
-      path: "/plans/",
+      path: "/plans/facets",
       method: "GET",
       deviceId,
       accessToken,
@@ -43,7 +38,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(data, { status: backendResponse.status });
   } catch (error) {
-    console.error("[trader/plans] signedBackendFetch failed:", error);
+    console.error("[trader/plans/facets] signedBackendFetch failed:", error);
     return NextResponse.json({ error: "Unable to reach plan service" }, { status: 503 });
   }
 }

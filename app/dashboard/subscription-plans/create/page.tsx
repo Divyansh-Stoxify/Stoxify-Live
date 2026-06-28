@@ -73,7 +73,9 @@ export default function CreatePlanPage() {
   const [riskLevel, setRiskLevel] = useState("MEDIUM");
   const [segments, setSegments] = useState<string[]>(["EQUITY"]);
   const [horizons, setHorizons] = useState<string[]>(["INTRADAY"]);
-  
+  const [features, setFeatures] = useState<string[]>([]);
+  const [newFeature, setNewFeature] = useState("");
+
   // Pricing Tiers (Batches)
   const [pricingTiers, setPricingTiers] = useState<PlanBatch[]>([]);
   const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
@@ -101,6 +103,21 @@ export default function CreatePlanPage() {
     } else {
       setter([...current, item]);
     }
+  };
+
+  const addFeature = () => {
+    const value = newFeature.trim();
+    if (!value) return;
+    if (features.some((f) => f.toLowerCase() === value.toLowerCase())) {
+      setNewFeature("");
+      return;
+    }
+    setFeatures((prev) => [...prev, value]);
+    setNewFeature("");
+  };
+
+  const removeFeature = (index: number) => {
+    setFeatures((prev) => prev.filter((_, i) => i !== index));
   };
 
   const getDaysFromCycle = (val: number, unit: PlanBillingCycle) => {
@@ -164,6 +181,17 @@ export default function CreatePlanPage() {
     }
     setSoDiscountError("");
 
+    const newDays = soPlanType === "LIFETIME" ? 36500 : getDaysFromCycle(durationVal, soDurationUnit);
+
+    // Each plan in a batch must have a unique duration — block duplicates here
+    // so the user never reaches a save that the backend would reject.
+    const hasDuplicateDuration = pricingTiers.some(
+      t => t.batch_id !== editingTierId && t.days === newDays
+    );
+    if (hasDuplicateDuration) {
+      return alert("Another plan already uses this duration. Each plan must have a unique duration.");
+    }
+
     const newTier: PlanBatch = {
       batch_id: editingTierId || `batch_${nanoid(6)}`,
       name: soName.trim(),
@@ -171,7 +199,7 @@ export default function CreatePlanPage() {
       price: priceNum,
       discounted_price: discountedNum,
       billing_cycle: soPlanType === "LIFETIME" ? "YEAR" : soDurationUnit, // fallback for lifetime
-      days: soPlanType === "LIFETIME" ? 36500 : getDaysFromCycle(durationVal, soDurationUnit),
+      days: newDays,
       is_active: soIsActive,
     };
 
@@ -210,6 +238,7 @@ export default function CreatePlanPage() {
           risk_level: riskLevel,
           segments,
           horizons,
+          features,
           days: pricingTiers.length > 0 ? pricingTiers[0].days : 30, // root fallback
           price: pricingTiers.length > 0 ? pricingTiers[0].price : 0, // root fallback
           is_active: status === "ACTIVE",
@@ -434,6 +463,61 @@ export default function CreatePlanPage() {
                   </div>
                 </div>
 
+                {/* Features */}
+                <div className="rounded-3xl border border-[var(--line)] bg-white p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow duration-300">
+                  <h2 className="text-[16px] font-bold text-[var(--ink)] mb-2 flex items-center gap-2">
+                    <div className="h-6 w-1 rounded-full bg-teal-500"></div>
+                    Features
+                  </h2>
+                  <p className="text-[13px] text-[var(--muted-2)] font-medium mb-6">
+                    Highlights shown to subscribers as a checklist on the batch card.
+                  </p>
+                  <div className="flex flex-col gap-4">
+                    <div className="flex gap-2">
+                      <input
+                        className="flex-1 rounded-2xl border border-[var(--line)] bg-[#fafafa] px-5 py-3.5 text-[14px] font-medium text-[var(--ink)] outline-none transition-all placeholder:text-[var(--muted-2)] focus:border-[var(--brand)] focus:bg-white focus:ring-4 focus:ring-[var(--brand)]/10"
+                        placeholder="e.g. Daily 2-3 swing trade ideas"
+                        type="text"
+                        maxLength={120}
+                        value={newFeature}
+                        onChange={(e) => setNewFeature(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addFeature(); } }}
+                      />
+                      <button
+                        type="button"
+                        onClick={addFeature}
+                        className="flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 text-[14px] font-bold text-white hover:opacity-90 transition-all active:scale-95 cursor-pointer"
+                      >
+                        <Icon name="plus" className="h-4 w-4" />
+                        Add
+                      </button>
+                    </div>
+                    {features.length > 0 ? (
+                      <div className="flex flex-col gap-2">
+                        {features.map((feature, index) => (
+                          <div key={`${feature}-${index}`} className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-slate-50 px-4 py-3">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <Icon name="check" className="h-4 w-4 text-emerald-500 shrink-0" />
+                              <span className="text-[13.5px] font-semibold text-[var(--ink)] truncate">{feature}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeFeature(index)}
+                              className="p-1.5 text-[var(--muted)] hover:text-[var(--red)] transition-colors rounded-full hover:bg-red-50 shrink-0 cursor-pointer"
+                            >
+                              <Icon name="x" className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-[12.5px] italic text-[var(--muted-2)] text-center py-3 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 block">
+                        No features added yet
+                      </span>
+                    )}
+                  </div>
+                </div>
+
                 {/* Plans and Pricing */}
                 <div className="rounded-3xl border border-[var(--line)] bg-white p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow duration-300">
                   <div className="flex items-center justify-between mb-6">
@@ -620,6 +704,21 @@ export default function CreatePlanPage() {
                         </div>
                       )}
                     </div>
+
+                    {/* Features in Preview */}
+                    {features.length > 0 && (
+                      <div className="mt-4 flex flex-col gap-1.5 border-t border-dashed border-[var(--line)] pt-3.5">
+                        <span className="text-[10px] font-bold text-[var(--muted-2)] uppercase tracking-wider mb-0.5 block">Features</span>
+                        <ul className="flex flex-col gap-1.5">
+                          {features.map((feature, index) => (
+                            <li key={`${feature}-${index}`} className="flex items-start gap-1.5 text-[11.5px] font-semibold text-[var(--muted)]">
+                              <Icon name="check" className="h-3 w-3 text-emerald-500 shrink-0 mt-0.5" />
+                              <span className="leading-snug">{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
 
                     {/* Risk Rating Pill */}
                     <div className="mt-4 flex items-center justify-between border-t border-dashed border-[var(--line)] pt-3.5">
