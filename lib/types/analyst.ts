@@ -46,6 +46,7 @@ export interface Trade {
   ltp_change_pct?: number;
   target_price?: number;
   target?: number;
+  targets?: { target_price: number; book_percent: number }[];
   target_2_price?: number;
   stop_loss_price?: number;
   stop_loss?: number;
@@ -60,7 +61,10 @@ export interface Trade {
   is_live_streaming?: boolean;
   live_viewers?: number;
   created_at?: string;
+  nse_timestamp?: string;
   updated_at?: string;
+  exit_price?: number;
+  exit_timestamp?: string;
   status: "ACTIVE" | "CLOSED" | "PENDING" | "TARGET_HIT" | "SL_HIT";
 }
 

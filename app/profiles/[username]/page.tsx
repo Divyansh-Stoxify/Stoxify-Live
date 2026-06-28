@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { AnalystProfile, SubscriptionPlan } from "@/lib/types/analyst";
 import Link from "next/link";
 import { BadgeCheck, Globe, Box } from "lucide-react";
+import { BatchListClient } from "@/components/public/BatchListClient";
 
 interface PageProps {
   params: Promise<{
@@ -133,35 +134,7 @@ export default async function AnalystLandingPage({ params }: PageProps) {
               <p className="text-slate-500 font-medium">No active batches available at the moment.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {plans.map(plan => (
-                <div key={plan.plan_id} className="bg-white rounded-xl border border-slate-200 p-6 flex flex-col h-full hover:shadow-lg transition-shadow">
-                  <div className="mb-4">
-                    <h3 className="text-xl font-bold text-slate-900">{plan.name}</h3>
-                    {plan.description && (
-                      <p className="text-[13px] text-slate-500 mt-2 line-clamp-2">{plan.description}</p>
-                    )}
-                  </div>
-                  
-                  <div className="mt-auto pt-6 border-t border-slate-100 flex items-center justify-between">
-                    <div>
-                      <span className="text-2xl font-bold text-slate-900">₹{plan.price}</span>
-                      {plan.batches?.[0]?.billing_cycle && (
-                        <span className="text-[12px] text-slate-500 font-medium ml-1">
-                          / {plan.batches[0].billing_cycle.toLowerCase()}
-                        </span>
-                      )}
-                    </div>
-                    <Link
-                      href={`/checkout/${plan.plan_id}`}
-                      className="px-4 py-2 bg-[var(--brand)] text-white text-[13px] font-bold rounded-lg hover:bg-[var(--brand-dark)] transition-colors"
-                    >
-                      Subscribe
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <BatchListClient plans={plans} />
           )}
         </div>
       </div>

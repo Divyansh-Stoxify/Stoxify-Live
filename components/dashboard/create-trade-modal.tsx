@@ -56,7 +56,9 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
   const [position, setPosition] = useState<"LONG" | "SHORT">("LONG");
   const [category, setCategory] = useState<"INTRADAY" | "SWING" | "POSITIONAL" | "SHORT_TERM" | "MEDIUM_TERM" | "LONG_TERM">("INTRADAY");
   const [entryPrice, setEntryPrice] = useState("");
-  const [targetPrice, setTargetPrice] = useState("");
+  const [targets, setTargets] = useState<{ price: string; percent: string }[]>([
+    { price: "", percent: "100" }
+  ]);
   const [stopLoss, setStopLoss] = useState("");
   const [notes, setNotes] = useState("");
   const [selectedBatch, setSelectedBatch] = useState<string>("");
@@ -250,15 +252,31 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
     }
 
     const entry = parseFloat(entryPrice);
-    const target = parseFloat(targetPrice);
     const sl = parseFloat(stopLoss);
+
+    if (!selectedPlanId) {
+      nextErrors.planId = "Please select a Batch/Plan";
+    }
 
     if (isNaN(entry) || entry <= 0) {
       nextErrors.entry = "Enter a valid entry price (> 0)";
     }
 
-    if (isNaN(target) || target <= 0) {
-      nextErrors.target = "Enter a valid target price (> 0)";
+    let totalPercent = 0;
+    targets.forEach((t, i) => {
+      const tp = parseFloat(t.price);
+      const pct = parseFloat(t.percent);
+      if (isNaN(tp) || tp <= 0) {
+        nextErrors[`target_${i}_price`] = "Enter a valid target price (> 0)";
+      }
+      if (isNaN(pct) || pct <= 0 || pct > 100) {
+        nextErrors[`target_${i}_percent`] = "Enter a valid percentage (1-100)";
+      }
+      totalPercent += isNaN(pct) ? 0 : pct;
+    });
+
+    if (Math.abs(totalPercent - 100) > 0.01) {
+      nextErrors.targets = `Total book percentage must equal 100% (Current: ${totalPercent}%)`;
     }
 
     if (isNaN(sl) || sl <= 0) {
@@ -271,17 +289,39 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
         if (!isNaN(sl) && sl >= entry) {
           nextErrors.stopLoss = "For Long position, Stop Loss must be less than Entry";
         }
-        if (!isNaN(target) && target <= entry) {
-          nextErrors.target = "For Long position, Target must be greater than Entry";
-        }
+        targets.forEach((t, i) => {
+          const tp = parseFloat(t.price);
+          if (!isNaN(tp)) {
+            if (tp <= entry) {
+              nextErrors[`target_${i}_price`] = "For Long position, Target must be greater than Entry";
+            }
+            if (i > 0) {
+              const prevTp = parseFloat(targets[i - 1].price);
+              if (!isNaN(prevTp) && tp <= prevTp) {
+                nextErrors[`target_${i}_price`] = `Target ${i + 1} must be strictly greater than Target ${i}`;
+              }
+            }
+          }
+        });
       } else {
         // SHORT
         if (!isNaN(sl) && sl <= entry) {
           nextErrors.stopLoss = "For Short position, Stop Loss must be greater than Entry";
         }
-        if (!isNaN(target) && target >= entry) {
-          nextErrors.target = "For Short position, Target must be less than Entry";
-        }
+        targets.forEach((t, i) => {
+          const tp = parseFloat(t.price);
+          if (!isNaN(tp)) {
+            if (tp >= entry) {
+              nextErrors[`target_${i}_price`] = "For Short position, Target must be less than Entry";
+            }
+            if (i > 0) {
+              const prevTp = parseFloat(targets[i - 1].price);
+              if (!isNaN(prevTp) && tp >= prevTp) {
+                nextErrors[`target_${i}_price`] = `Target ${i + 1} must be strictly less than Target ${i}`;
+              }
+            }
+          }
+        });
       }
     }
 
@@ -296,8 +336,12 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
     setIsSubmitting(true);
 
     const entry = parseFloat(entryPrice);
-    const target = parseFloat(targetPrice);
     const sl = parseFloat(stopLoss);
+    
+    const parsedTargets = targets.map((t) => ({
+      target_price: parseFloat(t.price),
+      book_percent: parseFloat(t.percent)
+    }));
 
     // Map position toggle to standard direction string
     let direction: TradeDirection = "LONG";
@@ -316,7 +360,7 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
       direction: direction,
       entry_price: entry,
       stop_loss: sl,
-      target: target,
+      targets: parsedTargets,
       target_note: notes.trim() || undefined,
       batch: selectedBatch || undefined,
       plan_id: selectedPlanId || undefined,
@@ -363,7 +407,7 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
 
   return (
     <div className="fixed inset-0 z-[9990] flex items-center justify-center bg-black/45 backdrop-blur-[2px] p-4 animate-[fadeIn_0.2s_ease-out]">
-      <div className="relative w-[520px] max-w-full rounded-2xl bg-white shadow-[0_24px_64px_rgba(0,0,0,0.15)] border border-[var(--line)] overflow-hidden">
+      <div className="relative w-[520px] max-w-full max-h-[90vh] flex flex-col rounded-2xl bg-white shadow-[0_24px_64px_rgba(0,0,0,0.15)] border border-[var(--line)] overflow-hidden">
         {/* Header */}
         <div className="px-6 py-4 flex items-center justify-between border-b border-dashed border-[#1f7ae0]/25">
           <h2 className="text-[16.5px] font-bold text-[var(--ink)] tracking-[-0.2px]">
@@ -380,8 +424,8 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit}>
-          <div className="p-6 flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="p-6 flex flex-col gap-4 overflow-y-auto flex-1">
             {/* Instrument Symbol Search */}
             <div className="relative" ref={autocompleteRef}>
               <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em] mb-1.5">
@@ -728,7 +772,9 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
               </label>
               <div className="relative">
                 <select
-                  className="w-full appearance-none rounded-lg border border-[var(--line)] bg-white py-2 px-3.5 text-[12.5px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)]"
+                  className={`w-full appearance-none rounded-lg border bg-white py-2 px-3.5 text-[12.5px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
+                    errors.planId ? "border-[var(--red)]" : "border-[var(--line)]"
+                  }`}
                   value={selectedPlanId}
                   onChange={(e) => {
                     const pId = e.target.value;
@@ -736,6 +782,14 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
                     if (pId) {
                       const selectedPlan = plans.find((p) => p.plan_id === pId);
                       setSelectedBatch(selectedPlan?.name || "");
+                      if (selectedPlan) {
+                        if (selectedPlan.horizons && selectedPlan.horizons.length > 0) {
+                          setCategory(selectedPlan.horizons[0] as any);
+                        }
+                        if (selectedPlan.segments && selectedPlan.segments.length > 0) {
+                          setSegment(selectedPlan.segments[0] as any);
+                        }
+                      }
                     } else {
                       setSelectedBatch("");
                     }
@@ -753,6 +807,11 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
                   name="chevronDown"
                 />
               </div>
+              {errors.planId && (
+                <div className="text-[10px] text-[var(--red)] font-semibold mt-1 leading-snug">
+                  {errors.planId}
+                </div>
+              )}
             </div>
 
             {/* Price Row: Entry Price, Target Price, Stop Loss */}
@@ -791,31 +850,103 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
                 )}
               </div>
 
-              {/* Target */}
-              <div>
-                <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em] mb-1.5">
-                  Target Price
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[12.5px] font-medium text-[var(--muted-2)]">
-                    ₹
-                  </span>
-                  <input
-                    className={`w-full rounded-lg border bg-white py-2 pl-6 pr-3.5 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
-                      errors.target ? "border-[var(--red)]" : "border-[var(--line)]"
-                    }`}
-                    onChange={(e) => setTargetPrice(e.target.value)}
-                    placeholder="0.00"
-                    type="number"
-                    step="0.05"
-                    value={targetPrice}
-                  />
+              {/* Targets */}
+              <div className="col-span-3 flex flex-col gap-3 border border-[var(--line)] rounded-xl p-3 bg-[var(--surface)]/50 mt-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em]">
+                    Target Prices
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (targets.length >= 5) return;
+                      const remainingPct = 100 - targets.reduce((acc, t) => acc + (parseFloat(t.percent) || 0), 0);
+                      setTargets([...targets, { price: "", percent: remainingPct > 0 ? String(remainingPct) : "0" }]);
+                    }}
+                    disabled={targets.length >= 5}
+                    className="text-[11px] font-bold text-[var(--brand)] hover:text-[var(--brand-dark)] transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Icon name="plus" className="h-3 w-3" /> Add Target
+                  </button>
                 </div>
-                {errors.target && (
-                  <div className="text-[10px] text-[var(--red)] font-semibold mt-1 leading-snug">
-                    {errors.target}
+                {errors.targets && (
+                  <div className="text-[10px] text-[var(--red)] font-semibold leading-snug">
+                    {errors.targets}
                   </div>
                 )}
+                
+                {targets.map((t, idx) => (
+                  <div key={idx} className="flex items-start gap-2">
+                    <div className="flex-1">
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[12.5px] font-medium text-[var(--muted-2)]">
+                          ₹
+                        </span>
+                        <input
+                          className={`w-full rounded-lg border bg-white py-2 pl-6 pr-3.5 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
+                            errors[`target_${idx}_price`] ? "border-[var(--red)]" : "border-[var(--line)]"
+                          }`}
+                          onChange={(e) => {
+                            const newTargets = [...targets];
+                            newTargets[idx].price = e.target.value;
+                            setTargets(newTargets);
+                          }}
+                          placeholder={`Target ${idx + 1}`}
+                          type="number"
+                          step="0.05"
+                          value={t.price}
+                        />
+                      </div>
+                      {errors[`target_${idx}_price`] && (
+                        <div className="text-[10px] text-[var(--red)] font-semibold mt-1 leading-snug">
+                          {errors[`target_${idx}_price`]}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="w-[100px]">
+                      <div className="relative">
+                        <input
+                          className={`w-full rounded-lg border bg-white py-2 pl-3 pr-6 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
+                            errors[`target_${idx}_percent`] ? "border-[var(--red)]" : "border-[var(--line)]"
+                          }`}
+                          onChange={(e) => {
+                            const newTargets = [...targets];
+                            newTargets[idx].percent = e.target.value;
+                            setTargets(newTargets);
+                          }}
+                          placeholder="%"
+                          type="number"
+                          step="1"
+                          min="1"
+                          max="100"
+                          value={t.percent}
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12.5px] font-medium text-[var(--muted-2)]">
+                          %
+                        </span>
+                      </div>
+                      {errors[`target_${idx}_percent`] && (
+                        <div className="text-[10px] text-[var(--red)] font-semibold mt-1 leading-snug">
+                          {errors[`target_${idx}_percent`]}
+                        </div>
+                      )}
+                    </div>
+
+                    {targets.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newTargets = targets.filter((_, i) => i !== idx);
+                          setTargets(newTargets);
+                        }}
+                        className="p-2 text-[var(--muted-2)] hover:text-[var(--red)] transition-colors rounded-lg hover:bg-[var(--red)]/10 mt-[2px]"
+                      >
+                        <Icon name="trash" className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
 
               {/* Stop Loss */}
@@ -849,7 +980,8 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
             {/* Risk : Reward Ratio */}
             {(() => {
               const e = parseFloat(entryPrice);
-              const t = parseFloat(targetPrice);
+              const totalPercent = targets.reduce((acc, t) => acc + (parseFloat(t.percent) || 0), 0);
+              const t = totalPercent > 0 ? targets.reduce((acc, t) => acc + ((parseFloat(t.price) || 0) * (parseFloat(t.percent) || 0)), 0) / totalPercent : 0;
               const s = parseFloat(stopLoss);
               const valid = !isNaN(e) && !isNaN(t) && !isNaN(s) && e > 0 && t > 0 && s > 0;
               if (!valid) return null;

@@ -2,6 +2,7 @@ import type { CSSProperties, HTMLAttributes } from "react";
 
 export type IconName =
   | "activity"
+  | "arrowLeft"
   | "arrowRight"
   | "ban"
   | "bank"
@@ -65,6 +66,7 @@ export type IconName =
 
 const icons: Record<IconName, string> = {
   activity: "fa-solid fa-wave-pulse",
+  arrowLeft: "fa-solid fa-arrow-left",
   arrowRight: "fa-solid fa-arrow-right",
   ban: "fa-solid fa-ban",
   bank: "fa-solid fa-building-columns",
