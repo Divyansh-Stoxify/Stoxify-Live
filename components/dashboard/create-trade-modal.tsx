@@ -782,14 +782,6 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
                     if (pId) {
                       const selectedPlan = plans.find((p) => p.plan_id === pId);
                       setSelectedBatch(selectedPlan?.name || "");
-                      if (selectedPlan) {
-                        if (selectedPlan.horizons && selectedPlan.horizons.length > 0) {
-                          setCategory(selectedPlan.horizons[0] as any);
-                        }
-                        if (selectedPlan.segments && selectedPlan.segments.length > 0) {
-                          setSegment(selectedPlan.segments[0] as any);
-                        }
-                      }
                     } else {
                       setSelectedBatch("");
                     }
