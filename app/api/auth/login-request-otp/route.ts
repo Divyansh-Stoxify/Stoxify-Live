@@ -58,6 +58,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   let backendResponse: Response;
   try {
+    const fullUrl = `${backendUrls.auth}${body.intent === "ANALYST" ? "/auth/analyst/request-otp" : "/auth/login/request-otp"}`;
+    console.log(`[DEBUG login-request-otp] Fetching: ${fullUrl}`);
     backendResponse = await signedBackendFetch({
       baseUrl: backendUrls.auth,
       path: body.intent === "ANALYST" ? "/auth/analyst/request-otp" : "/auth/login/request-otp",
@@ -66,6 +68,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       body: { identifier },
       extraHeaders: forwardedIpHeaders(request),
     });
+    console.log(`[DEBUG login-request-otp] Response status: ${backendResponse.status}`);
   } catch (error) {
     console.error("[login-request-otp] signedBackendFetch failed:", error);
     return NextResponse.json(
