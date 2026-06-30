@@ -126,7 +126,13 @@ function TradeRow({ trade, liveLtp }: { trade: Trade; liveLtp?: number }) {
 
       {/* Target / SL stacked */}
       <td className="py-4 px-4 text-[13px] text-[var(--ink)]">
-        <div className="font-medium">{(trade.target ?? trade.target_price ?? 0).toLocaleString("en-IN")}</div>
+        <div className="font-medium">
+          {(
+            (trade.targets && trade.targets.length > 0
+              ? ((trade.direction === "SHORT" || trade.direction === "SELL") ? Math.min(...trade.targets.map(t => t.target_price)) : Math.max(...trade.targets.map(t => t.target_price)))
+              : trade.target ?? trade.target_price) ?? 0
+          ).toLocaleString("en-IN")}
+        </div>
         <div className="text-[11px] text-[var(--muted-2)]">
           {(trade.stop_loss ?? trade.stop_loss_price ?? 0).toLocaleString("en-IN")}
         </div>
@@ -251,6 +257,7 @@ export default function DashboardPage() {
   const { trades, isLoading: tradesLoading, isError: tradesError } = useActiveTrades(5);
   const { subscribers, isLoading: subsLoading } = useRecentSubscribers(5);
   const { prices: livePrices } = useWebSocket();
+  const { openCreateTrade } = useDashboard();
 
   return (
     <>
@@ -360,13 +367,13 @@ export default function DashboardPage() {
                     <tr>
                       <td className="px-5 py-10 text-center" colSpan={7}>
                         <div className="text-[13px] text-[var(--muted-2)]">No active trades</div>
-                        <Link
-                          className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--brand)] hover:underline"
-                          href="/dashboard/live-trades/new"
+                        <button
+                          onClick={openCreateTrade}
+                          className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--brand)] hover:underline bg-transparent"
                         >
                           <Icon className="h-3 w-3" name="plus" />
                           Create your first trade
-                        </Link>
+                        </button>
                       </td>
                     </tr>
                   ) : (

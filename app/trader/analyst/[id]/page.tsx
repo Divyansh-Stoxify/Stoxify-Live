@@ -43,7 +43,8 @@ type Trade = {
   direction: string;
   entry_price: number;
   stop_loss: number;
-  target: number;
+  target?: number;
+  targets?: { target_price: number; book_percent: number }[];
   exit_price?: number;
   status: string;
   pnl_percent?: number;
@@ -656,7 +657,7 @@ export default function AnalystDetailPage() {
                           </div>
                           <div className="flex flex-col items-center">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Target</span>
-                            <span className="text-[12.5px] font-bold text-emerald-600">{formatCurrency(trade.target)}</span>
+                            <span className="text-[12.5px] font-bold text-emerald-600">{formatCurrency(trade.targets && trade.targets.length > 0 ? ((trade.direction === "SHORT" || trade.direction === "SELL") ? Math.min(...trade.targets.map(t => t.target_price)) : Math.max(...trade.targets.map(t => t.target_price))) : (trade.target ?? 0))}</span>
                           </div>
                           <div className="flex flex-col items-end">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Stop Loss</span>

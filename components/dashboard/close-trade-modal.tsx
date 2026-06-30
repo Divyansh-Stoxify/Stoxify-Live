@@ -109,21 +109,17 @@ export function CloseTradeModal({ trade, onClose, onSuccess }: CloseTradeModalPr
             {/* Exit Price */}
             <div>
               <label className="mb-1.5 block text-[13px] font-bold text-[var(--ink)]">
-                Exit Price <span className="text-[var(--red)]">*</span>
+                Exit Price <span className="text-[var(--muted-2)] font-medium">(Current Market Price)</span>
               </label>
               <div className="relative">
                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[15px] font-bold text-[var(--muted)]">
                   ₹
                 </span>
-                <input
-                  type="number"
-                  step="0.05"
-                  required
-                  value={exitPrice}
-                  onChange={(e) => setExitPrice(e.target.value)}
-                  className="w-full rounded-xl border border-[var(--line)] bg-white py-2.5 pl-8 pr-4 text-[14px] font-semibold text-[var(--ink)] shadow-sm outline-none transition-all placeholder:text-[var(--muted-2)] focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/10"
-                  placeholder="0.00"
-                />
+                <div
+                  className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface)] py-2.5 pl-8 pr-4 text-[14px] font-semibold text-[var(--muted)] shadow-sm cursor-not-allowed"
+                >
+                  {exitPrice}
+                </div>
               </div>
             </div>
 

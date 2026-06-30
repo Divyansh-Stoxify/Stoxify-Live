@@ -52,9 +52,550 @@ function StatStripSkeleton() {
   );
 }
 
+function calculateRR(trade: Trade): string {
+  if (!trade.exit_price || (!trade.stop_loss && !trade.stop_loss_price) || !trade.entry_price) return "—";
+  const sl = trade.stop_loss ?? trade.stop_loss_price ?? 0;
+  const isShort = trade.direction === "SHORT" || trade.direction === "SELL";
+  const risk = isShort ? sl - trade.entry_price : trade.entry_price - sl;
+  const reward = isShort ? trade.entry_price - trade.exit_price : trade.exit_price - trade.entry_price;
+  
+  if (risk <= 0) return "—"; // Avoid division by zero
+  const rr = reward / risk;
+  
+  return `${rr > 0 ? '+' : ''}${rr.toFixed(2)}x`;
+}
+
+function CompactClosedCard({ trade, onClick }: { trade: Trade; onClick: () => void }) {
+  const isProfit = trade.pnl_percent !== undefined && trade.pnl_percent >= 0;
+  const statusColor = isProfit ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700";
+  const borderColor = isProfit ? "border-green-200" : "border-red-200";
+  const textColor = isProfit ? "text-green-600" : "text-red-600";
+  const rr = calculateRR(trade);
+  
+  return (
+    <div className="relative mt-5">
+      <div className="absolute -top-3 flex w-full justify-between px-4 z-10">
+        <div className="flex gap-1.5">
+          <span className="bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm flex items-center">
+            <Icon name="barChart" className="h-3 w-3 inline mr-1" />
+            {trade.trade_subtype === "LONG_TERM" ? "Long-Term Picks" : "Analyst Signal"}
+          </span>
+        </div>
+        <div className="flex gap-1.5">
+          {trade.trade_subtype && (
+            <span className="bg-[#ffcc00] text-black text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">
+              {trade.trade_subtype}
+            </span>
+          )}
+          <span className="bg-[#0066ff] text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">
+            {trade.segment}
+          </span>
+        </div>
+      </div>
+      
+      <div 
+        className={`border-2 rounded-xl p-4 pt-5 bg-white cursor-pointer transition-shadow hover:shadow-md ${borderColor}`} 
+        onClick={onClick}
+      >
+        <div className="flex justify-between items-start mt-1">
+          <div className="flex gap-3 items-center">
+            <div className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center bg-blue-50 text-blue-500 font-bold overflow-hidden shrink-0 text-lg shadow-inner">
+              {trade.symbol.charAt(0)}
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-gray-900 text-[15px] leading-none">{trade.symbol}</span>
+                <span className="text-[9px] font-bold border border-gray-200 rounded-full px-1.5 py-0.5 text-gray-500 flex items-center gap-1 leading-none shadow-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500" /> NSE
+                </span>
+              </div>
+              <div className="text-[11px] text-gray-500 mt-1 leading-none">{trade.segment_label ?? trade.segment}</div>
+            </div>
+          </div>
+          <div className="text-right flex flex-col items-end">
+            <span className="text-[10px] text-gray-400">Exit Date & Time</span>
+            <span className="text-[11px] font-semibold text-gray-800">
+              {trade.exit_timestamp 
+                ? new Date(trade.exit_timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) 
+                : '—'}
+            </span>
+          </div>
+        </div>
+
+        <div className={`mt-3 py-1.5 rounded-md text-center text-sm font-bold ${statusColor}`}>
+          Trade Status: {isProfit ? 'Closed In Profit' : 'Closed In Loss'}
+        </div>
+
+        <div className="mt-3 border border-gray-100 rounded-lg p-3">
+          <div className="flex justify-between">
+            <div className="flex flex-col">
+              <span className="text-xs text-gray-500">Gain / Loss</span>
+              <span className={`text-sm font-bold ${textColor}`}>
+                {trade.pnl_percent !== undefined ? `${trade.pnl_percent >= 0 ? '+' : ''}${trade.pnl_percent.toFixed(2)}%` : '—'}
+              </span>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="text-xs text-gray-500">R/R Ratio</span>
+              <span className={`text-sm font-bold ${textColor}`}>
+                {rr}
+              </span>
+            </div>
+          </div>
+
+          <div className="h-px w-full bg-gray-100 my-2" />
+
+          <div className="flex justify-between text-[13px]">
+            <div className="flex gap-1 text-gray-500">
+              Entry: <span className="font-semibold text-gray-900">₹{trade.entry_price.toFixed(2)}</span>
+            </div>
+            <div className="w-px h-4 bg-gray-200 mx-2 mt-0.5" />
+            <div className="flex gap-1 text-gray-500">
+              Exit: <span className="font-semibold text-gray-900">₹{trade.exit_price?.toFixed(2) ?? '—'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailedClosedCard({ trade, onClose }: { trade: Trade; onClose: () => void }) {
+  const isProfit = trade.pnl_percent !== undefined && trade.pnl_percent >= 0;
+  const rr = calculateRR(trade);
+  
+  // formatting dates
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return "—";
+    const d = new Date(dateStr);
+    return `${d.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })} | ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+  };
+  
+  const createdDate = formatDate(trade.nse_timestamp ?? trade.created_at);
+  const exitDate = formatDate(trade.exit_timestamp);
+  
+  // duration calculation
+  let durationStr = "—";
+  if ((trade.nse_timestamp ?? trade.created_at) && trade.exit_timestamp) {
+    const start = new Date(trade.nse_timestamp ?? trade.created_at!).getTime();
+    const end = new Date(trade.exit_timestamp).getTime();
+    const diff = Math.max(0, end - start);
+    const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    durationStr = `${d}d ${h}h`;
+  }
+  
+  const isShort = trade.direction === "SHORT" || trade.direction === "SELL";
+  const targetVal = trade.targets && trade.targets.length > 0
+    ? (isShort 
+        ? Math.min(...trade.targets.map(t => t.target_price)) 
+        : Math.max(...trade.targets.map(t => t.target_price)))
+    : trade.target ?? trade.target_price;
+    
+  const slVal = trade.stop_loss ?? trade.stop_loss_price;
+  
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mt-4 pb-6 overflow-hidden">
+      {/* Top Header with Back button */}
+      <div className="flex items-center gap-3 p-4 border-b border-gray-100">
+        <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full transition-colors text-gray-700">
+          <Icon name="arrowLeft" className="w-5 h-5" />
+        </button>
+        <span className="font-bold text-[15px] text-gray-900">Past trade details</span>
+      </div>
+      
+      {/* Symbol Info */}
+      <div className="flex gap-4 items-center p-5">
+        <div className="w-12 h-12 rounded-full flex items-center justify-center bg-blue-50 text-blue-600 font-bold text-xl shrink-0">
+          {trade.symbol.charAt(0)}
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-lg text-gray-900">{trade.symbol}</span>
+            <span className="text-[10px] font-bold border border-gray-200 rounded-md px-1.5 py-0.5 text-gray-500 flex items-center gap-1 shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-500" /> NSE
+            </span>
+            <span className="text-[10px] font-bold border border-blue-200 bg-blue-50 rounded-md px-1.5 py-0.5 text-blue-600 flex items-center gap-1 shadow-sm">
+              <Icon name="check" className="w-3 h-3" /> SEBI
+            </span>
+          </div>
+          <div className="text-xs text-gray-500 mt-1">{trade.segment_label ?? trade.segment}</div>
+        </div>
+      </div>
+      
+      <div className="px-5 space-y-6">
+        {/* Row 1 */}
+        <div className="flex justify-between">
+          <div>
+            <div className="text-xs text-gray-500 font-medium mb-1">Trade return</div>
+            <div className={`text-xl font-bold ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
+              {trade.pnl_percent !== undefined ? `${trade.pnl_percent >= 0 ? '+' : ''}${trade.pnl_percent.toFixed(2)}%` : '—'}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 font-medium mb-1">R/R ratio</div>
+            <div className={`text-xl font-bold ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
+              {rr}
+            </div>
+          </div>
+        </div>
+        
+        {/* Row 2 */}
+        <div className="flex justify-between border-b border-gray-100 pb-6">
+          <div>
+            <div className="text-xs text-gray-500 font-medium mb-1">Entry</div>
+            <div className="text-lg font-bold text-gray-900">₹{trade.entry_price.toFixed(2)}</div>
+            <div className="text-[11px] text-gray-500 mt-1">{createdDate}</div>
+          </div>
+          <div className="text-right">
+            <div className="text-xs text-gray-500 font-medium mb-1">Exit</div>
+            <div className={`text-lg font-bold ${isProfit ? 'text-green-600' : 'text-red-600'}`}>₹{trade.exit_price?.toFixed(2) ?? '—'}</div>
+            <div className="text-[11px] text-gray-500 mt-1">{exitDate}</div>
+          </div>
+        </div>
+        
+        {/* Row 3 */}
+        <div className="flex justify-between">
+          <div>
+            <div className="text-xs text-gray-500 font-medium mb-1">Trade duration</div>
+            <div className="text-sm font-bold text-gray-900">{durationStr}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 font-medium mb-1">Trade direction</div>
+            <div className="text-sm font-bold text-gray-900">{isShort ? 'Short' : 'Long'}</div>
+          </div>
+        </div>
+        
+        {/* Row 4 */}
+        <div className="flex justify-between border-b border-gray-100 pb-6">
+          <div>
+            <div className="text-xs text-gray-500 font-medium mb-1">Trade segment</div>
+            <div className="text-sm font-bold text-gray-900">{trade.segment}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 font-medium mb-1">Trade category</div>
+            <div className="text-sm font-bold text-gray-900">{trade.trade_subtype ?? '—'}</div>
+          </div>
+        </div>
+        
+        {/* Properties List */}
+        <div className="space-y-4 border-b border-gray-100 pb-6">
+          <div className="flex justify-between items-center text-[13px]">
+            <span className="text-gray-700">Status</span>
+            <span className={`font-medium ${isProfit ? 'text-green-600' : 'text-red-600'}`}>{isProfit ? 'Profit booked' : 'Loss booked'}</span>
+          </div>
+          <div className="flex justify-between items-center text-[13px]">
+            <span className="text-gray-700">Stop loss</span>
+            <span className="font-medium text-gray-900">₹{slVal?.toFixed(2) ?? '—'}</span>
+          </div>
+          <div className="flex justify-between items-center text-[13px]">
+            <span className="text-gray-700">Target {trade.targets && trade.targets.length > 0 && "(Max)"}</span>
+            <span className="font-medium text-gray-900">₹{targetVal?.toFixed(2) ?? '—'}</span>
+          </div>
+          {trade.targets && trade.targets.length > 0 && trade.targets.map((t, idx) => (
+            <div key={idx} className="flex justify-between items-center text-[13px]">
+              <span className="text-gray-500 ml-4">T{idx + 1} Target ({t.book_percent}%)</span>
+              <span className="font-medium text-gray-700">₹{t.target_price.toFixed(2)}</span>
+            </div>
+          ))}
+          <div className="flex justify-between items-center text-[13px]">
+            <span className="text-gray-700">Entry</span>
+            <span className="font-medium text-gray-900">{createdDate}</span>
+          </div>
+          <div className="flex justify-between items-center text-[13px]">
+            <span className="text-gray-700">Exit</span>
+            <span className="font-medium text-gray-900">{exitDate}</span>
+          </div>
+        </div>
+        
+        {/* Modification History */}
+        <div>
+          <div className="text-[11px] font-bold text-gray-500 tracking-wider mb-4 uppercase">Actions / Modification History</div>
+          <div className="space-y-5">
+            {/* Action 1: Entry */}
+            <div className="flex justify-between">
+              <div>
+                <div className="text-[13px] text-gray-700">Action</div>
+                <div className="text-[14px] font-bold text-gray-900 mt-1">Trade published</div>
+                <div className="text-[11px] text-gray-500 mt-2">Updated at</div>
+              </div>
+              <div className="text-right">
+                <div className="text-[13px] text-gray-700">Price</div>
+                <div className="text-[14px] font-bold text-gray-900 mt-1">₹{trade.entry_price.toFixed(2)}</div>
+                <div className="text-[11px] text-gray-500 mt-2">{createdDate}</div>
+              </div>
+            </div>
+            
+            {/* Action 2: Exit */}
+            {trade.exit_timestamp && (
+              <div className="flex justify-between">
+                <div>
+                  <div className="text-[13px] text-gray-700">Action</div>
+                  <div className="text-[14px] font-bold text-gray-900 mt-1">{isProfit ? 'Target hit' : 'Stop loss hit'}</div>
+                  <div className="text-[11px] text-gray-500 mt-2">Updated at</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[13px] text-gray-700">Price</div>
+                  <div className="text-[14px] font-bold text-gray-900 mt-1">₹{trade.exit_price?.toFixed(2) ?? '—'}</div>
+                  <div className="text-[11px] text-gray-500 mt-2">{exitDate}</div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        
+      </div>
+    </div>
+  );
+}
+
+/** Detailed active trade card — Signal Details view */
+function DetailedActiveCard({ trade, onClose, onBroadcast }: { trade: Trade; onClose: () => void; onBroadcast: (trade: Trade) => void }) {
+  const { openCloseTrade, openModifyTrade } = useDashboard();
+  const isShort = trade.direction === "SHORT" || trade.direction === "SELL";
+  const stopLossVal = trade.stop_loss ?? trade.stop_loss_price;
+  const targetVal = trade.targets && trade.targets.length > 0
+    ? (isShort 
+        ? Math.min(...trade.targets.map(t => t.target_price)) 
+        : Math.max(...trade.targets.map(t => t.target_price)))
+    : trade.target ?? trade.target_price;
+
+  // Simulated live price
+  const [liveLtp, setLiveLtp] = useState(trade.ltp ?? trade.entry_price);
+  const [priceDirection, setPriceDirection] = useState<"up" | "down" | null>(null);
+  const [flashKey, setFlashKey] = useState(0);
+  useEffect(() => {
+    if (trade.status !== "ACTIVE" && trade.is_live_streaming !== true) return;
+    const interval = setInterval(() => {
+      setLiveLtp((prev) => {
+        const changePct = (Math.random() * 0.12 - 0.06) / 100;
+        const diff = prev * changePct;
+        const next = Math.round((prev + diff) * 100) / 100;
+        setPriceDirection(next > prev ? "up" : next < prev ? "down" : null);
+        setFlashKey((k) => k + 1);
+        return next;
+      });
+    }, 3500 + Math.random() * 2500);
+    return () => clearInterval(interval);
+  }, [trade.status, trade.is_live_streaming]);
+  useEffect(() => { if (priceDirection) { const t = setTimeout(() => setPriceDirection(null), 800); return () => clearTimeout(t); } }, [priceDirection, flashKey]);
+
+  const livePnlPerUnit = isShort ? trade.entry_price - liveLtp : liveLtp - trade.entry_price;
+  const livePnlPct = (livePnlPerUnit / trade.entry_price) * 100;
+
+  // Estimated gains (target to entry)
+  const estimatedGains = targetVal ? (Math.abs(targetVal - trade.entry_price) / trade.entry_price * 100) : 0;
+  // Estimated risk (entry to SL)
+  const estimatedRisk = stopLossVal ? (Math.abs(trade.entry_price - stopLossVal) / trade.entry_price * 100) : 0;
+  // Live R/R
+  const risk = stopLossVal ? Math.abs(trade.entry_price - stopLossVal) : 0;
+  const liveRR = risk > 0 ? livePnlPerUnit / risk : 0;
+
+  const isProfit = livePnlPerUnit >= 0;
+  const isInBuyingRange = Math.abs(liveLtp - trade.entry_price) / trade.entry_price < 0.005;
+  const statusText = isInBuyingRange ? "In Buying Range" : isProfit ? "In Profit" : "In Loss";
+  const statusColor = isInBuyingRange ? "text-green-600" : isProfit ? "text-green-600" : "text-red-600";
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return "—";
+    const d = new Date(dateStr);
+    return `${d.getDate()}${["th","st","nd","rd"][(d.getDate()%100>10&&d.getDate()%100<14)?0:(d.getDate()%10<4?d.getDate()%10:0)] ?? "th"} ${d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+  };
+
+  // Compute exit zone (target range)
+  let exitZoneStr = "—";
+  if (trade.targets && trade.targets.length > 0) {
+    const sorted = [...trade.targets].sort((a, b) => a.target_price - b.target_price);
+    exitZoneStr = `₹${sorted[0].target_price.toFixed(2)} - ₹${sorted[sorted.length - 1].target_price.toFixed(2)}`;
+  } else if (targetVal) {
+    exitZoneStr = `₹${targetVal.toFixed(2)}`;
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mt-4 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-3 p-4 border-b border-gray-100">
+        <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full transition-colors text-gray-700">
+          <Icon name="arrowLeft" className="w-5 h-5" />
+        </button>
+        <span className="font-bold text-[15px] text-gray-900">Signal Details</span>
+      </div>
+
+      <div className="p-5 space-y-5">
+        {/* Symbol Row */}
+        <div className="flex justify-between items-start">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full flex items-center justify-center bg-blue-50 text-blue-600 font-bold text-xl shrink-0">
+              {trade.symbol.charAt(0)}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-lg text-gray-900">{trade.symbol}</span>
+                <span className="text-[10px] font-bold border border-gray-200 rounded-md px-1.5 py-0.5 text-gray-500 flex items-center gap-1 shadow-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500" /> NSE
+                </span>
+              </div>
+              <div className="text-xs text-gray-500 mt-1">{trade.segment_label ?? trade.segment}</div>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className={`text-xl font-extrabold text-gray-900 transition-colors duration-300 ${priceDirection === 'up' ? 'text-green-600' : priceDirection === 'down' ? 'text-red-600' : ''}`}>
+              ₹{liveLtp.toFixed(2)}
+            </div>
+            <div className={`text-sm font-bold mt-0.5 ${isProfit ? 'text-green-600' : 'text-red-500'}`}>
+              {isProfit ? '+' : '-'}₹{Math.abs(livePnlPerUnit).toFixed(2)} ({isProfit ? '+' : ''}{livePnlPct.toFixed(2)}%)
+            </div>
+          </div>
+        </div>
+
+        {/* ── Trade Statistics ── */}
+        <div className="text-[15px] font-bold text-gray-900">Trade Statistics</div>
+
+        {/* Estimated Gains / Estimated Risk */}
+        <div className="border border-gray-200 rounded-xl p-4 space-y-3">
+          <div className="flex justify-between items-center">
+            <div>
+              <div className="text-xs text-gray-500 font-medium mb-0.5">Estimated Gains</div>
+              <div className="text-lg font-bold text-green-600">+{estimatedGains.toFixed(2)}%</div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-gray-500 font-medium mb-0.5">Estimated Risk</div>
+              <div className="text-lg font-bold text-red-600">-{estimatedRisk.toFixed(2)}%</div>
+            </div>
+          </div>
+          <div className="h-px bg-gray-100" />
+          <div className="flex justify-between items-center">
+            <div>
+              <div className="text-xs text-gray-500 font-medium mb-0.5">Live Return</div>
+              <div className={`text-lg font-bold ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
+                {isProfit ? '+' : ''}{livePnlPct.toFixed(2)}%
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-gray-500 font-medium mb-0.5">Live R/R</div>
+              <div className={`text-lg font-bold ${liveRR >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {liveRR >= 0 ? '+' : ''}{liveRR.toFixed(2)}x
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Entry / SL / Target */}
+        <div className="border border-gray-200 rounded-xl p-4 flex justify-between">
+          <div className="text-center flex-1 flex flex-col justify-start">
+            <div className="text-xs text-gray-500 font-medium mb-1">Entry</div>
+            <div className="font-bold text-base text-gray-900">₹{trade.entry_price.toFixed(2)}</div>
+          </div>
+          <div className="w-px bg-gray-200 mx-2"></div>
+          <div className="text-center flex-1 flex flex-col justify-start">
+            <div className="text-[13px] font-medium text-gray-500 mb-1">Target{trade.targets && trade.targets.length > 1 ? 's' : ''}</div>
+            {trade.targets && trade.targets.length > 1 ? (
+              <div className="flex flex-col gap-1 items-center">
+                {trade.targets.map((t, i) => (
+                  <div key={i} className="font-bold text-[14px] text-green-600 leading-none">
+                    T{i + 1} ₹{t.target_price.toFixed(2)}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="font-bold text-base text-green-600">{targetVal ? `₹${targetVal.toFixed(2)}` : '—'}</div>
+            )}
+          </div>
+          <div className="w-px bg-gray-200 mx-2"></div>
+          <div className="text-center flex-1 flex flex-col justify-start">
+            <div className="text-[13px] font-medium text-gray-500 mb-1">SL</div>
+            <div className="font-bold text-base text-red-600">{stopLossVal ? `₹${stopLossVal.toFixed(2)}` : '—'}</div>
+          </div>
+        </div>
+
+        {/* Direction / Segment / Category */}
+        <div className="border border-gray-200 rounded-xl p-4 flex justify-between">
+          <div className="text-center flex-1">
+            <div className="text-xs text-gray-500 font-medium mb-1">Trade Direction</div>
+            <div className="font-bold text-base text-gray-900">{isShort ? 'Short' : 'Long'}</div>
+          </div>
+          <div className="w-px bg-gray-200 mx-2"></div>
+          <div className="text-center flex-1">
+            <div className="text-xs text-gray-500 font-medium mb-1">Trade Segment</div>
+            <div className="font-bold text-base text-gray-900">{trade.segment}</div>
+          </div>
+          <div className="w-px bg-gray-200 mx-2"></div>
+          <div className="text-center flex-1">
+            <div className="text-xs text-gray-500 font-medium mb-1">Trade Category</div>
+            <div className="font-bold text-base text-gray-900">{trade.trade_subtype ?? '—'}</div>
+          </div>
+        </div>
+
+        {/* Properties list */}
+        <div className="border border-gray-200 rounded-xl p-4 space-y-4">
+          <div className="flex justify-between items-center text-[13px]">
+            <span className="text-gray-600">Published At</span>
+            <span className="font-semibold text-gray-900">{formatDate(trade.nse_timestamp ?? trade.created_at)}</span>
+          </div>
+          <div className="h-px bg-gray-100" />
+          <div className="flex justify-between items-center text-[13px]">
+            <span className="text-gray-600">Status</span>
+            <span className={`font-semibold ${statusColor}`}>{statusText}</span>
+          </div>
+          <div className="h-px bg-gray-100" />
+          <div className="flex justify-between items-center text-[13px]">
+            <span className="text-gray-600">Entry Zone</span>
+            <span className="font-semibold text-gray-900">₹{trade.entry_price.toFixed(2)}</span>
+          </div>
+          <div className="h-px bg-gray-100" />
+          <div className="flex justify-between items-center text-[13px]">
+            <span className="text-gray-600">Exit Zone</span>
+            <span className="font-semibold text-gray-900">{exitZoneStr}</span>
+          </div>
+          {trade.targets && trade.targets.length > 1 && trade.targets.map((t, idx) => (
+            <div key={idx}>
+              <div className="h-px bg-gray-100" />
+              <div className="flex justify-between items-center text-[13px] pt-4">
+                <span className="text-gray-500 ml-3">T{idx + 1} ({t.book_percent}%)</span>
+                <span className="font-semibold text-gray-700">₹{t.target_price.toFixed(2)}</span>
+              </div>
+            </div>
+          ))}
+          <div className="h-px bg-gray-100" />
+          <div className="flex justify-between items-center text-[13px]">
+            <span className="text-gray-600">Signal Category</span>
+            <span className="font-semibold text-gray-900">{trade.trade_subtype ?? 'Trading'}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer Actions */}
+      <div className="flex items-center gap-3 border-t border-gray-100 bg-gray-50/50 px-5 py-4">
+        <button
+          className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-bold text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
+          type="button"
+          onClick={() => openModifyTrade(trade)}
+        >
+          Modify
+        </button>
+        <button
+          className="flex-1 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-xs font-bold text-blue-600 shadow-sm transition-colors hover:bg-blue-100"
+          type="button"
+          onClick={() => onBroadcast(trade)}
+        >
+          Broadcast
+        </button>
+        <button
+          className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-red-700"
+          type="button"
+          onClick={() => openCloseTrade(trade)}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /** Full trade card matching the Figma exactly */
 function TradeCard({ trade, onBroadcast, hideActions }: { trade: Trade; onBroadcast: (trade: Trade) => void; hideActions?: boolean }) {
   const { openCloseTrade, openModifyTrade, showSuccessToast } = useDashboard();
+  const [isExpanded, setIsExpanded] = useState(!hideActions);
+  const [showDetails, setShowDetails] = useState(false);
   
   // Simulated real-time price states
   const [liveLtp, setLiveLtp] = useState(trade.ltp ?? trade.entry_price);
@@ -95,7 +636,11 @@ function TradeCard({ trade, onBroadcast, hideActions }: { trade: Trade; onBroadc
 
   const isShort = trade.direction === "SHORT" || trade.direction === "SELL";
   const stopLossVal = trade.stop_loss ?? trade.stop_loss_price;
-  const targetVal = trade.target ?? trade.target_price;
+  const targetVal = trade.targets && trade.targets.length > 0
+    ? (isShort 
+        ? Math.min(...trade.targets.map(t => t.target_price)) 
+        : Math.max(...trade.targets.map(t => t.target_price)))
+    : trade.target ?? trade.target_price;
 
   // Live PNL calculations based on simulated price
   const livePnlPerUnit = isShort
@@ -125,6 +670,19 @@ function TradeCard({ trade, onBroadcast, hideActions }: { trade: Trade; onBroadc
     );
   };
 
+  if (hideActions && !isExpanded) {
+    return <CompactClosedCard trade={trade} onClick={() => setIsExpanded(true)} />;
+  }
+
+  if (hideActions && isExpanded) {
+    return <DetailedClosedCard trade={trade} onClose={() => setIsExpanded(false)} />;
+  }
+
+  // Show detailed active view when card is clicked
+  if (showDetails) {
+    return <DetailedActiveCard trade={trade} onClose={() => setShowDetails(false)} onBroadcast={onBroadcast} />;
+  }
+
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm relative mt-4 overflow-visible flex flex-col">
       {/* Top Badges */}
@@ -148,7 +706,7 @@ function TradeCard({ trade, onBroadcast, hideActions }: { trade: Trade; onBroadc
         </div>
       </div>
 
-      <div className="p-5 flex-1">
+      <div className="p-5 flex-1 cursor-pointer" onClick={() => setShowDetails(true)}>
         {/* Symbol Row */}
         <div className="flex justify-between items-start mb-10">
           <div className="flex items-center gap-3">
@@ -179,53 +737,77 @@ function TradeCard({ trade, onBroadcast, hideActions }: { trade: Trade; onBroadc
         </div>
 
         {/* Progress Slider / Timeline */}
-        <div className="relative h-1 mb-14 mt-6 mx-2">
-          {/* Base line */}
-          {stopLossVal && targetVal ? (
-            <div className="absolute inset-0 w-full h-full rounded-full overflow-hidden">
-              <div className="absolute inset-y-0 left-0 h-full bg-red-500" style={{ width: `${entryPct}%` }} />
-              <div className="absolute inset-y-0 right-0 h-full bg-green-500" style={{ width: `${100 - entryPct}%`, left: `${entryPct}%` }} />
+        {/* Progress Slider / Timeline */}
+        <div className="mb-10 mt-12 mx-4">
+          <div className="text-[13px] font-bold text-gray-700 mb-6">Price progress</div>
+          
+          <div className="relative">
+            {/* Above the bar: Entry and CMP */}
+            <div className="absolute -top-7 -translate-x-1/2 whitespace-nowrap text-[11px] font-semibold text-gray-500" style={{ left: `${entryPct}%` }}>
+              Entry ₹{trade.entry_price.toFixed(2)}
+              <div className="absolute top-[18px] left-1/2 -translate-x-1/2 w-px h-[10px] bg-gray-400" />
             </div>
-          ) : (
-            <div className="absolute inset-0 w-full h-full rounded-full bg-gray-200" />
-          )}
-
-          {/* SL Node */}
-          {stopLossVal && (
-            <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 bg-black rounded-full shadow-sm" style={{ left: '0%' }}>
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 text-[13px] font-bold text-gray-900">SL</div>
+            
+            <div className="absolute -top-12 -translate-x-1/2 whitespace-nowrap text-[12.5px] font-bold text-blue-600 z-10 bg-white/90 backdrop-blur-sm px-1.5 py-0.5 rounded-md shadow-sm border border-blue-100" style={{ left: `${livePct}%` }}>
+              CMP ₹{liveLtp.toFixed(2)}
+              <div className="absolute -bottom-[5px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[4px] border-r-[4px] border-t-[5px] border-l-transparent border-r-transparent border-t-blue-600" />
             </div>
-          )}
 
-          {/* Entry Node */}
-          <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 bg-black rounded-full shadow-sm" style={{ left: `${entryPct}%` }}>
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center">
-              <span className="text-[13px] font-bold text-gray-900">Entry</span>
-              <span className="text-[11px] font-medium text-gray-500 mt-1 whitespace-nowrap">
-                {trade.created_at ? new Date(trade.created_at).toLocaleDateString("en-IN", { day: '2-digit', month: 'short' }) : "—"}
-              </span>
-              <span className="text-[11px] font-medium text-gray-500 whitespace-nowrap">
-                {trade.created_at ? new Date(trade.created_at).toLocaleTimeString("en-IN", { hour: '2-digit', minute: '2-digit', hour12: true }) : ""}
-              </span>
+            {/* The Bar */}
+            <div className="relative h-2.5 rounded-full overflow-hidden bg-gray-100 flex shadow-inner">
+              {stopLossVal && targetVal ? (
+                <>
+                  {/* Red section from SL to Entry */}
+                  <div className="h-full bg-[#ef4444]" style={{ width: `${entryPct}%` }} />
+                  {/* Green section from Entry to Max Target */}
+                  <div className="h-full bg-[#22c55e]" style={{ width: `${100 - entryPct}%` }} />
+                </>
+              ) : (
+                <div className="h-full w-full bg-gray-200" />
+              )}
+            </div>
+
+            {/* Below the bar: SL and Targets */}
+            <div className="relative h-10 text-[11px] font-bold">
+              {stopLossVal && (
+                <div className="absolute top-2 whitespace-nowrap text-red-500" style={{ left: '0%' }}>
+                  <div className="absolute -top-[10px] left-0 w-px h-[8px] bg-red-400" />
+                  SL ₹{stopLossVal.toFixed(2)}
+                </div>
+              )}
+              
+              {trade.targets && trade.targets.length > 1 ? (
+                trade.targets.map((t, i) => {
+                  const tPct = targetVal && stopLossVal && range !== 0 ? Math.min(100, Math.max(0, (!isShort ? ((t.target_price - stopLossVal) / range) : ((stopLossVal - t.target_price) / range)) * 100)) : 50;
+                  return (
+                    <div 
+                      key={i} 
+                      className={`absolute whitespace-nowrap text-[#5b982c] ${i === trade.targets!.length - 1 ? '-translate-x-full' : '-translate-x-1/2'}`} 
+                      style={{ 
+                        left: `${tPct}%`,
+                        top: i % 2 === 0 ? '8px' : '24px'
+                      }}
+                    >
+                      <div 
+                        className="absolute w-px bg-[#5b982c]/40" 
+                        style={{ 
+                          height: i % 2 === 0 ? '8px' : '24px', 
+                          top: i % 2 === 0 ? '-8px' : '-24px', 
+                          left: i === trade.targets!.length - 1 ? '100%' : '50%' 
+                        }} 
+                      />
+                      T{i + 1} ₹{t.target_price.toFixed(2)}
+                    </div>
+                  );
+                })
+              ) : targetVal && (
+                <div className="absolute top-2 -translate-x-full whitespace-nowrap text-[#5b982c]" style={{ left: '100%' }}>
+                  <div className="absolute -top-[10px] right-0 w-px h-[8px] bg-[#5b982c]/40" />
+                  Target ₹{targetVal.toFixed(2)}
+                </div>
+              )}
             </div>
           </div>
-
-          {/* Target Node */}
-          {targetVal && (
-            <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 bg-black rounded-full shadow-sm" style={{ left: '100%' }}>
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 text-[13px] font-bold text-gray-900">Target</div>
-            </div>
-          )}
-
-          {/* Live Price Marker */}
-          {stopLossVal && targetVal && (
-            <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center transition-all duration-700 ease-in-out" style={{ left: `${livePct}%` }}>
-              <div className="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-lg mb-2 absolute bottom-full shadow-md whitespace-nowrap">
-                Live
-              </div>
-              <div className="w-4 h-4 rounded-full border-2 border-red-600 bg-white/40 ring-4 ring-white shadow-sm" />
-            </div>
-          )}
         </div>
 
         {/* Stats Row 1: Potential Profit and Status */}
@@ -246,19 +828,29 @@ function TradeCard({ trade, onBroadcast, hideActions }: { trade: Trade; onBroadc
 
         {/* Stats Row 2: Entry, SL, Target */}
         <div className="border border-gray-200 rounded-xl p-4 flex justify-between shadow-sm">
-          <div className="text-center flex-1">
+          <div className="text-center flex-1 flex flex-col justify-start">
             <div className="text-[13px] font-medium text-gray-500 mb-1">Entry</div>
             <div className="font-bold text-base text-gray-900">₹{trade.entry_price.toFixed(2)}</div>
           </div>
           <div className="w-px bg-gray-200 mx-2"></div>
-          <div className="text-center flex-1">
-            <div className="text-[13px] font-medium text-gray-500 mb-1">Stop Loss</div>
-            <div className="font-bold text-base text-gray-900">{stopLossVal ? `₹${stopLossVal.toFixed(2)}` : '—'}</div>
+          <div className="text-center flex-1 flex flex-col justify-start">
+            <div className="text-[13px] font-medium text-gray-500 mb-1">Target{trade.targets && trade.targets.length > 1 ? 's' : ''}</div>
+            {trade.targets && trade.targets.length > 1 ? (
+              <div className="flex flex-col gap-1 items-center">
+                {trade.targets.map((t, i) => (
+                  <div key={i} className="font-bold text-[14px] text-green-600 leading-none">
+                    T{i + 1} ₹{t.target_price.toFixed(2)}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="font-bold text-base text-green-600">{targetVal ? `₹${targetVal.toFixed(2)}` : '—'}</div>
+            )}
           </div>
           <div className="w-px bg-gray-200 mx-2"></div>
-          <div className="text-center flex-1">
-            <div className="text-[13px] font-medium text-gray-500 mb-1">Target</div>
-            <div className="font-bold text-base text-gray-900">{targetVal ? `₹${targetVal.toFixed(2)}` : '—'}</div>
+          <div className="text-center flex-1 flex flex-col justify-start">
+            <div className="text-[13px] font-medium text-gray-500 mb-1">SL</div>
+            <div className="font-bold text-base text-red-600">{stopLossVal ? `₹${stopLossVal.toFixed(2)}` : '—'}</div>
           </div>
         </div>
       </div>

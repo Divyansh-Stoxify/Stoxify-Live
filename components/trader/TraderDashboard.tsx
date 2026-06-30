@@ -37,7 +37,8 @@ type Trade = {
   direction: string;
   entry_price: number;
   stop_loss: number;
-  target: number;
+  target?: number;
+  targets?: { target_price: number; book_percent: number }[];
   exit_price?: number;
   status: string;
   pnl_percent?: number;
@@ -175,7 +176,7 @@ function TradeCard({ trade }: { trade: Trade }) {
           <div className="text-center">
             <div className="mb-0.5 text-[10px] text-[var(--muted-2)]">Target</div>
             <div className="text-[13px] font-bold text-[var(--green)]">
-              {formatCurrency(trade.target)}
+              {formatCurrency(trade.targets && trade.targets.length > 0 ? ((trade.direction === "SHORT" || trade.direction === "SELL") ? Math.min(...trade.targets.map(t => t.target_price)) : Math.max(...trade.targets.map(t => t.target_price))) : (trade.target ?? 0))}
             </div>
           </div>
           <div className="text-center">

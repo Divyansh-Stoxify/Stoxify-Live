@@ -77,6 +77,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
 
     const data = await backendResponse.json().catch(() => ({}));
+    if (backendResponse.status === 400) {
+      console.log("[analyst/trades] POST 400 ERROR DATA:", JSON.stringify(data, null, 2));
+      console.log("[analyst/trades] POST PAYLOAD WAS:", JSON.stringify(body, null, 2));
+    }
     return NextResponse.json(data, { status: backendResponse.status });
   } catch (error) {
     console.error("[analyst/trades] POST failed:", error);
