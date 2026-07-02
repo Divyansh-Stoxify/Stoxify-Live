@@ -111,7 +111,9 @@ export async function proxyAdminInternalRequest({
         "X-Internal-Secret": internalSecret,
       },
     });
-  } catch {
+    console.log(`[PROXY ADMIN] Fetched ${backendUrls[backend]}${path} - Status: ${upstream.status}`);
+  } catch (error) {
+    console.error(`[PROXY ADMIN] Fetch error for ${backendUrls[backend]}${path}:`, error);
     return NextResponse.json(
       { error: "Unable to reach backend service", code: "SERVICE_UNAVAILABLE" },
       { status: 503 }
