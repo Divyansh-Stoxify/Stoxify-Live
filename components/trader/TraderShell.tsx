@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
+import { useWebSocket } from "@/hooks/use-websocket";
 import { Icon, type IconName } from "@/components/stoxify-icon";
 import { LogoutButton } from "@/components/logout-button";
 
@@ -43,6 +45,17 @@ function getInitials(name: string): string {
 export function TraderShell({ user, children }: { user: TraderUser; children: React.ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  const { latestNotification } = useWebSocket();
+
+  useEffect(() => {
+    if (latestNotification) {
+      toast.success(latestNotification.title, {
+        description: latestNotification.message,
+        duration: 5000,
+      });
+    }
+  }, [latestNotification]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--surface)]">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Icon, type IconName } from "@/components/stoxify-icon";
 
@@ -80,6 +81,7 @@ function getNotifStyle(type: string): {
 }
 
 export default function NotificationsPage() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "unread">("all");
@@ -214,6 +216,15 @@ export default function NotificationsPage() {
                 type="button"
                 onClick={() => {
                   if (!notif.read) markAsRead(notif.notification_id);
+                  
+                  // Routing logic based on related entity
+                  if (notif.related_entity_type === 'TRADE') {
+                    router.push('/trader/dashboard');
+                  } else if (notif.related_entity_type === 'SUBSCRIPTION') {
+                    router.push('/trader/subscriptions');
+                  } else if (notif.related_entity_type === 'BATCH' || notif.related_entity_type === 'PLAN') {
+                    router.push('/trader/dashboard');
+                  }
                 }}
                 className={[
                   "w-full text-left rounded-xl border-[1.5px] p-4 transition-all flex items-start gap-3",
