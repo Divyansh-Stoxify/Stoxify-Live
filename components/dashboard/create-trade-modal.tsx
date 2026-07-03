@@ -391,7 +391,11 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        setErrors({ submit: data.message || data.error || "Failed to create trade" });
+        if (data.code === "SEGMENT_MISMATCH") {
+          setErrors({ batch: "Segment mismatch with selected batch" });
+        } else {
+          setErrors({ submit: data.message || data.error || "Failed to create trade" });
+        }
         setIsSubmitting(false);
         return;
       }

@@ -7,6 +7,17 @@ import { Icon } from "@/components/stoxify-icon";
 import type { PlanBatch } from "@/lib/types/analyst";
 
 type Plan = {
+  batch_id: string;
+  name: string;
+  price: number;
+  discounted_price?: number;
+  days: number;
+  billing_cycle: string;
+  description?: string;
+  is_active?: boolean;
+};
+
+type Batch = {
   plan_id: string;
   analyst_id: string;
   analyst_name: string;
@@ -19,7 +30,7 @@ type Plan = {
   horizons?: string[];
   risk_level?: string;
   features?: string[];
-  batches?: PlanBatch[];
+  batches?: Plan[];
   subscriber_count?: number;
   is_active: boolean;
 };
@@ -78,14 +89,14 @@ function formatPrice(value: number): string {
   }).format(value);
 }
 
-function getStartingPrice(plan: Plan): number {
-  if (plan.batches && plan.batches.length > 0) {
-    const prices = plan.batches
+function getStartingPrice(batch: Batch): number {
+  if (batch.batches && batch.batches.length > 0) {
+    const prices = batch.batches
       .filter((b) => b.is_active !== false)
       .map((b) => b.discounted_price || b.price);
     if (prices.length > 0) return Math.min(...prices);
   }
-  return plan.price;
+  return batch.price;
 }
 
 function formatSegment(seg: string): string {
@@ -100,36 +111,36 @@ const RISK_META: Record<string, { label: string; dot: string; text: string }> = 
   HIGH: { label: "High", dot: "bg-red-500", text: "text-red-600" },
 };
 
-function PlanRow({ plan }: { plan: Plan }) {
-  const startingPrice = getStartingPrice(plan);
+function BatchRow({ batch }: { batch: Batch }) {
+  const startingPrice = getStartingPrice(batch);
   const displaySegments =
-    plan.segments && plan.segments.length > 0
-      ? plan.segments
-      : plan.segment
-        ? [plan.segment]
+    batch.segments && batch.segments.length > 0
+      ? batch.segments
+      : batch.segment
+        ? [batch.segment]
         : [];
-  const risk = plan.risk_level
-    ? RISK_META[plan.risk_level.toUpperCase()]
+  const risk = batch.risk_level
+    ? RISK_META[batch.risk_level.toUpperCase()]
     : undefined;
-  const horizon = plan.horizons && plan.horizons.length > 0 ? plan.horizons[0] : null;
+  const horizon = batch.horizons && batch.horizons.length > 0 ? batch.horizons[0] : null;
 
   return (
     <Link
-      href={`/trader/batch/${plan.plan_id}`}
+      href={`/trader/batch/${batch.plan_id}`}
       className="group grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] items-center gap-4 sm:gap-6 px-5 py-4 transition-colors hover:bg-[var(--line-2)]"
     >
       {/* Left: avatar + name + description */}
       <div className="flex items-start gap-3.5 min-w-0">
         <div
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[13px] font-black text-white shadow-sm"
-          style={{ background: getGradient(plan.analyst_id) }}
+          style={{ background: getGradient(batch.analyst_id) }}
         >
-          {getInitials(plan.analyst_name)}
+          {getInitials(batch.analyst_name)}
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="text-[14.5px] font-bold tracking-tight text-blue-600 truncate group-hover:underline">
-              {plan.name}
+              {batch.name}
             </h3>
             {risk && (
               <span className={`hidden sm:inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider ${risk.text}`}>
@@ -139,12 +150,12 @@ function PlanRow({ plan }: { plan: Plan }) {
             )}
           </div>
           <p className="mt-0.5 text-[12.5px] font-medium leading-snug text-[var(--muted)] line-clamp-2">
-            {plan.description || `Advisory batch by ${plan.analyst_name}`}
+            {batch.description || `Advisory batch by ${batch.analyst_name}`}
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-bold text-[var(--muted-2)]">
             <span className="inline-flex items-center gap-1 text-[var(--muted)]">
               <Icon name="shieldCheck" className="h-3 w-3 text-emerald-600" />
-              {plan.analyst_name}
+              {batch.analyst_name}
             </span>
             {displaySegments.slice(0, 2).map((seg) => (
               <span key={seg} className="inline-flex items-center">
@@ -216,7 +227,7 @@ type Facet = { value: string; count: number };
 type Facets = { segments: Facet[]; risk_levels: Facet[]; horizons: Facet[] };
 
 export default function DiscoverPage() {
-  const [plans, setPlans] = useState<Plan[]>([]);
+  const [batches, setBatches] = useState<Batch[]>([]);
   const [facets, setFacets] = useState<Facets>({ segments: [], risk_levels: [], horizons: [] });
   const [loading, setLoading] = useState(true);
   const [segment, setSegment] = useState<string>("ALL");
@@ -244,7 +255,7 @@ export default function DiscoverPage() {
     return params;
   }, [segment, riskFilter, horizonFilter, debouncedSearch, sort]);
 
-  const fetchPlans = useCallback(async () => {
+  const fetchBatches = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/trader/plans?${filterParams.toString()}`, {
@@ -252,17 +263,17 @@ export default function DiscoverPage() {
         cache: "no-store",
       });
       const data = await res.json().catch(() => ({}));
-      setPlans(data.plans ?? data.data ?? []);
+      setBatches(data.plans ?? data.data ?? []);
     } catch {
-      setPlans([]);
+      setBatches([]);
     } finally {
       setLoading(false);
     }
   }, [filterParams]);
 
   useEffect(() => {
-    fetchPlans();
-  }, [fetchPlans]);
+    fetchBatches();
+  }, [fetchBatches]);
 
   // Facets drive the sidebar's selectable options + counts, independent of the
   // current page. Refetched as filters change so counts stay accurate.
@@ -330,7 +341,7 @@ export default function DiscoverPage() {
   const activeFilterCount = riskFilter.size + horizonFilter.size;
 
   // Filtering and sorting now happen on the backend; render the result as-is.
-  const filteredPlans = plans;
+  const filteredBatches = batches;
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
@@ -492,7 +503,7 @@ export default function DiscoverPage() {
               <span className="text-[12.5px] font-bold text-[var(--muted)]">
                 {loading
                   ? "Loading…"
-                  : `${filteredPlans.length} ${filteredPlans.length === 1 ? "batch" : "batches"}`}
+                  : `${filteredBatches.length} ${filteredBatches.length === 1 ? "batch" : "batches"}`}
               </span>
               <label className="flex items-center gap-2 text-[12.5px] font-bold text-[var(--muted)]">
                 Sort by
@@ -518,7 +529,7 @@ export default function DiscoverPage() {
                 <SkeletonRow />
                 <SkeletonRow />
               </div>
-            ) : filteredPlans.length === 0 ? (
+            ) : filteredBatches.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-500">
                   <Icon name="search" className="h-6 w-6" />
@@ -536,8 +547,8 @@ export default function DiscoverPage() {
               </div>
             ) : (
               <div className="divide-y divide-[var(--line)]">
-                {filteredPlans.map((plan) => (
-                  <PlanRow key={plan.plan_id} plan={plan} />
+                {filteredBatches.map((batch: Batch) => (
+                  <BatchRow key={batch.plan_id} batch={batch} />
                 ))}
               </div>
             )}

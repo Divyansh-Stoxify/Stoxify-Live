@@ -15,7 +15,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 
-type PlanBatch = {
+type Plan = {
   batch_id: string;
   name: string;
   price: number;
@@ -26,7 +26,7 @@ type PlanBatch = {
   is_active?: boolean;
 };
 
-type Plan = {
+type Batch = {
   plan_id: string;
   analyst_id: string;
   analyst_name: string;
@@ -40,7 +40,7 @@ type Plan = {
   risk_level?: string;
   features?: string[];
   subscriber_count?: number;
-  batches?: PlanBatch[];
+  batches?: Plan[];
 };
 
 type AnalystPerformance = {
@@ -128,22 +128,22 @@ const RISK_META: Record<string, { label: string; dot: string; text: string; chip
   HIGH: { label: "High", dot: "bg-red-500", text: "text-red-600", chip: "text-red-700 bg-red-50 border-red-200" },
 };
 
-function getStartingPrice(plan: Plan): number {
-  const active = (plan.batches ?? []).filter((b) => b.is_active !== false);
+function getStartingPrice(batch: Batch): number {
+  const active = (batch.batches ?? []).filter((b) => b.is_active !== false);
   if (active.length > 0) return Math.min(...active.map((b) => b.discounted_price || b.price));
-  return plan.price;
+  return batch.price;
 }
 
 const chartConfig = {
   pnl: { label: "Cumulative P&L", color: "var(--chart-2)" },
 } satisfies ChartConfig;
 
-export default function PlanDetailPage() {
+export default function BatchDetailPage() {
   const params = useParams();
-  const planId = params.batch_id as string;
+  const batchId = params.batch_id as string;
   const router = useRouter();
 
-  const [plan, setPlan] = useState<Plan | null>(null);
+  const [batch, setBatch] = useState<Batch | null>(null);
   const [analyst, setAnalyst] = useState<AnalystProfile | null>(null);
   const [trades, setTrades] = useState<Trade[]>([]);
   const [activeSubscriptions, setActiveSubscriptions] = useState<any[]>([]);
@@ -155,7 +155,7 @@ export default function PlanDetailPage() {
   const [isSubmitting, setIsSubmitting] = useState<Record<string, boolean>>({});
 
   // Checkout state
-  const [checkoutBatch, setCheckoutBatch] = useState<PlanBatch | null>(null);
+  const [checkoutPlan, setCheckoutPlan] = useState<Plan | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [couponError, setCouponError] = useState<string | null>(null);
@@ -163,7 +163,7 @@ export default function PlanDetailPage() {
   const [finalPrice, setFinalPrice] = useState<number | null>(null);
   const [verifyingCoupon, setVerifyingCoupon] = useState(false);
   const [successInfo, setSuccessInfo] = useState<{
-    planName: string;
+    batchName: string;
     tierName: string;
     amount: number;
     paymentId: string;
@@ -181,19 +181,19 @@ export default function PlanDetailPage() {
   );
 
   const isSubscribed = useMemo(
-    () => activeSubscriptions.some((s: any) => s.plan_id === planId),
-    [activeSubscriptions, planId]
+    () => activeSubscriptions.some((s: any) => s.plan_id === batchId),
+    [activeSubscriptions, batchId]
   );
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const planRes = await fetch(`/api/trader/plans/${planId}`, {
+      const planRes = await fetch(`/api/trader/plans/${batchId}`, {
         credentials: "same-origin",
         cache: "no-store",
       });
       const planData = await planRes.json().catch(() => ({}));
-      const resolvedPlan: Plan | null =
+      const resolvedPlan: Batch | null =
         planData?.plan ?? (planData?.plan_id ? planData : planData?.data ?? null);
 
       if (!planRes.ok || !resolvedPlan?.plan_id) {
@@ -201,11 +201,11 @@ export default function PlanDetailPage() {
         setLoading(false);
         return;
       }
-      setPlan(resolvedPlan);
+      setBatch(resolvedPlan);
 
       const [analystRes, tradesRes, subRes] = await Promise.all([
         fetch(`/api/public/analysts/by-id/${resolvedPlan.analyst_id}`, { cache: "no-store" }),
-        fetch(`/api/trader/trades?analyst_id=${resolvedPlan.analyst_id}&plan_id=${planId}&limit=50`, {
+        fetch(`/api/trader/trades?analyst_id=${resolvedPlan.analyst_id}&plan_id=${batchId}&limit=50`, {
           credentials: "same-origin",
           cache: "no-store",
         }),
@@ -227,7 +227,7 @@ export default function PlanDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [planId]);
+  }, [batchId]);
 
   useEffect(() => {
     fetchData();
@@ -268,35 +268,35 @@ export default function PlanDetailPage() {
   }, [closedTrades]);
 
   // ── Checkout ──────────────────────────────────────────────────────────────
-  const startCheckout = (batch?: PlanBatch) => {
-    if (!plan) return;
-    setCheckoutBatch(batch || null);
+  const startCheckout = (plan?: Plan) => {
+    if (!plan && !batch) return;
+    setCheckoutPlan(plan || null);
     setCheckoutOpen(true);
     setCouponCode("");
     setCouponError(null);
     setCouponSuccess(null);
-    setFinalPrice(batch ? batch.discounted_price || batch.price : plan.price);
+    setFinalPrice(plan ? plan.discounted_price || plan.price : batch!.price);
   };
 
   const closeCheckout = () => {
     setCheckoutOpen(false);
-    setCheckoutBatch(null);
+    setCheckoutPlan(null);
   };
 
   const handleVerifyCoupon = async () => {
-    if (!couponCode || !plan) return;
+    if (!couponCode || !batch) return;
     setVerifyingCoupon(true);
     setCouponError(null);
     setCouponSuccess(null);
     try {
-      const price = checkoutBatch ? checkoutBatch.discounted_price || checkoutBatch.price : plan.price;
+      const price = checkoutPlan ? checkoutPlan.discounted_price || checkoutPlan.price : batch.price;
       const res = await fetch("/api/trader/coupons/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           code: couponCode,
-          analyst_id: plan.analyst_id,
-          plan_id: plan.plan_id,
+          analyst_id: batch.analyst_id,
+          plan_id: batch.plan_id,
           price,
         }),
       });
@@ -316,18 +316,18 @@ export default function PlanDetailPage() {
   };
 
   const handleSubscribe = async () => {
-    if (!plan) return;
-    const planId2 = plan.plan_id;
-    const batchId = checkoutBatch?.batch_id;
-    const subKey = batchId ? `${planId2}_${batchId}` : planId2;
+    if (!batch) return;
+    const batchId2 = batch.plan_id;
+    const batchId = checkoutPlan?.batch_id;
+    const subKey = batchId ? `${batchId2}_${batchId}` : batchId2;
 
-    if (isSubscribedToPlanOrBatch(planId2, batchId)) {
+    if (isSubscribedToPlanOrBatch(batchId2, batchId)) {
       setSubError("You already have an active subscription to this tier.");
       return;
     }
-    const planName = plan.name;
-    const tierName = checkoutBatch?.name ?? "Monthly subscription";
-    const amountPaid = finalPrice ?? (checkoutBatch ? checkoutBatch.discounted_price || checkoutBatch.price : plan.price);
+    const batchName = batch.name;
+    const tierName = checkoutPlan?.name ?? "Monthly subscription";
+    const amountPaid = finalPrice ?? (checkoutPlan ? checkoutPlan.discounted_price || checkoutPlan.price : batch.price);
 
     setSubError(null);
     setSubSuccess(null);
@@ -337,7 +337,7 @@ export default function PlanDetailPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          plan_id: planId2,
+          plan_id: batchId2,
           ...(batchId && { batch_id: batchId }),
           ...(couponSuccess && couponCode && { coupon_code: couponCode }),
         }),
@@ -396,7 +396,7 @@ export default function PlanDetailPage() {
             } else {
               closeCheckout();
               setSuccessInfo({
-                planName,
+                batchName,
                 tierName,
                 amount: amountPaid,
                 paymentId: response.razorpay_payment_id,
@@ -444,7 +444,7 @@ export default function PlanDetailPage() {
     );
   }
 
-  if (notFound || !plan) {
+  if (notFound || !batch) {
     return (
       <div className="min-h-screen bg-[#fafafa]">
         <div className="px-6 py-20 max-w-[1100px] mx-auto text-center">
@@ -466,9 +466,9 @@ export default function PlanDetailPage() {
     );
   }
 
-  const risk = plan.risk_level ? RISK_META[plan.risk_level.toUpperCase()] : undefined;
-  const displaySegments = plan.segments && plan.segments.length > 0 ? plan.segments : plan.segment ? [plan.segment] : [];
-  const activeBatches = (plan.batches ?? []).filter((b) => b.is_active !== false);
+  const risk = batch.risk_level ? RISK_META[batch.risk_level.toUpperCase()] : undefined;
+  const displaySegments = batch.segments && batch.segments.length > 0 ? batch.segments : batch.segment ? [batch.segment] : [];
+  const activeBatches = (batch.batches ?? []).filter((b: Plan) => b.is_active !== false);
   const specializations = Array.isArray(analyst?.specialization)
     ? analyst?.specialization
     : analyst?.specialization
@@ -495,33 +495,33 @@ export default function PlanDetailPage() {
           <div className="flex flex-col md:flex-row md:items-start gap-5">
             <div
               className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-[20px] font-black text-white shadow-md"
-              style={{ background: getGradient(plan.analyst_id) }}
+              style={{ background: getGradient(batch.analyst_id) }}
             >
-              {getInitials(plan.analyst_name)}
+              {getInitials(batch.analyst_name)}
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="text-[24px] font-black tracking-tight text-[var(--ink)] leading-tight">
-                {plan.name}
+                {batch.name}
               </h1>
               <div className="mt-1 flex flex-wrap items-center gap-2 text-[13px] font-semibold text-[var(--muted)]">
-                <span>by {plan.analyst_name}</span>
+                <span>by {batch.analyst_name}</span>
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700 border border-emerald-100">
                   <Icon name="shieldCheck" className="h-3 w-3 text-emerald-600" />
                   SEBI
                 </span>
               </div>
-              {plan.description && (
+              {batch.description && (
                 <p className="mt-3 text-[13.5px] font-medium leading-relaxed text-[var(--muted-2)] max-w-2xl">
-                  {plan.description}
+                  {batch.description}
                 </p>
               )}
               <div className="mt-4 flex flex-wrap gap-2">
-                {displaySegments.map((seg) => (
+                {displaySegments.map((seg: string) => (
                   <span key={seg} className="inline-flex items-center rounded-lg bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700 border border-blue-100">
                     {formatSegment(seg)}
                   </span>
                 ))}
-                {plan.horizons?.map((hz) => (
+                {batch.horizons?.map((hz: string) => (
                   <span key={hz} className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-slate-600 text-[11px] font-bold capitalize">
                     <Icon name="timer" className="h-3 w-3 mr-1" />
                     {hz.toLowerCase().replace(/_/g, " ")}
@@ -539,7 +539,7 @@ export default function PlanDetailPage() {
               {risk && (
                 <span className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 ${risk.chip}`}>
                   <span className={`h-2 w-2 rounded-full ${risk.dot}`} />
-                  <span className="text-[10px] font-extrabold tracking-wide uppercase">{plan.risk_level} Volatility</span>
+                  <span className="text-[10px] font-extrabold tracking-wide uppercase">{batch.risk_level} Volatility</span>
                 </span>
               )}
             </div>
@@ -564,11 +564,11 @@ export default function PlanDetailPage() {
           {/* Left column */}
           <div className="flex flex-col gap-8">
             {/* Features */}
-            {plan.features && plan.features.length > 0 && (
+            {batch.features && batch.features.length > 0 && (
               <section className="rounded-2xl border border-[var(--line)] bg-white p-6 shadow-sm">
                 <h2 className="text-[16px] font-black text-[var(--ink)] mb-4">What you get</h2>
                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {plan.features.map((f) => (
+                  {batch.features.map((f: string) => (
                     <li key={f} className="flex items-start gap-2.5 text-[13px] font-semibold text-slate-600">
                       <Icon name="check" className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
                       <span className="leading-snug">{f}</span>
@@ -740,7 +740,7 @@ export default function PlanDetailPage() {
                 {analyst?.profile_pic_url ? (
                   <Image
                     src={analyst.profile_pic_url}
-                    alt={plan.analyst_name}
+                    alt={batch.analyst_name}
                     width={56}
                     height={56}
                     className="h-14 w-14 rounded-2xl object-cover shadow-sm"
@@ -749,14 +749,14 @@ export default function PlanDetailPage() {
                 ) : (
                   <div
                     className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-[16px] font-black text-white shadow-sm"
-                    style={{ background: getGradient(plan.analyst_id) }}
+                    style={{ background: getGradient(batch.analyst_id) }}
                   >
-                    {getInitials(plan.analyst_name)}
+                    {getInitials(batch.analyst_name)}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-[15px] font-bold text-[var(--ink)]">{analyst?.name || plan.analyst_name}</h3>
+                    <h3 className="text-[15px] font-bold text-[var(--ink)]">{analyst?.name || batch.analyst_name}</h3>
                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700 border border-emerald-100">
                       <Icon name="shieldCheck" className="h-3 w-3 text-emerald-600" />
                       SEBI Verified
@@ -778,7 +778,7 @@ export default function PlanDetailPage() {
                     </div>
                   )}
                   <Link
-                    href={`/trader/analyst/${plan.analyst_id}`}
+                    href={`/trader/analyst/${batch.analyst_id}`}
                     className="mt-3 inline-flex items-center gap-1.5 text-[12.5px] font-bold text-blue-600 hover:underline"
                   >
                     View full analyst profile
@@ -794,31 +794,31 @@ export default function PlanDetailPage() {
             <div className="mb-4">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-2)]">Plans start from</span>
               <div className="flex items-baseline gap-1.5 mt-0.5">
-                <span className="text-[26px] font-black tracking-tight text-[var(--ink)]">{formatCurrency(getStartingPrice(plan))}</span>
+                <span className="text-[26px] font-black tracking-tight text-[var(--ink)]">{formatCurrency(getStartingPrice(batch))}</span>
               </div>
             </div>
 
             {activeBatches.length > 0 ? (
               <div className="flex flex-col gap-3">
                 <span className="text-[12px] font-extrabold text-[var(--ink)]">Subscription Plans</span>
-                {activeBatches.map((batch) => {
-                  const owned = isSubscribedToPlanOrBatch(plan.plan_id, batch.batch_id);
-                  const subKey = `${plan.plan_id}_${batch.batch_id}`;
+                {activeBatches.map((plan: Plan) => {
+                  const owned = isSubscribedToPlanOrBatch(batch.plan_id, plan.batch_id);
+                  const subKey = `${batch.plan_id}_${plan.batch_id}`;
                   const submitting = isSubmitting[subKey];
                   return (
-                    <div key={batch.batch_id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+                    <div key={plan.batch_id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
                       <div className="flex items-start justify-between gap-2 mb-1">
-                        <span className="text-[14px] font-bold text-slate-900">{batch.name}</span>
+                        <span className="text-[14px] font-bold text-slate-900">{plan.name}</span>
                         <div className="flex items-baseline gap-1.5 shrink-0">
-                          {batch.discounted_price && (
-                            <span className="text-[12px] font-semibold line-through text-slate-400">₹{batch.price}</span>
+                          {plan.discounted_price && (
+                            <span className="text-[12px] font-semibold line-through text-slate-400">₹{plan.price}</span>
                           )}
-                          <span className="text-[15px] font-black text-slate-800">₹{batch.discounted_price || batch.price}</span>
+                          <span className="text-[15px] font-black text-slate-800">₹{plan.discounted_price || plan.price}</span>
                         </div>
                       </div>
-                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">/ {batch.days} Days</div>
-                      {batch.description && (
-                        <p className="text-[12px] font-medium leading-snug text-[var(--muted-2)] mb-3">{batch.description}</p>
+                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">/ {plan.days} Days</div>
+                      {plan.description && (
+                        <p className="text-[12px] font-medium leading-snug text-[var(--muted-2)] mb-3">{plan.description}</p>
                       )}
                       {owned ? (
                         <button
@@ -833,7 +833,7 @@ export default function PlanDetailPage() {
                         <button
                           type="button"
                           disabled={submitting}
-                          onClick={() => startCheckout(batch)}
+                          onClick={() => startCheckout(plan)}
                           className="w-full rounded-xl bg-slate-900 px-5 py-2.5 text-[12.5px] font-bold text-white transition-all hover:bg-black hover:shadow-md disabled:opacity-50 active:scale-95"
                         >
                           {submitting ? "Processing..." : "Subscribe"}
@@ -846,10 +846,10 @@ export default function PlanDetailPage() {
             ) : (
               <div className="flex flex-col gap-3">
                 <div className="flex items-baseline gap-1">
-                  <span className="text-[20px] font-black text-slate-900">{formatCurrency(plan.price)}</span>
-                  <span className="text-[12.5px] font-bold text-slate-500">/ {plan.days} days</span>
+                  <span className="text-[20px] font-black text-slate-900">{formatCurrency(batch.price)}</span>
+                  <span className="text-[12.5px] font-bold text-slate-500">/ {batch.days} days</span>
                 </div>
-                {isSubscribedToPlanOrBatch(plan.plan_id) ? (
+                {isSubscribedToPlanOrBatch(batch.plan_id) ? (
                   <button
                     type="button"
                     disabled
@@ -861,11 +861,11 @@ export default function PlanDetailPage() {
                 ) : (
                   <button
                     type="button"
-                    disabled={isSubmitting[plan.plan_id]}
+                    disabled={isSubmitting[batch.plan_id]}
                     onClick={() => startCheckout()}
                     className="w-full rounded-xl bg-slate-900 px-6 py-3 text-[13px] font-bold text-white transition-all hover:bg-black hover:shadow-md disabled:opacity-50 active:scale-95"
                   >
-                    {isSubmitting[plan.plan_id] ? "Processing..." : "Subscribe"}
+                    {isSubmitting[batch.plan_id] ? "Processing..." : "Subscribe"}
                   </button>
                 )}
               </div>
@@ -895,11 +895,11 @@ export default function PlanDetailPage() {
             <div className="px-6 py-5 flex flex-col gap-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex flex-col gap-0.5">
-                  <h3 className="text-[15px] font-black text-slate-900 leading-snug">{plan.name}</h3>
+                  <h3 className="text-[15px] font-black text-slate-900 leading-snug">{batch.name}</h3>
                   <p className="text-[13px] font-medium text-slate-500">
-                    {checkoutBatch ? checkoutBatch.name : "Monthly subscription"}
+                    {checkoutPlan ? checkoutPlan.name : "Monthly subscription"}
                     <span className="mx-1.5 text-slate-300">·</span>
-                    {checkoutBatch ? checkoutBatch.days : plan.days} Days
+                    {checkoutPlan ? checkoutPlan.days : batch.days} Days
                   </p>
                 </div>
                 <span className="shrink-0 inline-flex items-center rounded-full bg-blue-50 border border-blue-100 px-2.5 py-1 text-[11px] font-bold text-blue-700">
@@ -931,7 +931,7 @@ export default function PlanDetailPage() {
                       onClick={() => {
                         setCouponSuccess(null);
                         setCouponCode("");
-                        setFinalPrice(checkoutBatch ? checkoutBatch.discounted_price || checkoutBatch.price : plan.price);
+                        setFinalPrice(checkoutPlan ? checkoutPlan.discounted_price || checkoutPlan.price : batch.price);
                       }}
                       className="rounded-lg bg-red-50 px-4 py-2.5 text-[13px] font-bold text-red-600 hover:bg-red-100 transition-colors"
                     >
@@ -948,7 +948,7 @@ export default function PlanDetailPage() {
                 <div className="flex flex-col items-end">
                   {couponSuccess && (
                     <span className="text-[12px] font-bold text-slate-400 line-through mb-0.5">
-                      {formatCurrency(checkoutBatch ? checkoutBatch.discounted_price || checkoutBatch.price : plan.price)}
+                      {formatCurrency(checkoutPlan ? checkoutPlan.discounted_price || checkoutPlan.price : batch.price)}
                     </span>
                   )}
                   <span className="text-[22px] font-black text-slate-900 tracking-tight">{formatCurrency(finalPrice ?? 0)}</span>
@@ -958,8 +958,8 @@ export default function PlanDetailPage() {
 
             <div className="px-6 pb-6">
               {(() => {
-                const owned = isSubscribedToPlanOrBatch(plan.plan_id, checkoutBatch?.batch_id);
-                const submitting = isSubmitting[checkoutBatch ? `${plan.plan_id}_${checkoutBatch.batch_id}` : plan.plan_id];
+                const owned = isSubscribedToPlanOrBatch(batch.plan_id, checkoutPlan?.batch_id);
+                const submitting = isSubmitting[checkoutPlan ? `${batch.plan_id}_${checkoutPlan.batch_id}` : batch.plan_id];
                 return (
                   <button
                     onClick={handleSubscribe}
@@ -985,13 +985,13 @@ export default function PlanDetailPage() {
               </div>
               <h2 className="mt-5 text-[19px] font-black text-slate-900 tracking-tight">Payment Successful</h2>
               <p className="mt-1 text-[13px] font-medium text-slate-500">
-                You&apos;re now subscribed to <span className="font-bold text-slate-700">{successInfo.planName}</span>.
+                You&apos;re now subscribed to <span className="font-bold text-slate-700">{successInfo.batchName}</span>.
               </p>
 
               <div className="mt-6 w-full rounded-xl border border-slate-200 divide-y divide-slate-100">
                 <div className="flex items-center justify-between px-4 py-3">
                   <span className="text-[12.5px] font-semibold text-slate-400">Batch</span>
-                  <span className="text-[12.5px] font-bold text-slate-800">{successInfo.planName} · {successInfo.tierName}</span>
+                  <span className="text-[12.5px] font-bold text-slate-800">{successInfo.batchName} · {successInfo.tierName}</span>
                 </div>
                 <div className="flex items-center justify-between px-4 py-3">
                   <span className="text-[12.5px] font-semibold text-slate-400">Amount Paid</span>
