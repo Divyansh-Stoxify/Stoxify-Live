@@ -21,6 +21,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     trade_type: searchParams.get("trade_type") ?? undefined,
     limit: searchParams.get("limit") ?? "20",
     page: searchParams.get("page") ?? "1",
+    plan_id: searchParams.get("plan_id") ?? undefined,
   };
 
   try {

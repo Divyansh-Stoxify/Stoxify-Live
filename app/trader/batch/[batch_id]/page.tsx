@@ -140,7 +140,7 @@ const chartConfig = {
 
 export default function PlanDetailPage() {
   const params = useParams();
-  const planId = params.plan_id as string;
+  const planId = params.batch_id as string;
   const router = useRouter();
 
   const [plan, setPlan] = useState<Plan | null>(null);
@@ -205,7 +205,7 @@ export default function PlanDetailPage() {
 
       const [analystRes, tradesRes, subRes] = await Promise.all([
         fetch(`/api/public/analysts/by-id/${resolvedPlan.analyst_id}`, { cache: "no-store" }),
-        fetch(`/api/trader/trades?analyst_id=${resolvedPlan.analyst_id}&limit=50`, {
+        fetch(`/api/trader/trades?analyst_id=${resolvedPlan.analyst_id}&plan_id=${planId}&limit=50`, {
           credentials: "same-origin",
           cache: "no-store",
         }),
@@ -451,9 +451,9 @@ export default function PlanDetailPage() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-500">
             <Icon name="search" className="h-6 w-6" />
           </div>
-          <h1 className="text-[18px] font-bold text-[var(--ink)] mb-1.5">Plan not found</h1>
+          <h1 className="text-[18px] font-bold text-[var(--ink)] mb-1.5">Batch not found</h1>
           <p className="text-[13.5px] text-[var(--muted)] font-medium mb-6">
-            This plan may no longer be available.
+            This batch may no longer be available.
           </p>
           <Link
             href="/trader/discover"
@@ -800,7 +800,7 @@ export default function PlanDetailPage() {
 
             {activeBatches.length > 0 ? (
               <div className="flex flex-col gap-3">
-                <span className="text-[12px] font-extrabold text-[var(--ink)]">Subscription Tiers</span>
+                <span className="text-[12px] font-extrabold text-[var(--ink)]">Subscription Plans</span>
                 {activeBatches.map((batch) => {
                   const owned = isSubscribedToPlanOrBatch(plan.plan_id, batch.batch_id);
                   const subKey = `${plan.plan_id}_${batch.batch_id}`;
@@ -990,7 +990,7 @@ export default function PlanDetailPage() {
 
               <div className="mt-6 w-full rounded-xl border border-slate-200 divide-y divide-slate-100">
                 <div className="flex items-center justify-between px-4 py-3">
-                  <span className="text-[12.5px] font-semibold text-slate-400">Plan</span>
+                  <span className="text-[12.5px] font-semibold text-slate-400">Batch</span>
                   <span className="text-[12.5px] font-bold text-slate-800">{successInfo.planName} · {successInfo.tierName}</span>
                 </div>
                 <div className="flex items-center justify-between px-4 py-3">

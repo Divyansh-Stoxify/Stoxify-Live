@@ -275,20 +275,21 @@ export function TraderDashboard({ user }: { user: DashboardUser }) {
     }
   }, []);
 
-  const fetchTrades = useCallback(async (status: string, analystIds: string[]) => {
+  const fetchTrades = useCallback(async (status: string, activeSubs: Subscription[]) => {
     setLoadingTrades(true);
     try {
-      if (analystIds.length === 0) {
+      if (activeSubs.length === 0) {
         setTrades([]);
         setLoadingTrades(false);
         return;
       }
 
-      // Fan out one request per subscribed analyst
+      // Fan out one request per subscription (analyst + plan)
       const results = await Promise.allSettled(
-        analystIds.map(async (analyst_id) => {
+        activeSubs.map(async (sub) => {
+          if (!sub.analyst_id || !sub.plan_id) return [];
           const res = await fetch(
-            `/api/trader/trades?analyst_id=${analyst_id}&status=${status}&limit=10`,
+            `/api/trader/trades?analyst_id=${sub.analyst_id}&plan_id=${sub.plan_id}&status=${status}&limit=10`,
             { credentials: "same-origin", cache: "no-store" }
           );
           const data = await res.json().catch(() => ({}));
@@ -317,18 +318,13 @@ export function TraderDashboard({ user }: { user: DashboardUser }) {
     });
   }, [fetchSubscriptions]);
 
-  // Once subscriptions are loaded, extract analyst IDs and fetch trades
-  const analystIds = Array.from(
-    new Set(subscriptions.map((s) => s.analyst_id).filter(Boolean) as string[])
-  );
-
   useEffect(() => {
     if (loadingSubs) return; // wait for subscriptions
     Promise.resolve().then(() => {
-      fetchTrades(tradeTab, analystIds);
+      fetchTrades(tradeTab, subscriptions);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tradeTab, loadingSubs, analystIds.join(",")]);
+  }, [tradeTab, loadingSubs, subscriptions]);
 
   const firstName = user.name?.split(" ")[0] || "Trader";
 
@@ -365,7 +361,7 @@ export function TraderDashboard({ user }: { user: DashboardUser }) {
               icon="listChecks"
               iconWrap="bg-[var(--brand-light)]"
               iconColor="text-[var(--brand)]"
-              label="Active Plans"
+              label="Active Batches"
               value={subscriptions.length}
               sub={subscriptions.length === 1 ? "subscription" : "subscriptions"}
             />

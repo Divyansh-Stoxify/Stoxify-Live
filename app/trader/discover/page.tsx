@@ -115,7 +115,7 @@ function PlanRow({ plan }: { plan: Plan }) {
 
   return (
     <Link
-      href={`/trader/plan/${plan.plan_id}`}
+      href={`/trader/batch/${plan.plan_id}`}
       className="group grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] items-center gap-4 sm:gap-6 px-5 py-4 transition-colors hover:bg-[var(--line-2)]"
     >
       {/* Left: avatar + name + description */}
@@ -139,7 +139,7 @@ function PlanRow({ plan }: { plan: Plan }) {
             )}
           </div>
           <p className="mt-0.5 text-[12.5px] font-medium leading-snug text-[var(--muted)] line-clamp-2">
-            {plan.description || `Advisory plan by ${plan.analyst_name}`}
+            {plan.description || `Advisory batch by ${plan.analyst_name}`}
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-bold text-[var(--muted-2)]">
             <span className="inline-flex items-center gap-1 text-[var(--muted)]">
@@ -160,7 +160,7 @@ function PlanRow({ plan }: { plan: Plan }) {
       <div className="flex items-center gap-6 sm:gap-8 pl-[58px] sm:pl-0">
         <div className="flex flex-col">
           <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-2)]">
-            Plans Start With :
+            Plans Start At :
           </span>
           <span className="mt-0.5 text-[14px] font-extrabold text-[var(--ink)]">
             {formatPrice(startingPrice)}
@@ -341,8 +341,8 @@ export default function DiscoverPage() {
             Discover Batches
           </h1>
           <p className="text-[14px] text-[var(--muted)] font-medium leading-relaxed">
-            Browse advisory plans from top SEBI-registered Research Analysts. Filter by
-            risk and horizon, compare pricing, and subscribe to plans that fit your trading
+            Browse advisory batches from top SEBI-registered Research Analysts. Filter by
+            risk and horizon, compare pricing, and subscribe to batches that fit your trading
             style.
           </p>
         </div>
@@ -374,7 +374,7 @@ export default function DiscoverPage() {
             />
             <input
               type="text"
-              placeholder="Search analysts or plans..."
+              placeholder="Search analysts or batches..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-xl border border-[var(--line)] bg-white py-2.5 pl-10 pr-4 text-[13px] font-medium text-[var(--ink)] placeholder:text-slate-400 shadow-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
@@ -408,7 +408,7 @@ export default function DiscoverPage() {
             <div className="mb-6">
               <h4 className="text-[12px] font-extrabold text-[var(--ink)] mb-1">Risk Level</h4>
               <p className="text-[11px] font-medium text-[var(--muted-2)] mb-3">
-                Based on plan strategy
+                Based on batch strategy
               </p>
               <div className="grid grid-cols-3 gap-2">
                 {RISK_LEVELS.map(({ key, label }) => {
@@ -492,7 +492,7 @@ export default function DiscoverPage() {
               <span className="text-[12.5px] font-bold text-[var(--muted)]">
                 {loading
                   ? "Loading…"
-                  : `${filteredPlans.length} ${filteredPlans.length === 1 ? "plan" : "plans"}`}
+                  : `${filteredPlans.length} ${filteredPlans.length === 1 ? "batch" : "batches"}`}
               </span>
               <label className="flex items-center gap-2 text-[12.5px] font-bold text-[var(--muted)]">
                 Sort by
@@ -525,8 +525,8 @@ export default function DiscoverPage() {
                 </div>
                 <h3 className="text-[16px] font-bold text-[var(--ink)] mb-1.5">
                   {search || activeFilterCount > 0
-                    ? "No matching plans"
-                    : "No plans available"}
+                    ? "No matching batches"
+                    : "No batches available"}
                 </h3>
                 <p className="text-[13.5px] text-[var(--muted)] font-medium max-w-[320px]">
                   {search || activeFilterCount > 0
