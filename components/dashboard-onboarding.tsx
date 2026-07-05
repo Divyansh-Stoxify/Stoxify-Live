@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Icon } from "@/components/stoxify-icon";
 
 type OnboardingUser = {
@@ -17,6 +17,18 @@ export function DashboardOnboarding({ user }: { user: OnboardingUser }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [showReactivationAlert, setShowReactivationAlert] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("reactivated") === "true") {
+        setShowReactivationAlert(true);
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, "", newUrl);
+      }
+    }
+  }, []);
 
   // Formats Aadhaar as: XXXX XXXX XXXX
   const handleAadhaarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -305,6 +317,41 @@ export function DashboardOnboarding({ user }: { user: OnboardingUser }) {
           </div>
         </div>
       </div>
+
+      {/* ─── REACTIVATION ALERT MODAL ─── */}
+      {showReactivationAlert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-[460px] rounded-2xl bg-white p-7 shadow-2xl relative text-left">
+            <button
+              onClick={() => setShowReactivationAlert(false)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <Icon name="x" className="h-5 w-5" />
+            </button>
+            <div className="flex items-center gap-3 mb-5">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+                <Icon name="shieldCheck" className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-[17px] font-extrabold text-[var(--ink)] select-none">
+                  Account Reactivated
+                </h3>
+                <p className="text-[12px] text-[var(--muted)]">Welcome back!</p>
+              </div>
+            </div>
+            <div className="text-[13.5px] text-[var(--ink)] leading-relaxed mb-6">
+              You deleted your account and it was under deactivation phase for 30 days. After login, you need to delete again in order to go under deactivation phase of 30 days.
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowReactivationAlert(false)}
+              className="w-full rounded-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[13.5px] py-2.5 transition-all shadow-sm active:scale-[0.98]"
+            >
+              I Understand
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

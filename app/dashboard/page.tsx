@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Topbar } from "@/components/dashboard/topbar";
@@ -258,6 +259,18 @@ export default function DashboardPage() {
   const { subscribers, isLoading: subsLoading } = useRecentSubscribers(5);
   const { prices: livePrices } = useWebSocket();
   const { openCreateTrade } = useDashboard();
+  const [showReactivationAlert, setShowReactivationAlert] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("reactivated") === "true") {
+        setShowReactivationAlert(true);
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, "", newUrl);
+      }
+    }
+  }, []);
 
   return (
     <>
@@ -432,6 +445,41 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* ─── REACTIVATION ALERT MODAL ─── */}
+      {showReactivationAlert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-[460px] rounded-2xl bg-white p-7 shadow-2xl relative">
+            <button
+              onClick={() => setShowReactivationAlert(false)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <Icon name="x" className="h-5 w-5" />
+            </button>
+            <div className="flex items-center gap-3 mb-5">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+                <Icon name="shieldCheck" className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-[17px] font-extrabold text-slate-800 select-none">
+                  Account Reactivated
+                </h3>
+                <p className="text-[12px] text-slate-400">Welcome back!</p>
+              </div>
+            </div>
+            <div className="text-[13.5px] text-slate-700 leading-relaxed mb-6">
+              You deleted your account and it was under deactivation phase for 30 days. After login, you need to delete again in order to go under deactivation phase of 30 days.
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowReactivationAlert(false)}
+              className="w-full rounded-lg bg-[var(--brand)] hover:bg-[var(--brand-dark)] text-white font-bold text-[13.5px] py-2.5 transition-all shadow-sm active:scale-[0.98]"
+            >
+              I Understand
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
