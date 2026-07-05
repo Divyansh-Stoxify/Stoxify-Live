@@ -13,6 +13,7 @@ const TABS = [
   { name: "SEBI Verification", icon: "shieldCheck" as const },
   { name: "Notifications", icon: "bell" as const },
   { name: "Bank & Payouts", icon: "bank" as const },
+  { name: "Delete Account", icon: "trash" as const },
 ];
 
 // Seed collection of beautiful avatar images to cycle through when user clicks "Change Avatar"
@@ -276,6 +277,177 @@ function NotificationsTab() {
             </button>
           </div>
         </>
+      )}
+    </div>
+  );
+}
+
+// ── Delete Account Tab ────────────────────────────────────────────────────────
+
+function DeleteAccountTab() {
+  const { showSuccessToast } = useDashboard();
+  const [showModal, setShowModal] = useState(false);
+  const [reason, setReason] = useState("");
+  const [confirmText, setConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (confirmText !== "DELETE") return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/user/deactivate", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: reason.trim() || undefined }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to delete account.");
+      }
+      showSuccessToast("Account Deleted", "Your account has been permanently deleted.");
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 1500);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Something went wrong.";
+      showSuccessToast("Error", msg);
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div
+      role="tabpanel"
+      id="panel-delete-account"
+      aria-labelledby="tab-delete-account"
+      className="flex flex-col gap-6 outline-none"
+    >
+      {/* Header */}
+      <div>
+        <h2 className="text-[17px] font-bold text-red-600 leading-tight flex items-center gap-2">
+          <Icon name="trash" className="h-4.5 w-4.5" />
+          Delete Account
+        </h2>
+        <p className="text-[13px] text-slate-400 mt-1">
+          Permanently remove your Stoxify analyst account and all associated data.
+        </p>
+      </div>
+
+      <hr className="border-slate-100" />
+
+      {/* Warning card */}
+      <div className="rounded-xl border border-red-100 bg-red-50/50 p-5">
+        <div className="flex items-start gap-3.5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600 mt-0.5">
+            <Icon name="x" className="h-5 w-5" />
+          </div>
+          <div>
+            <h4 className="text-[13.5px] font-bold text-red-800 mb-1.5">What happens when you delete your account?</h4>
+            <ul className="text-[12.5px] text-red-700 space-y-1.5 list-disc ml-4 leading-relaxed">
+              <li>All your subscription plans will be deactivated</li>
+              <li>Active subscriber access to your trades will be revoked</li>
+              <li>Your published trade history will be archived</li>
+              <li>All sessions will be terminated across every device</li>
+              <li>Your SEBI verification status and profile will be removed</li>
+              <li>Pending payouts may still be processed per compliance requirements</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <hr className="border-slate-100" />
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setShowModal(true)}
+          className="px-5 py-2.5 bg-red-600 hover:bg-red-700 rounded-lg text-[13px] font-bold text-white transition-colors cursor-pointer shadow-sm active:scale-[0.98]"
+        >
+          Delete My Account
+        </button>
+      </div>
+
+      {/* Confirmation Modal */}
+      {showModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+          onClick={() => !deleting && setShowModal(false)}
+        >
+          <div
+            className="w-full max-w-[460px] rounded-2xl bg-white p-7 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center gap-3 mb-5">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600">
+                <Icon name="trash" className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-[17px] font-extrabold text-slate-800">
+                  Confirm Account Deletion
+                </h3>
+                <p className="text-[12px] text-slate-400">
+                  This action is permanent and cannot be reversed.
+                </p>
+              </div>
+            </div>
+
+            {/* Reason */}
+            <div className="mb-4">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                Why are you leaving? (optional)
+              </label>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                disabled={deleting}
+                placeholder="Your feedback helps us improve..."
+                className="w-full h-20 rounded-xl border border-slate-200 bg-white py-3 px-4 text-[13px] text-slate-800 placeholder:text-slate-400 outline-none focus:border-red-400 transition-colors resize-none"
+              />
+            </div>
+
+            {/* Type DELETE */}
+            <div className="mb-6">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                Type <span className="text-red-600 font-extrabold">DELETE</span> to confirm
+              </label>
+              <input
+                type="text"
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value.toUpperCase())}
+                disabled={deleting}
+                placeholder="DELETE"
+                className="w-full rounded-xl border border-slate-200 bg-white py-3 px-4 text-[13.5px] font-mono tracking-wider text-slate-800 placeholder:text-slate-300 outline-none focus:border-red-400 transition-colors"
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => {
+                  setShowModal(false);
+                  setConfirmText("");
+                  setReason("");
+                }}
+                className="flex-1 px-4 py-2.5 border border-slate-200 rounded-lg text-[13px] font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleting || confirmText !== "DELETE"}
+                onClick={handleDelete}
+                className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 rounded-lg text-[13px] font-bold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
+              >
+                {deleting ? "Deleting..." : "Permanently Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -1131,6 +1303,8 @@ export default function ProfilePage() {
           )}
 
           {activeTab === "Notifications" && <NotificationsTab />}
+
+          {activeTab === "Delete Account" && <DeleteAccountTab />}
         </div>
       </div>
     </>

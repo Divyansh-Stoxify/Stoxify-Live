@@ -225,6 +225,12 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
   const [submittingKyc, setSubmittingKyc] = useState(false);
   const [kycError, setKycError] = useState<string | null>(null);
 
+  // Account Deletion
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
+
   // Subscriptions Tab states
   const [activeSubs, setActiveSubs] = useState<Subscription[]>([]);
   const [expiredSubs, setExpiredSubs] = useState<Subscription[]>([]);
@@ -397,6 +403,33 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
       setKycError(errorMessage);
     } finally {
       setSubmittingKyc(false);
+    }
+  };
+
+  // Account Deletion handler
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== "DELETE") return;
+
+    setDeletingAccount(true);
+    try {
+      const res = await fetch("/api/user/deactivate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: deleteReason.trim() || undefined }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to delete account.");
+      }
+      toast.success("Your account has been deleted.");
+      // Redirect to home after a brief delay so the toast is visible
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 1500);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Something went wrong.";
+      toast.error(errorMessage);
+      setDeletingAccount(false);
     }
   };
 
@@ -693,6 +726,26 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
                   </div>
                 )}
               </div>
+
+              {/* ─── Danger Zone — Account Deletion ─── */}
+              <div className="border-t border-red-100 pt-8 max-w-[540px]">
+                <h3 className="text-[17px] font-extrabold text-red-600 mb-2 select-none flex items-center gap-2">
+                  <Icon name="trash" className="h-4.5 w-4.5" />
+                  Danger Zone
+                </h3>
+                <p className="text-[12.5px] text-[var(--muted)] leading-relaxed mb-5 select-none">
+                  Permanently delete your Stoxify account. This action is irreversible — all your
+                  subscriptions will be cancelled and you will lose access immediately.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteModal(true)}
+                  className="rounded-full border-2 border-red-200 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-[13px] px-6 py-2.5 transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  Delete My Account
+                </button>
+              </div>
             </div>
           )}
 
@@ -940,6 +993,98 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
                 className="rounded-full border border-slate-200 px-4 py-2.5 text-[12.5px] font-bold text-[var(--muted)] hover:text-[var(--ink)] transition-colors"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── DELETE ACCOUNT CONFIRMATION MODAL ─── */}
+      {showDeleteModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+          onClick={() => !deletingAccount && setShowDeleteModal(false)}
+        >
+          <div
+            className="w-full max-w-[460px] rounded-2xl bg-white p-7 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-5">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600">
+                <Icon name="trash" className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-[17px] font-extrabold text-[var(--ink)] select-none">
+                  Delete Account
+                </h3>
+                <p className="text-[12px] text-[var(--muted)]">
+                  This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            {/* Warning */}
+            <div className="rounded-xl bg-red-50 border border-red-100 p-4 mb-5 text-[12.5px] text-red-700 leading-relaxed">
+              <strong className="text-red-800">Warning:</strong> Deleting your account will:
+              <ul className="mt-2 ml-4 space-y-1 list-disc">
+                <li>Cancel all your active subscriptions</li>
+                <li>Revoke access to all analyst signals</li>
+                <li>Log you out of all devices immediately</li>
+                <li>Make this phone number unavailable for re-registration</li>
+              </ul>
+            </div>
+
+            {/* Reason input */}
+            <div className="mb-4">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] mb-2 select-none">
+                Reason for leaving (optional)
+              </label>
+              <textarea
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                disabled={deletingAccount}
+                placeholder="Help us improve by sharing your reason..."
+                className="w-full h-20 rounded-xl border border-slate-200 bg-white py-3 px-4 text-[13px] text-[var(--ink)] placeholder:text-slate-400 outline-none focus:border-red-400 transition-colors resize-none"
+              />
+            </div>
+
+            {/* Confirmation input */}
+            <div className="mb-6">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] mb-2 select-none">
+                Type <span className="text-red-600 font-extrabold">DELETE</span> to confirm
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value.toUpperCase())}
+                disabled={deletingAccount}
+                placeholder="DELETE"
+                className="w-full rounded-xl border border-slate-200 bg-white py-3 px-4 text-[13.5px] font-mono tracking-wider text-[var(--ink)] placeholder:text-slate-300 outline-none focus:border-red-400 transition-colors"
+              />
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                disabled={deletingAccount}
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteConfirmText("");
+                  setDeleteReason("");
+                }}
+                className="flex-1 rounded-full border border-slate-200 px-4 py-2.5 text-[13px] font-bold text-[var(--muted)] hover:text-[var(--ink)] hover:border-slate-400 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deletingAccount || deleteConfirmText !== "DELETE"}
+                onClick={handleDeleteAccount}
+                className="flex-1 rounded-full bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-[13px] px-4 py-2.5 transition-all active:scale-[0.98]"
+              >
+                {deletingAccount ? "Deleting..." : "Permanently Delete"}
               </button>
             </div>
           </div>
