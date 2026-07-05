@@ -19,6 +19,7 @@ type BackendVerifyResponse = {
   session_id?: string;
   is_new_user?: boolean;
   registration_token?: string;
+  reactivated?: boolean;
   user?: {
     user_id?: string;
     name?: string;
