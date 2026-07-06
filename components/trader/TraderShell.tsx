@@ -2,8 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import useSWR from "swr";
 
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+import { useWebSocket } from "@/hooks/use-websocket";
 import { Icon, type IconName } from "@/components/stoxify-icon";
 import { LogoutButton } from "@/components/logout-button";
 
@@ -43,6 +48,32 @@ function getInitials(name: string): string {
 export function TraderShell({ user, children }: { user: TraderUser; children: React.ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  const { latestNotification } = useWebSocket();
+
+  const { data: unreadData, mutate: mutateUnread } = useSWR(
+    "/api/trader/notifications?read=false&limit=1",
+    fetcher
+  );
+  const hasUnread = (unreadData?.notifications?.length ?? unreadData?.data?.length ?? 0) > 0;
+
+  useEffect(() => {
+    if (latestNotification) {
+      mutateUnread();
+      toast.success(latestNotification.title, {
+        description: latestNotification.message,
+        duration: 5000,
+      });
+    }
+  }, [latestNotification, mutateUnread]);
+
+  // If the user visits the notifications page, optimistically clear the badge
+  // until the page actually marks them as read.
+  useEffect(() => {
+    if (pathname === "/trader/notifications") {
+      mutateUnread({ notifications: [] }, { revalidate: true });
+    }
+  }, [pathname, mutateUnread]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--surface)]">
@@ -101,7 +132,12 @@ export function TraderShell({ user, children }: { user: TraderUser; children: Re
                         isActive ? "text-[var(--brand)]" : "text-[var(--muted-2)]",
                       ].join(" ")}
                     />
-                    {item.label}
+                    <div className="flex flex-1 items-center justify-between">
+                      <span>{item.label}</span>
+                      {item.label === "Notifications" && hasUnread && (
+                        <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--brand)] animate-pulse" />
+                      )}
+                    </div>
                   </Link>
                 </li>
               );
@@ -207,7 +243,12 @@ export function TraderShell({ user, children }: { user: TraderUser; children: Re
                         isActive ? "text-[var(--brand)]" : "text-[var(--muted-2)]",
                       ].join(" ")}
                     />
-                    {item.label}
+                    <div className="flex flex-1 items-center justify-between">
+                      <span>{item.label}</span>
+                      {item.label === "Notifications" && hasUnread && (
+                        <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--brand)] animate-pulse" />
+                      )}
+                    </div>
                   </Link>
                 </li>
               );

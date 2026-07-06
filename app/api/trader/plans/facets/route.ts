@@ -16,18 +16,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const { searchParams } = request.nextUrl;
   const query: Record<string, string | undefined> = {
     analyst_id: searchParams.get("analyst_id") ?? undefined,
-    status: searchParams.get("status") ?? undefined,
-    segment: searchParams.get("segment") ?? undefined,
-    trade_type: searchParams.get("trade_type") ?? undefined,
-    limit: searchParams.get("limit") ?? "20",
-    page: searchParams.get("page") ?? "1",
-    plan_id: searchParams.get("plan_id") ?? undefined,
+    segments: searchParams.get("segments") ?? searchParams.get("segment") ?? undefined,
+    risk_levels: searchParams.get("risk_levels") ?? undefined,
+    horizons: searchParams.get("horizons") ?? undefined,
+    search: searchParams.get("search") ?? undefined,
+    is_active: searchParams.get("is_active") ?? "true",
   };
 
   try {
     const backendResponse = await signedBackendFetch({
-      baseUrl: backendUrls.trade,
-      path: "/trades/",
+      baseUrl: backendUrls.plan,
+      path: "/plans/facets",
       method: "GET",
       deviceId,
       accessToken,
@@ -39,7 +38,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(data, { status: backendResponse.status });
   } catch (error) {
-    console.error("[trader/trades] signedBackendFetch failed:", error);
-    return NextResponse.json({ error: "Unable to reach trade service" }, { status: 503 });
+    console.error("[trader/plans/facets] signedBackendFetch failed:", error);
+    return NextResponse.json({ error: "Unable to reach plan service" }, { status: 503 });
   }
 }

@@ -16,7 +16,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const { searchParams } = request.nextUrl;
   const query: Record<string, string | undefined> = {
     analyst_id: searchParams.get("analyst_id") ?? undefined,
-    segment: searchParams.get("segment") ?? undefined,
+    segments: searchParams.get("segments") ?? searchParams.get("segment") ?? undefined,
+    risk_levels: searchParams.get("risk_levels") ?? undefined,
+    horizons: searchParams.get("horizons") ?? undefined,
+    search: searchParams.get("search") ?? undefined,
+    min_price: searchParams.get("min_price") ?? undefined,
+    max_price: searchParams.get("max_price") ?? undefined,
+    sort: searchParams.get("sort") ?? undefined,
+    page: searchParams.get("page") ?? undefined,
     is_active: searchParams.get("is_active") ?? "true",
     limit: searchParams.get("limit") ?? "50",
   };

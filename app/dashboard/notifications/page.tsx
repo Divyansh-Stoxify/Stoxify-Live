@@ -65,6 +65,7 @@ function getNotifStyle(type: string): {
         iconWrap: "bg-[var(--red-light)]",
         iconColor: "text-[var(--red)]",
       };
+    case "ADMIN_BROADCAST":
     case "SYSTEM_ANNOUNCEMENT":
       return {
         icon: "bell",
@@ -80,8 +81,11 @@ function getNotifStyle(type: string): {
   }
 }
 
+import { useDashboard } from "@/components/dashboard/dashboard-context";
+
 export default function NotificationsPage() {
   const router = useRouter();
+  const { setHasUnreadNotifications } = useDashboard();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "unread">("all");
@@ -91,7 +95,7 @@ export default function NotificationsPage() {
     try {
       const params = new URLSearchParams({ limit: "30" });
       if (filter === "unread") params.set("read", "false");
-      const res = await fetch(`/api/trader/notifications?${params.toString()}`, {
+      const res = await fetch(`/api/analyst/notifications?${params.toString()}`, {
         credentials: "same-origin",
         cache: "no-store",
       });
@@ -112,17 +116,25 @@ export default function NotificationsPage() {
 
   const markAsRead = async (notificationId: string) => {
     // Optimistic update
-    setNotifications((prev) =>
-      prev.map((n) => (n.notification_id === notificationId ? { ...n, read: true } : n))
-    );
+    setNotifications((prev) => {
+      const next = prev.map((n) => (n.notification_id === notificationId ? { ...n, read: true } : n));
+      // If no unread notifications are left, clear the badge
+      if (!next.some((n) => !n.read)) {
+        setHasUnreadNotifications(false);
+      }
+      return next;
+    });
 
     try {
-      await fetch("/api/trader/notifications", {
-        method: "PATCH",
+      const res = await fetch("/api/analyst/notifications", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
         body: JSON.stringify({ notification_id: notificationId }),
       });
+      if (!res.ok) {
+        throw new Error("Failed to mark as read");
+      }
     } catch {
       // Revert on error
       setNotifications((prev) =>
@@ -130,13 +142,19 @@ export default function NotificationsPage() {
       );
     }
   };
-
   const unreadCount = notifications.filter((n) => !n.read).length;
+  const displayedNotifications = filter === "unread" ? notifications.filter((n) => !n.read) : notifications;
+
+  useEffect(() => {
+    if (!loading) {
+      setHasUnreadNotifications(unreadCount > 0);
+    }
+  }, [loading, unreadCount, setHasUnreadNotifications]);
 
   return (
     <div className="px-6 py-6 lg:px-8 lg:py-8 max-w-[800px] mx-auto">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-[24px] font-extrabold tracking-[-0.5px] text-[var(--ink)]">
             Notifications
@@ -147,7 +165,7 @@ export default function NotificationsPage() {
               : "You're all caught up!"}
           </p>
         </div>
-        <div className="flex rounded-lg border border-[var(--line)] bg-[var(--surface)] p-0.5">
+        <div className="flex shrink-0 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-0.5">
           <button
             type="button"
             onClick={() => setFilter("all")}
@@ -192,7 +210,7 @@ export default function NotificationsPage() {
             </div>
           ))}
         </div>
-      ) : notifications.length === 0 ? (
+      ) : displayedNotifications.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--brand-light)] text-[var(--brand)]">
             <Icon name="bell" className="h-6 w-6" />
@@ -208,7 +226,7 @@ export default function NotificationsPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {notifications.map((notif) => {
+          {displayedNotifications.map((notif) => {
             const style = getNotifStyle(notif.type);
             return (
               <button
@@ -218,12 +236,16 @@ export default function NotificationsPage() {
                   if (!notif.read) markAsRead(notif.notification_id);
                   
                   // Routing logic based on related entity
-                  if (notif.related_entity_type === 'TRADE') {
-                    router.push('/trader/dashboard');
+                  if (notif.type === 'ADMIN_BROADCAST' || notif.type === 'SYSTEM_ANNOUNCEMENT') {
+                    return; // No redirect for marketing broadcasts and system announcements
+                  } else if (notif.related_entity_type === 'TRADE') {
+                    router.push('/dashboard/live-trades');
                   } else if (notif.related_entity_type === 'SUBSCRIPTION') {
-                    router.push('/trader/subscriptions');
+                    router.push('/dashboard/subscribers');
                   } else if (notif.related_entity_type === 'BATCH' || notif.related_entity_type === 'PLAN') {
-                    router.push('/trader/dashboard');
+                    router.push('/dashboard/subscription-plans');
+                  } else {
+                    router.push('/dashboard');
                   }
                 }}
                 className={[

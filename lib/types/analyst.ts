@@ -21,6 +21,7 @@ export interface SubscriptionPlan {
   risk_level?: string;
   segments: string[];
   horizons: string[];
+  features?: string[];
   price: number;
   billing_cycle: PlanBillingCycle;
   status: PlanStatus;

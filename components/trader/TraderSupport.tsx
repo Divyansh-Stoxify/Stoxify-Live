@@ -30,9 +30,9 @@ const FAQ_ITEMS: FAQItem[] = [
   {
     id: "faq-2",
     category: "subscriptions",
-    question: "How do I subscribe to an analyst's plan?",
+    question: "How do I subscribe to an analyst's batch?",
     answer:
-      "Navigate to the 'Discover' section from the sidebar, find an analyst you wish to follow, click 'View Analyst', select a premium batch, and complete the secure payment process.",
+      "Visit the Discover page to browse analysts and their available batches. Once you find one that suits your needs, click 'Subscribe', select your tier, and complete the checkout.",
   },
   {
     id: "faq-3",

@@ -11,6 +11,7 @@ import {
 import { useLiveTradesStats } from "@/hooks/use-analyst-dashboard";
 import { useDashboard } from "@/components/dashboard/dashboard-context";
 import { BroadcastModal } from "@/components/dashboard/broadcast-modal";
+import { useWebSocket } from "@/hooks/use-websocket";
 import type { Trade } from "@/lib/types/analyst";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -349,7 +350,7 @@ function DetailedClosedCard({ trade, onClose }: { trade: Trade; onClose: () => v
 }
 
 /** Detailed active trade card — Signal Details view */
-function DetailedActiveCard({ trade, onClose, onBroadcast }: { trade: Trade; onClose: () => void; onBroadcast: (trade: Trade) => void }) {
+function DetailedActiveCard({ trade, onClose, onBroadcast, liveLtpProp }: { trade: Trade; onClose: () => void; onBroadcast: (trade: Trade) => void; liveLtpProp?: number }) {
   const { openCloseTrade, openModifyTrade } = useDashboard();
   const isShort = trade.direction === "SHORT" || trade.direction === "SELL";
   const stopLossVal = trade.stop_loss ?? trade.stop_loss_price;
@@ -359,25 +360,25 @@ function DetailedActiveCard({ trade, onClose, onBroadcast }: { trade: Trade; onC
         : Math.max(...trade.targets.map(t => t.target_price)))
     : trade.target ?? trade.target_price;
 
-  // Simulated live price
-  const [liveLtp, setLiveLtp] = useState(trade.ltp ?? trade.entry_price);
+  // Live price via WebSockets
+  const [liveLtp, setLiveLtp] = useState(liveLtpProp ?? trade.ltp ?? trade.entry_price);
   const [priceDirection, setPriceDirection] = useState<"up" | "down" | null>(null);
   const [flashKey, setFlashKey] = useState(0);
+
   useEffect(() => {
-    if (trade.status !== "ACTIVE" && trade.is_live_streaming !== true) return;
-    const interval = setInterval(() => {
-      setLiveLtp((prev) => {
-        const changePct = (Math.random() * 0.12 - 0.06) / 100;
-        const diff = prev * changePct;
-        const next = Math.round((prev + diff) * 100) / 100;
-        setPriceDirection(next > prev ? "up" : next < prev ? "down" : null);
-        setFlashKey((k) => k + 1);
-        return next;
-      });
-    }, 3500 + Math.random() * 2500);
-    return () => clearInterval(interval);
-  }, [trade.status, trade.is_live_streaming]);
-  useEffect(() => { if (priceDirection) { const t = setTimeout(() => setPriceDirection(null), 800); return () => clearTimeout(t); } }, [priceDirection, flashKey]);
+    if (liveLtpProp !== undefined && liveLtpProp !== liveLtp) {
+      setPriceDirection(liveLtpProp > liveLtp ? "up" : "down");
+      setLiveLtp(liveLtpProp);
+      setFlashKey((k) => k + 1);
+    }
+  }, [liveLtpProp, liveLtp]);
+
+  useEffect(() => { 
+    if (priceDirection) { 
+      const t = setTimeout(() => setPriceDirection(null), 800); 
+      return () => clearTimeout(t); 
+    } 
+  }, [priceDirection, flashKey]);
 
   const livePnlPerUnit = isShort ? trade.entry_price - liveLtp : liveLtp - trade.entry_price;
   const livePnlPct = (livePnlPerUnit / trade.entry_price) * 100;
@@ -592,38 +593,24 @@ function DetailedActiveCard({ trade, onClose, onBroadcast }: { trade: Trade; onC
 }
 
 /** Full trade card matching the Figma exactly */
-function TradeCard({ trade, onBroadcast, hideActions }: { trade: Trade; onBroadcast: (trade: Trade) => void; hideActions?: boolean }) {
+function TradeCard({ trade, onBroadcast, hideActions, liveLtpProp }: { trade: Trade; onBroadcast: (trade: Trade) => void; hideActions?: boolean; liveLtpProp?: number }) {
   const { openCloseTrade, openModifyTrade, showSuccessToast } = useDashboard();
   const [isExpanded, setIsExpanded] = useState(!hideActions);
   const [showDetails, setShowDetails] = useState(false);
   
-  // Simulated real-time price states
-  const [liveLtp, setLiveLtp] = useState(trade.ltp ?? trade.entry_price);
+  // Live price via WebSockets
+  const [liveLtp, setLiveLtp] = useState(liveLtpProp ?? trade.ltp ?? trade.entry_price);
   const [priceDirection, setPriceDirection] = useState<"up" | "down" | null>(null);
   const [flashKey, setFlashKey] = useState(0);
   const [isNotePublic, setIsNotePublic] = useState(true);
 
-  // Fluctuating LTP logic
   useEffect(() => {
-    if (trade.status !== "ACTIVE" && trade.is_live_streaming !== true) {
-      return;
+    if (liveLtpProp !== undefined && liveLtpProp !== liveLtp) {
+      setPriceDirection(liveLtpProp > liveLtp ? "up" : "down");
+      setLiveLtp(liveLtpProp);
+      setFlashKey((k) => k + 1);
     }
-    const interval = setInterval(() => {
-      setLiveLtp((prevLtp) => {
-        const changePct = (Math.random() * 0.12 - 0.06) / 100; // ±0.06% change
-        const diff = prevLtp * changePct;
-        const nextLtp = Math.round((prevLtp + diff) * 100) / 100;
-        if (nextLtp > prevLtp) {
-          setPriceDirection("up");
-        } else if (nextLtp < prevLtp) {
-          setPriceDirection("down");
-        }
-        setFlashKey((k) => k + 1);
-        return nextLtp;
-      });
-    }, 3500 + Math.random() * 2500);
-    return () => clearInterval(interval);
-  }, [trade.status, trade.is_live_streaming]);
+  }, [liveLtpProp, liveLtp]);
 
   useEffect(() => {
     if (priceDirection) {
@@ -680,7 +667,7 @@ function TradeCard({ trade, onBroadcast, hideActions }: { trade: Trade; onBroadc
 
   // Show detailed active view when card is clicked
   if (showDetails) {
-    return <DetailedActiveCard trade={trade} onClose={() => setShowDetails(false)} onBroadcast={onBroadcast} />;
+    return <DetailedActiveCard trade={trade} onClose={() => setShowDetails(false)} onBroadcast={onBroadcast} liveLtpProp={liveLtpProp} />;
   }
 
   return (
@@ -941,6 +928,7 @@ export default function LiveTradesPage() {
   const [activeTab, setActiveTab] = useState<TabId>("active");
   const [broadcastTrade, setBroadcastTrade] = useState<Trade | null>(null);
   const { openCreateTrade, showSuccessToast } = useDashboard();
+  const { prices: livePrices } = useWebSocket();
 
   const { stats, isLoading: statsLoading } = useLiveTradesStats();
   const {
@@ -1075,7 +1063,7 @@ export default function LiveTradesPage() {
               </div>
             ) : (
               activeTrades.map((trade) => (
-                <TradeCard key={trade.trade_id} trade={trade} onBroadcast={setBroadcastTrade} />
+                <TradeCard key={trade.trade_id} trade={trade} onBroadcast={setBroadcastTrade} liveLtpProp={livePrices[trade.symbol]} />
               ))
             )}
           </div>
@@ -1095,7 +1083,7 @@ export default function LiveTradesPage() {
               </div>
             ) : (
               pendingTrades.map((trade) => (
-                <TradeCard key={trade.trade_id} trade={trade} onBroadcast={setBroadcastTrade} />
+                <TradeCard key={trade.trade_id} trade={trade} onBroadcast={setBroadcastTrade} liveLtpProp={livePrices[trade.symbol]} />
               ))
             )}
           </div>
@@ -1121,7 +1109,7 @@ export default function LiveTradesPage() {
               </div>
             ) : (
               closedTrades.map((trade) => (
-                <TradeCard key={trade.trade_id} trade={trade} onBroadcast={setBroadcastTrade} hideActions />
+                <TradeCard key={trade.trade_id} trade={trade} onBroadcast={setBroadcastTrade} hideActions liveLtpProp={livePrices[trade.symbol]} />
               ))
             )}
           </div>

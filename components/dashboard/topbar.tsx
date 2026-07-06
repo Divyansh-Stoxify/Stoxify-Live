@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { Icon } from "@/components/stoxify-icon";
 import { useAnalystProfile } from "@/hooks/use-analyst-dashboard";
 import { useDashboard } from "@/components/dashboard/dashboard-context";
@@ -33,7 +34,7 @@ export function Topbar({
   actions,
 }: TopbarProps) {
   const { profile } = useAnalystProfile();
-  const { openCreateTrade } = useDashboard();
+  const { openCreateTrade, hasUnreadNotifications } = useDashboard();
 
   /** Returns initials from a full name: "Rohan Mehta" → "RM" */
   const initials = profile?.name
@@ -97,15 +98,17 @@ export function Topbar({
         )}
 
         {/* Notification bell */}
-        <button
+        <Link
+          href="/dashboard/notifications"
           aria-label="Notifications"
           className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--line)] bg-white text-[var(--muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--ink)]"
-          type="button"
         >
           <Icon className="h-4 w-4" name="bell" />
           {/* Unread indicator dot */}
-          <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[var(--brand)]" />
-        </button>
+          {hasUnreadNotifications && (
+            <span className="absolute right-[9px] top-[9px] h-2 w-2 rounded-full bg-[var(--brand)] shadow-[0_0_0_2px_white]"></span>
+          )}
+        </Link>
 
         {/* Analyst avatar + name — shown on pages like Live Trades */}
         {showUserProfile && (

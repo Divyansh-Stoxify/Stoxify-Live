@@ -23,6 +23,8 @@ interface UseWebSocketReturn {
   isConnected: boolean;
   /** Last connection error, if any */
   error: string | null;
+  /** The latest notification received, if any */
+  latestNotification: any | null;
 }
 
 const MAX_RECONNECT_ATTEMPTS = 5;
@@ -32,6 +34,7 @@ export function useWebSocket(): UseWebSocketReturn {
   const [prices, setPrices] = useState<PriceMap>({});
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [latestNotification, setLatestNotification] = useState<any | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttemptsRef = useRef(0);
@@ -86,6 +89,8 @@ export function useWebSocket(): UseWebSocketReturn {
               ...prev,
               ...msg.prices,
             }));
+          } else if (msg.type === "NOTIFICATION_NEW" && msg.data) {
+            setLatestNotification(msg.data);
           }
 
           // Keep-alive pong is handled server-side; we send pings
@@ -150,5 +155,5 @@ export function useWebSocket(): UseWebSocketReturn {
     };
   }, [connect]);
 
-  return { prices, isConnected, error };
+  return { prices, isConnected, error, latestNotification };
 }

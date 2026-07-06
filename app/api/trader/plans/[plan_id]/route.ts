@@ -4,7 +4,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { backendUrls, forwardedIpHeaders, signedBackendFetch } from "@/lib/backend/index";
 import { userCookieNames } from "@/lib/auth/cookies";
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
+/**
+ * GET /api/trader/plans/[plan_id]
+ * Fetches details of a single plan for a trader. Traders hold PWR_PLAN_READ_ALL
+ * (same power the discovery list uses), which the backend GET /plans/:plan_id
+ * route also requires — so this passthrough works for trader sessions.
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ plan_id: string }> }
+): Promise<NextResponse> {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get(userCookieNames.accessToken)?.value;
   const deviceId = cookieStore.get(userCookieNames.deviceId)?.value ?? "user-web-unknown";
@@ -13,33 +22,26 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { searchParams } = request.nextUrl;
-  const query: Record<string, string | undefined> = {
-    analyst_id: searchParams.get("analyst_id") ?? undefined,
-    status: searchParams.get("status") ?? undefined,
-    segment: searchParams.get("segment") ?? undefined,
-    trade_type: searchParams.get("trade_type") ?? undefined,
-    limit: searchParams.get("limit") ?? "20",
-    page: searchParams.get("page") ?? "1",
-    plan_id: searchParams.get("plan_id") ?? undefined,
-  };
+  const { plan_id } = await params;
+  if (!plan_id) {
+    return NextResponse.json({ error: "Missing plan_id" }, { status: 400 });
+  }
 
   try {
+    console.log('TESTING GET PLAN:', backendUrls.plan, plan_id);
     const backendResponse = await signedBackendFetch({
-      baseUrl: backendUrls.trade,
-      path: "/trades/",
+      baseUrl: backendUrls.plan,
+      path: `/plans/${plan_id}`,
       method: "GET",
       deviceId,
       accessToken,
-      query,
       extraHeaders: forwardedIpHeaders(request),
     });
 
     const data = await backendResponse.json().catch(() => ({}));
-
     return NextResponse.json(data, { status: backendResponse.status });
   } catch (error) {
-    console.error("[trader/trades] signedBackendFetch failed:", error);
-    return NextResponse.json({ error: "Unable to reach trade service" }, { status: 503 });
+    console.error("[trader/plans/[plan_id]] GET failed:", error);
+    return NextResponse.json({ error: "Unable to reach plan service" }, { status: 503 });
   }
 }

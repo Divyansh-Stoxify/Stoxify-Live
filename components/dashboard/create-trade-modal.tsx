@@ -283,6 +283,16 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
       nextErrors.stopLoss = "Enter a valid stop loss (> 0)";
     }
 
+    // Batch is required (min 1)
+    if (!selectedPlanId) {
+      nextErrors.batch = "Select at least one batch";
+    }
+
+    // F&O contract expiry is required
+    if (segment === "FNO" && !expiry.trim()) {
+      nextErrors.expiry = "Expiry is required for F&O";
+    }
+
     // Stop Loss and Target placement validation
     if (!isNaN(entry) && entry > 0) {
       if (position === "LONG") {
@@ -362,6 +372,7 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
       stop_loss: sl,
       targets: parsedTargets,
       target_note: notes.trim() || undefined,
+      rationale: notes.trim() || undefined,
       batch: selectedBatch || undefined,
       plan_id: selectedPlanId || undefined,
       expiry: expiry || undefined,
@@ -380,7 +391,11 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        setErrors({ submit: data.message || data.error || "Failed to create trade" });
+        if (data.code === "SEGMENT_MISMATCH") {
+          setErrors({ batch: "Segment mismatch with selected batch" });
+        } else {
+          setErrors({ submit: data.message || data.error || "Failed to create trade" });
+        }
         setIsSubmitting(false);
         return;
       }
@@ -646,18 +661,23 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
                   {/* Expiry */}
                   <div>
                     <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em] mb-1.5">
-                      Expiry
+                      Expiry <span className="text-[var(--red)]">*</span>
                     </label>
                     <input
-                      className={`w-full rounded-lg border border-[var(--line)] py-2 px-3 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
-                        isAutoDetected ? "bg-[var(--surface)] opacity-70 cursor-not-allowed" : "bg-white"
-                      }`}
+                      className={`w-full rounded-lg border py-2 px-3 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
+                        errors.expiry ? "border-[var(--red)]" : "border-[var(--line)]"
+                      } ${isAutoDetected ? "bg-[var(--surface)] opacity-70 cursor-not-allowed" : "bg-white"}`}
                       onChange={(e) => setExpiry(e.target.value)}
                       placeholder="e.g. 26JUN"
                       type="text"
                       value={expiry}
                       disabled={isAutoDetected}
                     />
+                    {errors.expiry && (
+                      <div className="text-[10px] text-[var(--red)] font-semibold mt-1 leading-snug">
+                        {errors.expiry}
+                      </div>
+                    )}
                   </div>
 
                   {/* Strike Price */}
@@ -768,12 +788,12 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
             {/* Batch Selection */}
             <div>
               <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em] mb-1.5">
-                Batch
+                Batch <span className="text-[var(--red)]">*</span>
               </label>
               <div className="relative">
                 <select
                   className={`w-full appearance-none rounded-lg border bg-white py-2 px-3.5 text-[12.5px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
-                    errors.planId ? "border-[var(--red)]" : "border-[var(--line)]"
+                    (errors.batch || errors.planId) ? "border-[var(--red)]" : "border-[var(--line)]"
                   }`}
                   value={selectedPlanId}
                   onChange={(e) => {
@@ -782,6 +802,7 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
                     if (pId) {
                       const selectedPlan = plans.find((p) => p.plan_id === pId);
                       setSelectedBatch(selectedPlan?.name || "");
+                      if (errors.batch) setErrors((prev) => ({ ...prev, batch: "" }));
                     } else {
                       setSelectedBatch("");
                     }
@@ -799,9 +820,9 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
                   name="chevronDown"
                 />
               </div>
-              {errors.planId && (
+              {(errors.batch || errors.planId) && (
                 <div className="text-[10px] text-[var(--red)] font-semibold mt-1 leading-snug">
-                  {errors.planId}
+                  {errors.batch || errors.planId}
                 </div>
               )}
             </div>
@@ -1034,14 +1055,20 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
               );
             })()}
 
-            {/* Analyst Notes */}
+            {/* Analyst Notes / Rationale */}
             <div>
-              <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em] mb-1.5">
-                Analyst Notes (Optional)
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em]">
+                  Analyst Notes (Optional)
+                </label>
+                <span className={`text-[10px] font-semibold ${notes.length > 500 ? "text-[var(--red)]" : "text-[var(--muted-2)]"}`}>
+                  {notes.length}/500
+                </span>
+              </div>
               <textarea
                 className="w-full rounded-lg border border-[var(--line)] bg-white p-3 text-[12.5px] text-[var(--ink)] transition-colors placeholder:text-[var(--muted-2)] focus:outline-none focus:ring-1 focus:ring-[var(--brand)]"
                 rows={3}
+                maxLength={500}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Add your reasoning, chart patterns, or specific instructions for subscribers..."
                 value={notes}

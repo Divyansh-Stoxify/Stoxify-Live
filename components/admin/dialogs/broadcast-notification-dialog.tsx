@@ -9,9 +9,9 @@ import { FormDialog } from "./_form-dialog";
 import { adminFetch } from "@/lib/admin/client-api";
 
 const AUDIENCE_TYPES = [
-  { label: "All users", value: "ALL" },
-  { label: "By user type", value: "BY_USER_TYPE" },
-  { label: "By subscription", value: "BY_SUBSCRIPTION" },
+  { label: "All Users (Analysts & Traders)", value: "ALL" },
+  { label: "All Analysts", value: "ALL_ANALYSTS" },
+  { label: "All Traders", value: "ALL_TRADERS" },
 ] as const;
 
 const CHANNELS = ["PUSH", "EMAIL", "WS"] as const;
@@ -106,16 +106,7 @@ export function BroadcastNotificationDialog({ refresh, trigger }: Props) {
           ))}
         </select>
       </div>
-      {audienceType !== "ALL" && (
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium">Audience value</label>
-          <Input
-            value={audienceValue}
-            onChange={(e) => setAudienceValue(e.target.value)}
-            placeholder={audienceType === "BY_USER_TYPE" ? "ANALYST" : "analyst_id"}
-          />
-        </div>
-      )}
+
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium">Channels</label>
         <div className="flex gap-3">

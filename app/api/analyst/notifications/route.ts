@@ -20,6 +20,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     limit: searchParams.get("limit") ?? "20",
     offset: searchParams.get("offset") ?? "0",
   };
+  console.log("NEXTJS RECEIVED READ:", searchParams.get("read"));
+
 
   try {
     const backendResponse = await signedBackendFetch({
@@ -33,6 +35,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
 
     const data = await backendResponse.json().catch(() => ({}));
+    console.log("GET /notifications RESPONSE:", data);
 
     return NextResponse.json(data, { status: backendResponse.status });
   } catch {
@@ -40,7 +43,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-export async function PATCH(request: NextRequest): Promise<NextResponse> {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get(userCookieNames.accessToken)?.value;
   const deviceId = cookieStore.get(userCookieNames.deviceId)?.value ?? "user-web-unknown";
@@ -72,6 +75,8 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     });
 
     const data = await backendResponse.json().catch(() => ({}));
+
+    console.log("MARK READ BACKEND RESPONSE:", backendResponse.status, data);
 
     return NextResponse.json(data, { status: backendResponse.status });
   } catch {

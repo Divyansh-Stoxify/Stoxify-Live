@@ -421,7 +421,7 @@ export default function AnalystDetailPage() {
             </div>
           </div>
           <div className="rounded-2xl border border-[var(--line)] bg-white p-5 flex flex-col justify-center items-center gap-1 shadow-sm transition-all hover:border-slate-300">
-            <span className="text-[12px] font-bold text-[var(--muted)] uppercase tracking-wider">Active Plans</span>
+            <span className="text-[12px] font-bold text-[var(--muted)] uppercase tracking-wider">Active Batches</span>
             <div className="text-[28px] font-black text-blue-600 tracking-tight">{plans.length}</div>
           </div>
         </div>
@@ -435,8 +435,8 @@ export default function AnalystDetailPage() {
                 <Icon name="listChecks" className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-[18px] font-black text-[var(--ink)]">Advisory Plans</h2>
-                <p className="text-[13px] font-medium text-[var(--muted)]">Choose a plan to get actionable trade alerts.</p>
+                <h2 className="text-[18px] font-black text-[var(--ink)]">Advisory Batches</h2>
+                <p className="text-[13px] font-medium text-[var(--muted)]">Choose a batch to get actionable trade alerts.</p>
               </div>
             </div>
 
@@ -455,7 +455,7 @@ export default function AnalystDetailPage() {
 
             {plans.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-slate-500 font-medium">
-                No active plans available from this analyst at the moment.
+                No active batches available from this analyst at the moment.
               </div>
             ) : (
               <div className="flex flex-col gap-6">
@@ -791,7 +791,7 @@ export default function AnalystDetailPage() {
 
               <div className="mt-6 w-full rounded-xl border border-slate-200 divide-y divide-slate-100">
                 <div className="flex items-center justify-between px-4 py-3">
-                  <span className="text-[12.5px] font-semibold text-slate-400">Plan</span>
+                  <span className="text-[12.5px] font-semibold text-slate-400">Batch</span>
                   <span className="text-[12.5px] font-bold text-slate-800">{successInfo.planName} · {successInfo.tierName}</span>
                 </div>
                 <div className="flex items-center justify-between px-4 py-3">

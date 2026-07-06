@@ -19,6 +19,7 @@ type Subscription = {
   subscription_id: string;
   plan_id: string;
   plan_name?: string;
+  batch_name?: string;
   analyst_name?: string;
   analyst_id?: string;
   status: string;
@@ -134,7 +135,9 @@ function SubscriptionCard({ sub }: { sub: Subscription }) {
           <h3 className="text-[14px] font-extrabold text-[var(--ink)] truncate">
             {sub.analyst_name || "Analyst"}
           </h3>
-          <p className="text-[12px] text-[var(--muted)] truncate">{sub.plan_name || sub.plan_id}</p>
+          <p className="text-[12px] text-[var(--muted)] truncate">
+            {sub.plan_name ? `${sub.plan_name}${sub.batch_name ? ` • ${sub.batch_name}` : ""}` : sub.plan_id}
+          </p>
         </div>
         <span
           className={[
@@ -199,7 +202,7 @@ function SubscriptionCard({ sub }: { sub: Subscription }) {
             href="/trader/discover"
             className="flex-1 rounded-full bg-emerald-700 px-3 py-2 text-center text-[12px] font-bold text-white transition-colors hover:bg-emerald-800"
           >
-            Renew Plan
+            Renew Batch
           </Link>
         )}
       </div>
@@ -659,7 +662,7 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
                       </h4>
                       <p className="text-[12px] text-emerald-700">
                         Your identity is verified. You have full access to subscribe to analyst
-                        plans.
+                        batches.
                       </p>
                     </div>
                   </div>
@@ -821,7 +824,7 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
                   </h3>
                   <p className="text-[12.5px] text-[var(--muted)] max-w-[280px] mb-4 select-none">
                     {subTab === "ACTIVE"
-                      ? "Browse analysts and subscribe to a plan to start receiving live trade alerts."
+                      ? "Browse analysts and subscribe to a batch to start receiving live trade alerts."
                       : "Your subscription history will appear here."}
                   </p>
                   {subTab === "ACTIVE" && (
@@ -870,7 +873,7 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
                     No transactions yet
                   </h3>
                   <p className="text-[12.5px] text-[var(--muted)] max-w-[280px] select-none">
-                    Your payment history and receipts will appear here once you subscribe to a plan.
+                    Your payment history and receipts will appear here once you subscribe to a batch.
                   </p>
                 </div>
               ) : (
@@ -963,7 +966,7 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
               {[
                 ["Invoice No.", receipt.transaction_id],
                 ["Date", formatDateTime(receipt.created_at)],
-                ["Plan", receipt.plan_name || "—"],
+                ["Batch", receipt.plan_name || "—"],
                 ["Analyst", receipt.analyst_name || "—"],
                 ["Subscription", receipt.subscription_id],
                 receipt.razorpay_payment_id ? ["Payment ID", receipt.razorpay_payment_id] : null,
