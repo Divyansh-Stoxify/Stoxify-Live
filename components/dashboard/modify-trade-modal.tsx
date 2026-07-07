@@ -67,12 +67,6 @@ export function ModifyTradeModal({ trade, onClose, onSuccess }: ModifyTradeModal
       }
 
       onSuccess("Trade Modified", `Successfully updated ${trade.symbol}.`);
-      
-      // Delay briefly to allow toast to render, then reload to refresh all data seamlessly
-      setTimeout(() => {
-        window.location.reload();
-      }, 800);
-      
       onClose();
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred.");

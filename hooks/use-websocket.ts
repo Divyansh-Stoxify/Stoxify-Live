@@ -25,6 +25,10 @@ interface UseWebSocketReturn {
   error: string | null;
   /** The latest notification received, if any */
   latestNotification: any | null;
+  /** Emitted when a trade is closed by the backend */
+  tradeClosedEvent: any | null;
+  /** Emitted when a trade is modified */
+  tradeModifiedEvent: any | null;
 }
 
 const MAX_RECONNECT_ATTEMPTS = 5;
@@ -35,6 +39,8 @@ export function useWebSocket(): UseWebSocketReturn {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [latestNotification, setLatestNotification] = useState<any | null>(null);
+  const [tradeClosedEvent, setTradeClosedEvent] = useState<any | null>(null);
+  const [tradeModifiedEvent, setTradeModifiedEvent] = useState<any | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttemptsRef = useRef(0);
@@ -91,6 +97,10 @@ export function useWebSocket(): UseWebSocketReturn {
             }));
           } else if (msg.type === "NOTIFICATION_NEW" && msg.data) {
             setLatestNotification(msg.data);
+          } else if (msg.type === "trade.closed" || msg.event_type === "trade.closed") {
+            setTradeClosedEvent(msg);
+          } else if (msg.type === "trade.modified" || msg.event_type === "trade.modified") {
+            setTradeModifiedEvent(msg);
           }
 
           // Keep-alive pong is handled server-side; we send pings
@@ -155,5 +165,5 @@ export function useWebSocket(): UseWebSocketReturn {
     };
   }, [connect]);
 
-  return { prices, isConnected, error, latestNotification };
+  return { prices, isConnected, error, latestNotification, tradeClosedEvent, tradeModifiedEvent };
 }

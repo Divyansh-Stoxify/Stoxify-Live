@@ -61,6 +61,7 @@ type AnalystProfile = {
   company_name?: string;
   state?: string;
   performance?: AnalystPerformance;
+  sebi_license_number?: string;
 };
 
 type Trade = {
@@ -505,10 +506,12 @@ export default function BatchDetailPage() {
               </h1>
               <div className="mt-1 flex flex-wrap items-center gap-2 text-[13px] font-semibold text-[var(--muted)]">
                 <span>by {batch.analyst_name}</span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700 border border-emerald-100">
-                  <Icon name="shieldCheck" className="h-3 w-3 text-emerald-600" />
-                  SEBI
-                </span>
+                {analyst?.sebi_license_number && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700 border border-emerald-100">
+                    <Icon name="shieldCheck" className="h-3 w-3 text-emerald-600" />
+                    SEBI
+                  </span>
+                )}
               </div>
               {batch.description && (
                 <p className="mt-3 text-[13.5px] font-medium leading-relaxed text-[var(--muted-2)] max-w-2xl">
@@ -757,10 +760,12 @@ export default function BatchDetailPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="text-[15px] font-bold text-[var(--ink)]">{analyst?.name || batch.analyst_name}</h3>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700 border border-emerald-100">
-                      <Icon name="shieldCheck" className="h-3 w-3 text-emerald-600" />
-                      SEBI Verified
-                    </span>
+                    {analyst?.sebi_license_number && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700 border border-emerald-100">
+                        <Icon name="shieldCheck" className="h-3 w-3 text-emerald-600" />
+                        SEBI Verified
+                      </span>
+                    )}
                   </div>
                   {analyst?.company_name && (
                     <p className="text-[12.5px] font-semibold text-[var(--muted-2)] mt-0.5">{analyst.company_name}</p>

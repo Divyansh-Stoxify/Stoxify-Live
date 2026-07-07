@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import { CreateTradeModal } from "@/components/dashboard/create-trade-modal";
 import { CloseTradeModal } from "@/components/dashboard/close-trade-modal";
 import { ModifyTradeModal } from "@/components/dashboard/modify-trade-modal";
@@ -27,6 +27,10 @@ interface DashboardContextType {
   showSuccessToast: (title: string, message: string) => void;
   hasUnreadNotifications: boolean;
   setHasUnreadNotifications: (value: boolean) => void;
+  /** Register a callback to be invoked after a trade is manually closed */
+  setOnTradeClosedCallback: (cb: (() => void) | null) => void;
+  /** Register a callback to be invoked after a trade is modified */
+  setOnTradeModifiedCallback: (cb: (() => void) | null) => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -37,6 +41,9 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [tradeToModify, setTradeToModify] = useState<Trade | null>(null);
   const [toastMessage, setToastMessage] = useState<ToastState | null>(null);
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+
+  const onTradeClosedCallbackRef = useRef<(() => void) | null>(null);
+  const onTradeModifiedCallbackRef = useRef<(() => void) | null>(null);
 
   const { latestNotification } = useWebSocket();
 
@@ -82,6 +89,24 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     setToastMessage(null);
   };
 
+  const setOnTradeClosedCallback = (cb: (() => void) | null) => {
+    onTradeClosedCallbackRef.current = cb;
+  };
+
+  const setOnTradeModifiedCallback = (cb: (() => void) | null) => {
+    onTradeModifiedCallbackRef.current = cb;
+  };
+
+  const handleCloseSuccess = (title: string, message: string) => {
+    showSuccessToast(title, message);
+    onTradeClosedCallbackRef.current?.();
+  };
+
+  const handleModifySuccess = (title: string, message: string) => {
+    showSuccessToast(title, message);
+    onTradeModifiedCallbackRef.current?.();
+  };
+
   // Auto-dismiss toast after 5 seconds
   useEffect(() => {
     if (toastMessage) {
@@ -107,6 +132,8 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         showSuccessToast,
         hasUnreadNotifications,
         setHasUnreadNotifications,
+        setOnTradeClosedCallback,
+        setOnTradeModifiedCallback,
       }}
     >
       {children}
@@ -120,7 +147,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         <CloseTradeModal
           trade={tradeToClose}
           onClose={closeCloseTrade}
-          onSuccess={showSuccessToast}
+          onSuccess={handleCloseSuccess}
         />
       )}
 
@@ -128,7 +155,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         <ModifyTradeModal
           trade={tradeToModify}
           onClose={closeModifyTrade}
-          onSuccess={showSuccessToast}
+          onSuccess={handleModifySuccess}
         />
       )}
 

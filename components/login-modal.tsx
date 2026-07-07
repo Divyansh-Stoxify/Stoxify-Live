@@ -190,6 +190,8 @@ export function LoginModal({
         ok?: boolean;
         error?: string;
         redirectTo?: string;
+        is_new_user?: boolean;
+        registration_token?: string;
       };
 
       if (!res.ok) {
@@ -197,6 +199,15 @@ export function LoginModal({
         setOtp(Array.from({ length: 6 }, () => ""));
         setIsVerifying(false);
         otpInputs.current[0]?.focus();
+        return;
+      }
+
+      // If new analyst user, capture the token and redirect to full-page onboarding
+      if (intent === "ANALYST" && data.is_new_user && data.registration_token) {
+        onClose();
+        router.push(
+          `/analyst-onboarding?token=${encodeURIComponent(data.registration_token)}&phone=${encodeURIComponent(normalizedId)}`
+        );
         return;
       }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Topbar } from "@/components/dashboard/topbar";
 import { Icon } from "@/components/stoxify-icon";
 import {
@@ -593,7 +593,7 @@ function DetailedActiveCard({ trade, onClose, onBroadcast, liveLtpProp }: { trad
 }
 
 /** Full trade card matching the Figma exactly */
-function TradeCard({ trade, onBroadcast, hideActions, liveLtpProp }: { trade: Trade; onBroadcast: (trade: Trade) => void; hideActions?: boolean; liveLtpProp?: number }) {
+function TradeCard({ trade, onBroadcast, hideActions, liveLtpProp, onAutoClose, onOptimisticClose }: { trade: Trade; onBroadcast: (trade: Trade) => void; hideActions?: boolean; liveLtpProp?: number; onAutoClose?: () => void; onOptimisticClose?: (tradeId: string) => void }) {
   const { openCloseTrade, openModifyTrade, showSuccessToast } = useDashboard();
   const [isExpanded, setIsExpanded] = useState(!hideActions);
   const [showDetails, setShowDetails] = useState(false);
@@ -603,8 +603,20 @@ function TradeCard({ trade, onBroadcast, hideActions, liveLtpProp }: { trade: Tr
   const [priceDirection, setPriceDirection] = useState<"up" | "down" | null>(null);
   const [flashKey, setFlashKey] = useState(0);
   const [isNotePublic, setIsNotePublic] = useState(true);
+  // Dead trade: once SL or final target is hit, freeze price + auto-close
+  const isDeadRef = useRef(false);
+
+  const isShort = trade.direction === "SHORT" || trade.direction === "SELL";
+  const stopLossVal = trade.stop_loss ?? trade.stop_loss_price;
+  const targetVal = trade.targets && trade.targets.length > 0
+    ? (isShort 
+        ? Math.min(...trade.targets.map(t => t.target_price)) 
+        : Math.max(...trade.targets.map(t => t.target_price)))
+    : trade.target ?? trade.target_price;
 
   useEffect(() => {
+    // Freeze price updates once dead
+    if (isDeadRef.current) return;
     if (liveLtpProp !== undefined && liveLtpProp !== liveLtp) {
       setPriceDirection(liveLtpProp > liveLtp ? "up" : "down");
       setLiveLtp(liveLtpProp);
@@ -621,14 +633,6 @@ function TradeCard({ trade, onBroadcast, hideActions, liveLtpProp }: { trade: Tr
     }
   }, [priceDirection, flashKey]);
 
-  const isShort = trade.direction === "SHORT" || trade.direction === "SELL";
-  const stopLossVal = trade.stop_loss ?? trade.stop_loss_price;
-  const targetVal = trade.targets && trade.targets.length > 0
-    ? (isShort 
-        ? Math.min(...trade.targets.map(t => t.target_price)) 
-        : Math.max(...trade.targets.map(t => t.target_price)))
-    : trade.target ?? trade.target_price;
-
   // Live PNL calculations based on simulated price
   const livePnlPerUnit = isShort
     ? trade.entry_price - liveLtp
@@ -638,6 +642,45 @@ function TradeCard({ trade, onBroadcast, hideActions, liveLtpProp }: { trade: Tr
   // Near SL/Target conditions
   const isTargetHit = targetVal !== undefined && (!isShort ? liveLtp >= targetVal : liveLtp <= targetVal);
   const isSLHit = stopLossVal !== undefined && (!isShort ? liveLtp <= stopLossVal : liveLtp >= stopLossVal);
+
+  // Auto-close: when target or SL is hit, freeze price and call close API once
+  useEffect(() => {
+    if (hideActions) return; // already closed trade cards don't need this
+    if (isDeadRef.current) return;
+    if (!isTargetHit && !isSLHit) return;
+
+    isDeadRef.current = true;
+
+    // Instantly remove from UI before network request
+    onOptimisticClose?.(trade.trade_id);
+
+    const exitPrice = liveLtp;
+    const closingReason = isTargetHit ? 'Target hit — auto-closed' : 'Stop loss hit — auto-closed';
+
+    fetch(`/api/analyst/trades/${trade.trade_id}/close`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        exit_price: exitPrice,
+        manual_closing_note: closingReason,
+      }),
+    })
+      .then((res) => {
+        if (res.ok) {
+          showSuccessToast(
+            isTargetHit ? '🎯 Target Hit!' : '🛑 Stop Loss Hit',
+            `${trade.symbol} has been automatically closed at ₹${exitPrice.toFixed(2)}.`,
+          );
+          onAutoClose?.();
+        }
+      })
+      .catch(() => {
+        // Silently fail — backend might already be closing via its own pipeline
+        onAutoClose?.();
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTargetHit, isSLHit]);
 
   // Timeline Progress Calculation
   const range = (targetVal && stopLossVal) ? Math.abs(targetVal - stopLossVal) : 0;
@@ -927,19 +970,46 @@ function TradeCardSkeleton() {
 export default function LiveTradesPage() {
   const [activeTab, setActiveTab] = useState<TabId>("active");
   const [broadcastTrade, setBroadcastTrade] = useState<Trade | null>(null);
-  const { openCreateTrade, showSuccessToast } = useDashboard();
-  const { prices: livePrices } = useWebSocket();
+  const { openCreateTrade, showSuccessToast, setOnTradeClosedCallback, setOnTradeModifiedCallback } = useDashboard();
+  const { prices: livePrices, tradeClosedEvent, tradeModifiedEvent } = useWebSocket();
 
   const { stats, isLoading: statsLoading } = useLiveTradesStats();
   const {
     trades: activeTrades,
     isLoading: activeLoading,
     isError: activeError,
+    refetch: refetchActive,
+    removeTradeLocally,
   } = useActiveTrades(20);
   const activeTotal = activeTrades.length;
-  const { trades: pendingTrades, isLoading: pendingLoading } = usePendingTrades();
+  const { trades: pendingTrades, isLoading: pendingLoading, refetch: refetchPending } = usePendingTrades();
   const pendingTotal = pendingTrades.length;
-  const { trades: closedTrades, isLoading: closedLoading } = useClosedTrades();
+  const { trades: closedTrades, isLoading: closedLoading, refetch: refetchClosed } = useClosedTrades();
+
+  // Register callbacks so manual close/modify from modals trigger a refetch
+  useEffect(() => {
+    setOnTradeClosedCallback(() => { void refetchActive(); void refetchClosed(); });
+    setOnTradeModifiedCallback(() => { void refetchActive(); void refetchPending(); });
+    return () => {
+      setOnTradeClosedCallback(null);
+      setOnTradeModifiedCallback(null);
+    };
+  }, [setOnTradeClosedCallback, setOnTradeModifiedCallback, refetchActive, refetchClosed, refetchPending]);
+
+  // WS-driven refetch (backend-triggered closures)
+  useEffect(() => {
+    if (tradeClosedEvent) {
+      void refetchActive();
+      void refetchClosed();
+    }
+  }, [tradeClosedEvent, refetchActive, refetchClosed]);
+
+  useEffect(() => {
+    if (tradeModifiedEvent) {
+      void refetchActive();
+      void refetchPending();
+    }
+  }, [tradeModifiedEvent, refetchActive, refetchPending]);
 
   const TAB_OPTIONS: { id: TabId; label: string; count?: number }[] = [
     { id: "active", label: "Active", count: activeTotal },
@@ -1063,7 +1133,14 @@ export default function LiveTradesPage() {
               </div>
             ) : (
               activeTrades.map((trade) => (
-                <TradeCard key={trade.trade_id} trade={trade} onBroadcast={setBroadcastTrade} liveLtpProp={livePrices[trade.symbol]} />
+                <TradeCard
+                  key={trade.trade_id}
+                  trade={trade}
+                  onBroadcast={setBroadcastTrade}
+                  liveLtpProp={livePrices[trade.symbol]}
+                  onOptimisticClose={removeTradeLocally}
+                  onAutoClose={() => { void refetchActive(); void refetchClosed(); }}
+                />
               ))
             )}
           </div>

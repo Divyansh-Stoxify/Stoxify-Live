@@ -99,6 +99,7 @@ export default function AnalystDetailPage() {
   const [subSuccess, setSubSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
+  const [analyst, setAnalyst] = useState<any>(null);
 
   // Checkout State
   const [checkoutPlan, setCheckoutPlan] = useState<Plan | null>(null);
@@ -143,21 +144,25 @@ export default function AnalystDetailPage() {
           credentials: "same-origin",
           cache: "no-store",
         }),
+        fetch(`/api/public/analysts/by-id/${analystId}`, { cache: "no-store" }),
       ]);
 
       const plansData = await plansRes.json().catch(() => ({}));
       const tradesData = await tradesRes.json().catch(() => ({}));
       const subData = await subRes.json().catch(() => ({}));
+      const analystData = await analystRes.json().catch(() => ({}));
 
       setPlans(plansData.plans ?? plansData.data ?? []);
       setTrades(tradesData.trades ?? tradesData.data ?? []);
       
       const activeSubs = subData.subscriptions ?? subData.data ?? [];
       setActiveSubscriptions(activeSubs);
+      setAnalyst(analystRes.ok ? analystData?.analyst ?? analystData ?? null : null);
     } catch {
       setPlans([]);
       setTrades([]);
       setActiveSubscriptions([]);
+      setAnalyst(null);
     } finally {
       setLoading(false);
     }
@@ -393,10 +398,12 @@ export default function AnalystDetailPage() {
               {analystName}
             </h1>
             <div className="flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[12px] font-extrabold text-emerald-700 border border-emerald-200">
-                <Icon name="shieldCheck" className="h-3.5 w-3.5" />
-                SEBI Verified
-              </span>
+              {analyst?.sebi_license_number && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[12px] font-extrabold text-emerald-700 border border-emerald-200">
+                  <Icon name="shieldCheck" className="h-3.5 w-3.5" />
+                  SEBI Verified
+                </span>
+              )}
               <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-[12px] font-bold text-slate-500 border border-slate-200">
                 ID: {analystId}
               </span>

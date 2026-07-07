@@ -6,6 +6,127 @@ import { Icon } from "@/components/stoxify-icon";
 import type { TradeDirection } from "@/lib/types/analyst";
 import { useSubscriptionPlans } from "@/hooks/use-analyst-dashboard";
 
+// ─── Backend Error Mapping ────────────────────────────────────────────────────
+
+interface BackendError {
+  error?: string;
+  code?: string;
+  message?: string;
+  details?: { reason?: string };
+}
+
+/**
+ * Maps a backend error response to a { field, message } pair so the modal
+ * can show the error inline next to the relevant input.
+ *
+ * field: 'submit' | 'batch' | 'symbol' | 'entry' | 'sl' | 'target' | 'expiry'
+ */
+function resolveTradeError(data: BackendError): { field: string; message: string } {
+  const code = data.code ?? data.error ?? '';
+  const rawReason = data.details?.reason ?? '';
+
+  // ── RBAC / permissions ────────────────────────────────────────────────────
+  if (code === 'INSUFFICIENT_POWER') {
+    // Parse the live state from the RBAC reason string, e.g.
+    // "User state is KYC_PENDING. Power PWR_TRADE_CREATE requires ACTIVE state."
+    if (/KYC_PENDING/i.test(rawReason)) {
+      return { field: 'submit', message: '⚠️ Your account KYC is pending verification. Complete KYC before publishing trades.' };
+    }
+    if (/PENDING_VERIFICATION/i.test(rawReason)) {
+      return { field: 'submit', message: '⚠️ Your analyst account is awaiting admin verification. You cannot publish trades until approved.' };
+    }
+    if (/SUSPENDED/i.test(rawReason)) {
+      return { field: 'submit', message: '🚫 Your account is suspended. Contact support to restore publishing access.' };
+    }
+    if (/BLOCKED/i.test(rawReason)) {
+      return { field: 'submit', message: '🚫 Your account is blocked. Contact support for assistance.' };
+    }
+    if (/does not have power/i.test(rawReason)) {
+      return { field: 'submit', message: '🚫 You do not have permission to create trades. Contact your administrator.' };
+    }
+    if (/does not own/i.test(rawReason)) {
+      return { field: 'submit', message: '🚫 You do not have ownership of this resource.' };
+    }
+    // Fallback for any unrecognised RBAC reason
+    return { field: 'submit', message: `🚫 Permission denied${rawReason ? ': ' + rawReason : ''}. Contact support if this is unexpected.` };
+  }
+
+  if (code === 'UNAUTHORIZED') {
+    return { field: 'submit', message: '🔒 Your session has expired. Please sign in again.' };
+  }
+
+  // ── Account / analyst state ───────────────────────────────────────────────
+  if (code === 'ANALYST_NOT_ACTIVE') {
+    return { field: 'submit', message: '⚠️ Your analyst account is not yet active. Wait for admin approval before publishing trades.' };
+  }
+
+  // ── Market hours ─────────────────────────────────────────────────────────
+  if (code === 'OUTSIDE_MARKET_HOURS') {
+    return { field: 'submit', message: '🕐 Market is currently closed. Equity & F&O trades can only be published between 9:15 AM – 3:30 PM IST on weekdays.' };
+  }
+
+  // ── Batch / plan ─────────────────────────────────────────────────────────
+  if (code === 'BATCH_REQUIRED') {
+    return { field: 'batch', message: 'Please select a subscription batch to publish this trade to.' };
+  }
+
+  if (code === 'SEGMENT_MISMATCH') {
+    return { field: 'batch', message: 'The selected batch does not support this market segment (e.g. Equity, F&O, MCX). Choose a compatible batch or change the instrument.' };
+  }
+
+  if (code === 'INVALID_BATCH') {
+    return { field: 'batch', message: 'The selected batch was not found. It may have been deleted — please refresh and try again.' };
+  }
+
+  // ── Missing required fields ───────────────────────────────────────────────
+  if (code === 'MISSING_FIELDS') {
+    return { field: 'symbol', message: 'Required fields are missing. Please fill in the symbol, direction, entry price, stop loss and at least one target.' };
+  }
+
+  if (code === 'MISSING_TARGET') {
+    return { field: 'target', message: 'At least one target price must be provided.' };
+  }
+
+  // ── Price level validation ────────────────────────────────────────────────
+  if (code === 'INVALID_PRICE_LEVELS') {
+    // Try to give direction-specific guidance
+    const msg = data.message ?? '';
+    if (/LONG|BUY/i.test(msg)) {
+      return { field: 'stopLoss', message: 'Invalid price levels for a LONG trade. Required order: Stop Loss < Entry Price < Target(s).' };
+    }
+    if (/SHORT|SELL/i.test(msg)) {
+      return { field: 'stopLoss', message: 'Invalid price levels for a SHORT trade. Required order: Stop Loss > Entry Price > Target(s).' };
+    }
+    return { field: 'stopLoss', message: 'Invalid price levels. Check that stop loss, entry and targets are in the correct order for your trade direction.' };
+  }
+
+  if (code === 'INVALID_DIRECTION') {
+    return { field: 'submit', message: 'Invalid trade direction. Please select LONG or SHORT.' };
+  }
+
+  if (code === 'INVALID_BOOK_PERCENT') {
+    return { field: 'targets', message: 'Target allocations must add up to exactly 100%. Adjust your partial-target percentages.' };
+  }
+
+  // ── F&O expiry ────────────────────────────────────────────────────────────
+  if (code === 'MISSING_EXPIRY') {
+    return { field: 'expiry', message: 'A contract expiry date is required for F&O trades.' };
+  }
+
+  if (code === 'INVALID_EXPIRY' || code === 'INVALID_EXPIRY_FORMAT') {
+    return { field: 'expiry', message: 'Invalid or expired contract date. Please select a valid future expiry.' };
+  }
+
+  // ── Service / network errors ──────────────────────────────────────────────
+  if (code === 'INTERNAL_ERROR') {
+    return { field: 'submit', message: '⚙️ A server error occurred. Please try again in a moment.' };
+  }
+
+  // Fallback: surface the raw message from the backend if nothing matched
+  const fallback = data.message || data.error || 'Failed to create trade. Please try again.';
+  return { field: 'submit', message: fallback };
+}
+
 interface CreateTradeModalProps {
   onClose: () => void;
   onSuccess: (title: string, message: string) => void;
@@ -391,11 +512,8 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        if (data.code === "SEGMENT_MISMATCH") {
-          setErrors({ batch: "Segment mismatch with selected batch" });
-        } else {
-          setErrors({ submit: data.message || data.error || "Failed to create trade" });
-        }
+        const { field, message } = resolveTradeError(data);
+        setErrors({ [field]: message });
         setIsSubmitting(false);
         return;
       }
@@ -1077,7 +1195,17 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
           </div>
 
           {/* Footer Actions */}
-          <div className="px-6 py-4 bg-[var(--surface)] flex items-center justify-end gap-3 border-t border-dashed border-[#1f7ae0]/25">
+          <div className="px-6 py-4 bg-[var(--surface)] flex flex-col gap-3 border-t border-dashed border-[#1f7ae0]/25">
+            {/* Submit-level error banner (permissions, account state, server errors) */}
+            {errors.submit && (
+              <div className="flex items-start gap-2.5 rounded-lg border border-[var(--red)]/25 bg-[var(--red)]/8 px-3.5 py-2.5 text-[12px] text-[var(--red)] font-medium leading-snug">
+                <svg className="mt-[1px] h-3.5 w-3.5 shrink-0 fill-current" viewBox="0 0 16 16">
+                  <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm-.75 4a.75.75 0 0 1 1.5 0v3.5a.75.75 0 0 1-1.5 0V5Zm.75 7a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/>
+                </svg>
+                <span>{errors.submit}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-end gap-3">
             <button
               className="rounded-lg border border-[var(--line)] bg-white px-5 py-2 text-[12.5px] font-bold text-[var(--muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--ink)]"
               onClick={onClose}
@@ -1100,6 +1228,7 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
                 "Create Trade"
               )}
             </button>
+            </div>
           </div>
         </form>
       </div>

@@ -52,8 +52,8 @@ export function Topbar({
       <div className="flex items-center gap-3">
         <h1 className="text-[20px] font-bold tracking-[-0.3px] text-[var(--ink)]">{title}</h1>
 
-        {/* SEBI Verified badge — matches the green pill in the Figma */}
-        {showSebiVerified && (
+        {/* SEBI Verified badge — only show if requested AND analyst actually has a SEBI registration in DB */}
+        {showSebiVerified && !!(profile?.sebi_license_number || profile?.sebi_registration_number) && (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--green)]/20 bg-[var(--green-light)] px-2.5 py-0.5 text-[11px] font-bold text-[var(--green)]">
             <Icon className="h-[10px] w-[10px]" name="circleCheck" />
             SEBI Verified

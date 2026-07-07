@@ -7,7 +7,6 @@ import { userCookieNames } from "@/lib/auth/cookies";
 
 import { Icon } from "./stoxify-icon";
 import { LoginModal } from "./login-modal";
-import { AnalystLoginModal } from "./analyst-login-modal";
 
 type NavUser = {
   user_id?: string;
@@ -140,7 +139,6 @@ export function StoxifyNav({
 }) {
   const [open, setOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
-  const [isAnalystModalOpen, setIsAnalystModalOpen] = useState(false);
   const navUser = useNavUser();
   const navUserLabel = navUser ? getUserLabel(navUser) : "";
 
@@ -166,11 +164,7 @@ export function StoxifyNav({
       : "inline-flex items-center justify-center gap-2 rounded bg-[var(--brand)] px-5 py-[9px] text-[13px] font-medium text-white transition-all hover:-translate-y-px hover:bg-[var(--brand-dark)] hover:shadow-[0_4px_16px_rgba(31,122,224,0.35)]";
 
   const handleLoginClick = () => {
-    if (active === "analysts") {
-      setIsAnalystModalOpen(true);
-    } else {
-      setLoginOpen(true);
-    }
+    setLoginOpen(true);
   };
 
   const dashboardHref = navUser
@@ -274,10 +268,7 @@ export function StoxifyNav({
           )}
         </div>
       </div>
-      {/* Analyst login modal — used on the for-analysts page */}
-      <AnalystLoginModal isOpen={isAnalystModalOpen} onClose={() => setIsAnalystModalOpen(false)} />
-      {/* Generic login modal — used on the home page */}
-      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
+      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} intent={active === "analysts" ? "ANALYST" : undefined} />
     </nav>
   );
 }

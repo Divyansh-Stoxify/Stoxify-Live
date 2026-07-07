@@ -192,59 +192,71 @@ export function useActiveTrades(limit: number = 5) {
     void fetchTrades();
   }, [fetchTrades]);
 
-  return { trades, isLoading, isError, refetch: fetchTrades };
+  const removeTradeLocally = useCallback((tradeId: string) => {
+    setTrades((prev) => prev.filter((t) => t.trade_id !== tradeId));
+  }, []);
+
+  return { trades, isLoading, isError, refetch: fetchTrades, removeTradeLocally };
 }
 
 export function usePendingTrades() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/analyst/trades?status=PENDING&limit=50", {
-          credentials: "same-origin",
-          cache: "no-store",
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        const tradeList = json.trades ?? json.data ?? json;
-        setTrades(Array.isArray(tradeList) ? tradeList : []);
-      } catch {
-        setTrades([]);
-      } finally {
-        setIsLoading(false);
-      }
-    })();
+  const fetchTrades = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/analyst/trades?status=PENDING&limit=50", {
+        credentials: "same-origin",
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const tradeList = json.trades ?? json.data ?? json;
+      setTrades(Array.isArray(tradeList) ? tradeList : []);
+    } catch {
+      setTrades([]);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  return { trades, isLoading };
+  useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
+    void fetchTrades();
+  }, [fetchTrades]);
+
+  return { trades, isLoading, refetch: fetchTrades };
 }
 
 export function useClosedTrades() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/analyst/trades?status=CLOSED&limit=50", {
-          credentials: "same-origin",
-          cache: "no-store",
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        const tradeList = json.trades ?? json.data ?? json;
-        setTrades(Array.isArray(tradeList) ? tradeList : []);
-      } catch {
-        setTrades([]);
-      } finally {
-        setIsLoading(false);
-      }
-    })();
+  const fetchTrades = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/analyst/trades?status=CLOSED&limit=50", {
+        credentials: "same-origin",
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const tradeList = json.trades ?? json.data ?? json;
+      setTrades(Array.isArray(tradeList) ? tradeList : []);
+    } catch {
+      setTrades([]);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  return { trades, isLoading };
+  useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
+    void fetchTrades();
+  }, [fetchTrades]);
+
+  return { trades, isLoading, refetch: fetchTrades };
 }
 
 interface LiveTradesStats {

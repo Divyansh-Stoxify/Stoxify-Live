@@ -970,7 +970,7 @@ export default function ForAnalystsPage() {
   return (
     <>
       <RevealObserver />
-      <StoxifyNav active="analysts" ctaHref="#waitlist" ctaVariant="orange" />
+      <StoxifyNav active="analysts" ctaHref="/signup" ctaLabel="Sign Up" ctaVariant="orange" />
       <main>
         <Hero />
         <StatsStrip />

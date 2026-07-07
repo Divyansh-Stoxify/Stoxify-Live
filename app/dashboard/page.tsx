@@ -255,11 +255,27 @@ function SubscriberRow({ subscriber }: { subscriber: Subscriber }) {
 
 export default function DashboardPage() {
   const { metrics, isLoading: metricsLoading, isError: metricsError } = useDashboardMetrics();
-  const { trades, isLoading: tradesLoading, isError: tradesError } = useActiveTrades(5);
+  const { trades, isLoading: tradesLoading, isError: tradesError, refetch: refetchTrades, removeTradeLocally } = useActiveTrades(5);
   const { subscribers, isLoading: subsLoading } = useRecentSubscribers(5);
-  const { prices: livePrices } = useWebSocket();
+  const { prices: livePrices, tradeClosedEvent, tradeModifiedEvent } = useWebSocket();
   const { openCreateTrade } = useDashboard();
   const [showReactivationAlert, setShowReactivationAlert] = useState(false);
+
+  useEffect(() => {
+    if (tradeClosedEvent) {
+      removeTradeLocally(tradeClosedEvent.trade_id);
+      void refetchTrades();
+    }
+  }, [tradeClosedEvent, removeTradeLocally, refetchTrades]);
+
+  // Also refresh when a trade is modified (e.g. partial target hit changes state)
+  // so the dashboard stays in sync even if a trade is eventually fully closed
+  // via the multi-target path.
+  useEffect(() => {
+    if (tradeModifiedEvent) {
+      void refetchTrades();
+    }
+  }, [tradeModifiedEvent, refetchTrades]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
