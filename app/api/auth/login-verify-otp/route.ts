@@ -19,6 +19,7 @@ type BackendVerifyResponse = {
   session_id?: string;
   is_new_user?: boolean;
   registration_token?: string;
+  reactivated?: boolean;
   user?: {
     user_id?: string;
     name?: string;
@@ -162,10 +163,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
+  const reactivated = data.reactivated || false;
+  const redirectTo = actualUserType === "ANALYST"
+    ? `/dashboard${reactivated ? "?reactivated=true" : ""}`
+    : `/trader/dashboard${reactivated ? "?reactivated=true" : ""}`;
+
   const response = NextResponse.json({
     ok: true,
     user: { ...data.user, user_type: actualUserType },
-    redirectTo: actualUserType === "ANALYST" ? "/dashboard" : "/trader/dashboard",
+    redirectTo,
+    reactivated,
   });
 
   writeUserTokenCookies(response, {
