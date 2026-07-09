@@ -10,6 +10,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Icon } from "@/components/stoxify-icon";
+import { cleanErrorMessage } from "@/lib/utils";
 
 type Step = "phone" | "otp";
 
@@ -96,7 +97,7 @@ export function AnalystLoginModal({ isOpen, onClose }: { isOpen: boolean; onClos
       }
 
       if (!res.ok) {
-        setGeneralError(data.error ?? "Unable to send verification code. Are you registered?");
+        setGeneralError(cleanErrorMessage(data, data.error ?? "Unable to send verification code. Are you registered?"));
         setIsSubmitting(false);
         return;
       }
@@ -141,7 +142,7 @@ export function AnalystLoginModal({ isOpen, onClose }: { isOpen: boolean; onClos
       };
 
       if (!res.ok) {
-        setGeneralError(data.error ?? "Verification failed. Try again.");
+        setGeneralError(cleanErrorMessage(data, data.error ?? "Verification failed. Try again."));
         setOtp(Array.from({ length: 6 }, () => ""));
         setIsSubmitting(false);
         otpInputs.current[0]?.focus();
@@ -179,7 +180,7 @@ export function AnalystLoginModal({ isOpen, onClose }: { isOpen: boolean; onClos
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
-        setGeneralError(data.error ?? "Failed to resend code.");
+        setGeneralError(cleanErrorMessage(data, data.error ?? "Failed to resend code."));
       } else {
         setCooldown(60);
       }

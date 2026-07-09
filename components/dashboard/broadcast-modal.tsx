@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Icon } from "@/components/stoxify-icon";
 import type { Trade } from "@/lib/types/analyst";
+import { cleanErrorMessage } from "@/lib/utils";
 
 interface BroadcastModalProps {
   trade: Trade;
@@ -40,9 +41,10 @@ export function BroadcastModal({ trade, onClose, onSuccess }: BroadcastModalProp
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.message || "Failed to send broadcast");
+        const cleaned = cleanErrorMessage(data, data.message || "Failed to send broadcast");
+        throw new Error(cleaned);
       }
 
       onSuccess(

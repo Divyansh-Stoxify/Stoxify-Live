@@ -39,6 +39,7 @@ export interface Trade {
   trade_subtype?: "INTRADAY" | "SWING" | "POSITIONAL" | "SHORT_TERM" | "MEDIUM_TERM" | "LONG_TERM";
   batch?: string;
   plan_id?: string;
+  analyst_name?: string;
   expiry?: string;
   direction: TradeDirection;
   entry_price: number;

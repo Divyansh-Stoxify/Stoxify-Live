@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Icon } from "@/components/stoxify-icon";
 import type { Trade } from "@/lib/types/analyst";
+import { cleanErrorMessage } from "@/lib/utils";
 
 interface ModifyTradeModalProps {
   trade: Trade;
@@ -32,8 +33,9 @@ export function ModifyTradeModal({ trade, onClose, onSuccess }: ModifyTradeModal
         throw new Error("Modification reason is required.");
       }
 
-      const slValue = parseFloat(stopLoss);
       const payload: any = { modification_reason: reason.trim() };
+      
+      const slValue = parseFloat(stopLoss);
       if (!isNaN(slValue) && slValue > 0) payload.stop_loss = slValue;
 
       const validTargets = targets.filter(t => parseFloat(t.price) > 0 && parseFloat(t.percent) > 0);
@@ -41,6 +43,9 @@ export function ModifyTradeModal({ trade, onClose, onSuccess }: ModifyTradeModal
         let totalPercent = 0;
         const parsedTargets = validTargets.map(t => {
           const bp = parseFloat(t.percent);
+          if (isNaN(bp) || bp <= 0 || bp > 100) {
+            throw new Error("Target allocation percentage must be between 1% and 100%.");
+          }
           totalPercent += bp;
           return { target_price: parseFloat(t.price), book_percent: bp };
         });
@@ -61,9 +66,10 @@ export function ModifyTradeModal({ trade, onClose, onSuccess }: ModifyTradeModal
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.message || `Failed to modify trade: ${res.statusText}`);
+        const cleaned = cleanErrorMessage(data, data.message || `Failed to modify trade: ${res.statusText}`);
+        throw new Error(cleaned);
       }
 
       onSuccess("Trade Modified", `Successfully updated ${trade.symbol}.`);

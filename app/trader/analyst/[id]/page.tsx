@@ -131,7 +131,7 @@ export default function AnalystDetailPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [plansRes, tradesRes, subRes] = await Promise.all([
+      const [plansRes, tradesRes, subRes, analystRes] = await Promise.all([
         fetch(`/api/trader/plans?analyst_id=${analystId}`, {
           credentials: "same-origin",
           cache: "no-store",
