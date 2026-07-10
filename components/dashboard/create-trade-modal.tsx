@@ -100,6 +100,7 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTrade
   const [position, setPosition] = useState<"LONG" | "SHORT">("LONG");
   const [category, setCategory] = useState<"INTRADAY" | "SWING" | "POSITIONAL" | "SHORT_TERM" | "MEDIUM_TERM" | "LONG_TERM">("INTRADAY");
   const [entryPrice, setEntryPrice] = useState("");
+  const [isEntryLocked, setIsEntryLocked] = useState(false);
   const [targets, setTargets] = useState<{ price: string; percent: string }[]>([
     { price: "", percent: "100" }
   ]);
@@ -294,6 +295,7 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTrade
         const price = data?.price ?? data?.ltp;
         if (price !== null && price !== undefined) {
           setEntryPrice(String(price));
+          setIsEntryLocked(true);
           setErrors((prev) => ({ ...prev, entry: "" }));
           return;
         }
@@ -985,16 +987,19 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTrade
                     ₹
                   </span>
                   <input
-                    className={`w-full rounded-lg border bg-[var(--surface)] py-2 pl-6 pr-8 text-[13px] font-medium text-[var(--ink)] cursor-default focus:outline-none ${
+                    className={`w-full rounded-lg border bg-white py-2 pl-6 pr-8 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
                       errors.entry ? "border-[var(--red)]" : "border-[var(--line)]"
-                    } ${isFetchingPrice ? "animate-pulse" : ""}`}
+                    } ${isFetchingPrice ? "animate-pulse bg-[var(--surface)]" : ""} ${isEntryLocked ? "bg-[var(--surface)] text-[var(--muted-2)] cursor-not-allowed border-dashed" : ""}`}
+                    onChange={(e) => {
+                      if (!isEntryLocked) setEntryPrice(e.target.value);
+                    }}
                     placeholder={isFetchingPrice ? "Fetching…" : "Select instrument"}
-                    type="text"
-                    inputMode="none"
-                    readOnly
-                    tabIndex={-1}
-                    title="Entry price is fetched live from the market — it cannot be edited"
+                    type="number"
+                    step="0.05"
                     value={entryPrice}
+                    disabled={isFetchingPrice}
+                    readOnly={isEntryLocked}
+                    title={isEntryLocked ? "Entry price is fetched live from the market — it cannot be edited" : ""}
                   />
                   {isFetchingPrice ? (
                     <Icon
@@ -1014,7 +1019,22 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTrade
                       </button>
                     )
                   )}
+                  {isEntryLocked && !isFetchingPrice && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEntryLocked(false)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--brand)] hover:text-[var(--brand-dark)] transition-colors"
+                      title="Unlock entry price"
+                    >
+                      <Icon name="lock" className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
+                {isEntryLocked && !errors.entry && (
+                  <div className="text-[10.5px] text-[var(--muted-2)] mt-1 font-medium italic">
+                    Fetched from market
+                  </div>
+                )}
                 {errors.entry && (
                   <div className="text-[10px] text-[var(--red)] font-semibold mt-1 leading-snug">
                     {errors.entry}

@@ -69,6 +69,12 @@ export interface Trade {
   exit_price?: number;
   exit_timestamp?: string;
   status: "ACTIVE" | "LIVE" | "CLOSED" | "MANUALLY_CLOSED" | "CLOSED_BY_SL" | "CLOSED_BY_TARGET" | "PENDING" | "TARGET_HIT" | "SL_HIT";
+  modification_history?: Array<{
+    modified_at: string;
+    modified_by: string;
+    fields_changed: Record<string, { old: any; new: any }>;
+    reason?: string;
+  }>;
 }
 
 export interface Subscriber {

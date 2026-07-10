@@ -572,6 +572,49 @@ function DetailedActiveCard({ trade, onClose, onBroadcast, liveLtpProp }: { trad
         </div>
       </div>
 
+      {/* Modification History */}
+      {trade.modification_history && trade.modification_history.length > 0 && (
+        <div className="px-5 pb-5">
+          <div className="text-[11px] font-bold text-gray-500 tracking-wider mb-4 uppercase">Modification History</div>
+          <div className="space-y-4 relative before:absolute before:inset-0 before:ml-2 before:-translate-x-px before:h-full before:w-0.5 before:bg-gray-200">
+            {trade.modification_history.map((mod, i) => (
+              <div key={i} className="relative flex items-start gap-4">
+                {/* Timeline dot */}
+                <div className="relative z-10 flex items-center justify-center w-4 h-4 rounded-full bg-blue-500 mt-1 shrink-0" />
+                {/* Card */}
+                <div className="flex-1 bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+                  <div className="flex justify-between mb-1.5">
+                    <div className="text-[12px] font-bold text-gray-900">Modified</div>
+                    <div className="text-[11px] text-gray-500">{formatDate(mod.modified_at)}</div>
+                  </div>
+                  <div className="text-[12px] text-gray-600 space-y-1">
+                    {Object.entries(mod.fields_changed).map(([key, changes]) => {
+                      if (key === 'targets' && Array.isArray(changes.new)) {
+                        return (
+                          <div key={key}>
+                            <span className="font-semibold text-gray-700">Targets updated</span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div key={key}>
+                          <span className="font-semibold capitalize text-gray-700">{key.replace('_', ' ')}</span>: ₹{String(changes.old)} → <span className="font-bold text-gray-900">₹{String(changes.new)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {mod.reason && (
+                    <div className="mt-2 text-[11px] text-gray-500 bg-gray-50 p-2 rounded-lg italic border border-gray-100">
+                      "{mod.reason}"
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Footer Actions */}
       <div className="flex items-center gap-3 border-t border-gray-100 bg-gray-50/50 px-5 py-4">
         <button
