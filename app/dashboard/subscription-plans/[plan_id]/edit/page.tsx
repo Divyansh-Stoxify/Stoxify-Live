@@ -6,6 +6,7 @@ import { useDashboard } from "@/components/dashboard/dashboard-context";
 import { Icon } from "@/components/stoxify-icon";
 import type { PlanStatus, PlanBatch, PlanBillingCycle, SubscriptionPlan } from "@/lib/types/analyst";
 import { nanoid } from "nanoid";
+import { motion, AnimatePresence } from "motion/react";
 
 const SEGMENTS = ["EQUITY", "FNO", "COMMODITY", "CURRENCY"];
 const HORIZONS = ["INTRADAY", "SWING", "SHORT", "MEDIUM", "LONG TERM"];
@@ -32,7 +33,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
   const [pricingTiers, setPricingTiers] = useState<PlanBatch[]>([]);
   const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
   const [editingTierId, setEditingTierId] = useState<string | null>(null);
-  
+
   // Slide-over state
   const [soName, setSoName] = useState("");
   const [soPlanType, setSoPlanType] = useState<"SUBSCRIPTION" | "LIFETIME">("SUBSCRIPTION");
@@ -43,6 +44,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
   const [soDiscountedPrice, setSoDiscountedPrice] = useState("");
   const [soIsActive, setSoIsActive] = useState(true);
   const [soDiscountError, setSoDiscountError] = useState("");
+  const [soErrors, setSoErrors] = useState<Record<string, string>>({});
 
   const [isLoading, setIsLoading] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -104,6 +106,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
   };
 
   const openSlideOver = (tier?: PlanBatch) => {
+    setSoErrors({});
     setSoDiscountError("");
     if (tier) {
       setEditingTierId(tier.batch_id);
@@ -138,30 +141,35 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
   };
 
   const savePricingTier = () => {
-    if (!soName.trim()) return alert("Plan Name is required");
-    if (!soPrice || isNaN(Number(soPrice))) return alert("Valid Plan Price is required");
-    
-    const durationVal = parseInt(soDurationValue);
-    if (soPlanType === "SUBSCRIPTION" && (isNaN(durationVal) || durationVal <= 0)) {
-      return alert("Valid duration is required");
+    const newErrors: Record<string, string> = {};
+
+    if (!soName.trim()) {
+      newErrors.name = "Plan Name is required";
     }
 
     const priceNum = Number(soPrice);
-    const discountedNum = soHasDiscount && soDiscountedPrice ? Number(soDiscountedPrice) : undefined;
-
-    if (priceNum < MIN_BATCH_PRICE) {
-      return alert(`Plan price must be at least ₹${MIN_BATCH_PRICE}`);
+    if (!soPrice || isNaN(priceNum) || priceNum < 0) {
+      newErrors.price = "Valid Plan Price is required";
+    } else if (priceNum < MIN_BATCH_PRICE) {
+      newErrors.price = `Plan price must be at least ₹${MIN_BATCH_PRICE}`;
     }
+
+    const durationVal = parseInt(soDurationValue);
+    if (soPlanType === "SUBSCRIPTION" && (isNaN(durationVal) || durationVal <= 0)) {
+      newErrors.duration = "Valid duration is required";
+    }
+
+    const discountedNum = soHasDiscount && soDiscountedPrice ? Number(soDiscountedPrice) : undefined;
 
     if (discountedNum !== undefined && discountedNum >= priceNum) {
       setSoDiscountError("Discounted price cannot be more than the plan price");
-      return;
-    }
-    if (discountedNum !== undefined && discountedNum < MIN_BATCH_PRICE) {
+      newErrors.discount = "Discounted price is invalid";
+    } else if (discountedNum !== undefined && discountedNum < MIN_BATCH_PRICE) {
       setSoDiscountError(`Discounted price must be at least ₹${MIN_BATCH_PRICE}`);
-      return;
+      newErrors.discount = "Discounted price is invalid";
+    } else {
+      setSoDiscountError("");
     }
-    setSoDiscountError("");
 
     const newDays = soPlanType === "LIFETIME" ? 36500 : getDaysFromCycle(durationVal, soDurationUnit);
 
@@ -171,8 +179,14 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
       t => t.batch_id !== editingTierId && t.days === newDays
     );
     if (hasDuplicateDuration) {
-      return alert("Another plan already uses this duration. Each plan must have a unique duration.");
+      newErrors.duration = "Another plan already uses this duration. Each plan must have a unique duration.";
     }
+
+    if (Object.keys(newErrors).length > 0) {
+      setSoErrors(newErrors);
+      return;
+    }
+    setSoErrors({});
 
     const newTier: PlanBatch = {
       batch_id: editingTierId || `batch_${nanoid(6)}`,
@@ -241,7 +255,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
         "Batch Updated",
         `"${name.trim()}" batch has been successfully modified.`
       );
-      
+
       router.push("/dashboard/subscription-plans");
     } catch {
       setErrors({ form: "Unable to reach the server. Please try again." });
@@ -266,11 +280,48 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
     return `${val} ${tier.billing_cycle.charAt(0) + tier.billing_cycle.slice(1).toLowerCase()}${val > 1 ? 's' : ''}`;
   };
 
+  const getDynamicSummaryText = () => {
+    const priceNum = Number(soPrice) || 0;
+    const discNum = soHasDiscount && soDiscountedPrice ? Number(soDiscountedPrice) : undefined;
+
+    if (soPlanType === "LIFETIME") {
+      if (discNum !== undefined && discNum < priceNum) {
+        return (
+          <span>
+            Subscribers will pay a discounted, one-time fee of <strong className="text-[var(--ink)]">₹{discNum.toLocaleString("en-IN")}</strong> (saving <strong className="text-emerald-600 font-bold">{calculateDiscountPct(priceNum, discNum)}%</strong> off the standard ₹{priceNum.toLocaleString("en-IN")} price) for lifetime access.
+          </span>
+        );
+      }
+      return (
+        <span>
+          Subscribers will pay a one-time fee of <strong className="text-[var(--ink)]">₹{priceNum.toLocaleString("en-IN")}</strong> for lifetime access.
+        </span>
+      );
+    } else {
+      const cycle = soDurationUnit.toLowerCase();
+      const val = parseInt(soDurationValue) || 1;
+      const cycleText = `${val} ${cycle}${val > 1 ? "s" : ""}`;
+
+      if (discNum !== undefined && discNum < priceNum) {
+        return (
+          <span>
+            Subscribers will pay a discounted fee of <strong className="text-[var(--ink)]">₹{discNum.toLocaleString("en-IN")}</strong> every <strong className="text-[var(--ink)]">{cycleText}</strong> (saving <strong className="text-emerald-600 font-bold">{calculateDiscountPct(priceNum, discNum)}%</strong> off the standard ₹{priceNum.toLocaleString("en-IN")} / {cycleText}).
+          </span>
+        );
+      }
+      return (
+        <span>
+          Subscribers will be billed <strong className="text-[var(--ink)]">₹{priceNum.toLocaleString("en-IN")}</strong> every <strong className="text-[var(--ink)]">{cycleText}</strong>.
+        </span>
+      );
+    }
+  };
+
   return (
     <>
       <div className="flex-1 p-6 md:p-8 flex flex-col gap-8 overflow-y-auto bg-[#fafafa] relative">
         <div className="w-full max-w-4xl mx-auto mt-4">
-          
+
           <div className="flex items-center gap-4 mb-8">
             <button
               onClick={() => router.back()}
@@ -295,7 +346,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-              
+
               {errors.form && (
                 <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50/50 p-4 text-[14px] font-medium text-red-800 shadow-sm backdrop-blur-md">
                   <div className="mt-0.5 rounded-full bg-red-100 p-1">
@@ -306,7 +357,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-[1fr_300px] gap-6">
-                
+
                 <div className="flex flex-col gap-6">
                   {/* General Information */}
                   <div className="rounded-3xl border border-[var(--line)] bg-white p-6 md:p-8 shadow-sm">
@@ -474,7 +525,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
                           </div>
                         </div>
                       ))}
-                      
+
                       <button
                         type="button"
                         onClick={() => openSlideOver()}
@@ -541,126 +592,168 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
       </div>
 
       {/* Slide-over Panel for Plan/Pricing */}
-      {isSlideOverOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setIsSlideOverOpen(false)} />
-          <div className="relative z-10 w-full max-w-[420px] h-full bg-white shadow-2xl flex flex-col transform transition-transform duration-300">
-            <div className="flex items-center gap-3 p-6 border-b border-[var(--line)]">
-              <button onClick={() => setIsSlideOverOpen(false)} className="p-2 -ml-2 rounded-full hover:bg-slate-100 text-[var(--muted)] transition-colors">
-                <Icon name="x" className="h-5 w-5" />
-              </button>
-              <h2 className="text-[18px] font-black text-[var(--ink)] leading-none">{editingTierId ? "Edit Plan" : "New Plan"}</h2>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-7">
-              {/* Plan Name */}
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-[13px] font-bold text-[var(--ink)]">Plan Name</label>
-                  <span className="text-[11px] font-bold text-[var(--muted-2)]">{soName.length}/75</span>
-                </div>
-                <input
-                  type="text" maxLength={75} value={soName} onChange={e => setSoName(e.target.value)}
-                  placeholder="e.g. Quarterly, Yearly, Trial"
-                  className="w-full rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-[14px] font-medium text-[var(--ink)] outline-none transition-all placeholder:text-[var(--muted-2)] focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/10"
-                />
+      <AnimatePresence>
+        {isSlideOverOpen && (
+          <div className="fixed inset-0 z-50 flex justify-end">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-[3px] transition-opacity cursor-pointer"
+              onClick={() => setIsSlideOverOpen(false)}
+            />
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 350 }}
+              className="relative z-10 w-full max-w-[420px] h-full bg-white shadow-2xl flex flex-col"
+            >
+              <div className="flex items-center gap-3 p-6 border-b border-[var(--line)]">
+                <button onClick={() => setIsSlideOverOpen(false)} className="p-2 -ml-2 rounded-full hover:bg-slate-100 text-[var(--muted)] transition-colors cursor-pointer">
+                  <Icon name="x" className="h-5 w-5" />
+                </button>
+                <h2 className="text-[18px] font-black text-[var(--ink)] leading-none">{editingTierId ? "Edit Plan Option" : "New Plan Option"}</h2>
               </div>
 
-              {/* Plan Type */}
-              <div className="flex flex-col gap-3">
-                <label className="text-[13px] font-bold text-[var(--ink)]">Plan Type</label>
-                <div className="flex items-center gap-6">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="soPlanType" value="SUBSCRIPTION" checked={soPlanType === "SUBSCRIPTION"} onChange={() => setSoPlanType("SUBSCRIPTION")} className="w-4 h-4 text-[var(--brand)] border-[var(--line)] focus:ring-[var(--brand)] cursor-pointer" />
-                    <span className="text-[14px] font-medium text-[var(--ink)]">Subscription</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="soPlanType" value="LIFETIME" checked={soPlanType === "LIFETIME"} onChange={() => setSoPlanType("LIFETIME")} className="w-4 h-4 text-[var(--brand)] border-[var(--line)] focus:ring-[var(--brand)] cursor-pointer" />
-                    <span className="text-[14px] font-medium text-[var(--ink)]">Lifetime</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Duration (Only for Subscription) */}
-              {soPlanType === "SUBSCRIPTION" && (
-                <div className="flex gap-3">
+              <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+                {/* Plan Name */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[13px] font-bold text-[var(--ink)]">Plan Name</label>
+                    <span className="text-[11px] font-bold text-[var(--muted-2)]">{soName.length}/75</span>
+                  </div>
                   <input
-                    type="number" min="1" value={soDurationValue} onChange={e => setSoDurationValue(e.target.value)}
-                    className="w-24 rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-[14px] font-medium text-[var(--ink)] outline-none transition-all text-center focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/10"
+                    type="text" maxLength={75} value={soName} onChange={e => setSoName(e.target.value)}
+                    placeholder="e.g. Quarterly Advisory, Lifetime Special"
+                    className="w-full rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-[14px] font-medium text-[var(--ink)] outline-none transition-all placeholder:text-[var(--muted-2)] focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/10"
                   />
-                  <div className="relative flex-1">
-                    <select
-                      value={soDurationUnit} onChange={e => setSoDurationUnit(e.target.value as PlanBillingCycle)}
-                      className="w-full appearance-none rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-[14px] font-medium text-[var(--ink)] outline-none focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/10 transition-all cursor-pointer"
+                  {soErrors.name && <span className="text-[11px] text-[var(--red)] font-bold px-1">{soErrors.name}</span>}
+                </div>
+
+                {/* Plan Type */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-[13px] font-bold text-[var(--ink)]">Plan Type</label>
+                  <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1.5 rounded-2xl border border-[var(--line)]">
+                    <button
+                      type="button"
+                      onClick={() => setSoPlanType("SUBSCRIPTION")}
+                      className={`py-2.5 rounded-xl text-[13px] font-bold transition-all cursor-pointer ${soPlanType === "SUBSCRIPTION"
+                          ? "bg-white text-[var(--ink)] shadow-sm font-extrabold"
+                          : "text-[var(--muted)] hover:text-[var(--ink)] font-semibold"
+                        }`}
                     >
-                      <option value="DAY">Days</option>
-                      <option value="WEEK">Weeks</option>
-                      <option value="MONTH">Months</option>
-                      <option value="QUARTER">Quarters</option>
-                      <option value="YEAR">Years</option>
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-[var(--muted)]">
-                      <Icon className="h-4 w-4" name="arrowRight" style={{ transform: "rotate(90deg)" }} />
-                    </div>
+                      Subscription
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSoPlanType("LIFETIME")}
+                      className={`py-2.5 rounded-xl text-[13px] font-bold transition-all cursor-pointer ${soPlanType === "LIFETIME"
+                          ? "bg-white text-[var(--ink)] shadow-sm font-extrabold"
+                          : "text-[var(--muted)] hover:text-[var(--ink)] font-semibold"
+                        }`}
+                    >
+                      Lifetime Access
+                    </button>
                   </div>
                 </div>
-              )}
 
-              {/* Plan Price */}
-              <div className="flex flex-col gap-2">
-                <label className="text-[13px] font-bold text-[var(--ink)]">Plan Price</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <span className="text-[14px] font-medium text-[var(--muted)]">₹</span>
-                  </div>
-                  <input
-                    type="number" min="0" value={soPrice} onChange={e => setSoPrice(e.target.value)}
-                    placeholder="0"
-                    className="w-full rounded-xl border border-[var(--line)] bg-white pl-8 pr-4 py-3 text-[14px] font-medium text-[var(--ink)] outline-none transition-all focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/10"
-                  />
-                </div>
-              </div>
-
-              {/* Discount Toggle */}
-              <div className="flex flex-col gap-4 bg-slate-50 border border-[var(--line)] p-4 rounded-2xl">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" checked={soHasDiscount} onChange={e => setSoHasDiscount(e.target.checked)} className="w-4 h-4 text-[var(--brand)] border-[var(--line)] rounded focus:ring-[var(--brand)] cursor-pointer" />
-                  <span className="text-[13.5px] font-bold text-[var(--ink)]">Offer discounted price on plan price</span>
-                </label>
-                
-                {soHasDiscount && (
-                  <div className="mt-1 flex flex-col gap-1.5">
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <span className="text-[14px] font-medium text-[var(--muted)]">₹</span>
-                      </div>
+                {/* Duration (Only for Subscription) */}
+                {soPlanType === "SUBSCRIPTION" && (
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[13px] font-bold text-[var(--ink)]">Billing Period / Duration</label>
+                    <div className="flex gap-3">
                       <input
-                        type="number" min="0" value={soDiscountedPrice}
-                        onChange={e => { setSoDiscountedPrice(e.target.value); if (soDiscountError) setSoDiscountError(""); }}
-                        placeholder="Discounted Price"
-                        className={`w-full rounded-xl border bg-white pl-8 pr-4 py-3 text-[14px] font-medium text-[var(--ink)] outline-none transition-all focus:ring-4 ${soDiscountError ? "border-[var(--red)] focus:border-[var(--red)] focus:ring-[var(--red)]/10" : "border-[var(--line)] focus:border-emerald-500 focus:ring-emerald-500/10"}`}
+                        type="number" min="1" value={soDurationValue} onChange={e => setSoDurationValue(e.target.value)}
+                        className="w-24 rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-[14px] font-bold text-[var(--ink)] outline-none transition-all text-center focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/10"
                       />
+                      <div className="relative flex-1">
+                        <select
+                          value={soDurationUnit} onChange={e => setSoDurationUnit(e.target.value as PlanBillingCycle)}
+                          className="w-full appearance-none rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-[14px] font-semibold text-[var(--ink)] outline-none focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/10 transition-all cursor-pointer"
+                        >
+                          <option value="DAY">Days</option>
+                          <option value="WEEK">Weeks</option>
+                          <option value="MONTH">Months</option>
+                          <option value="QUARTER">Quarters</option>
+                          <option value="YEAR">Years</option>
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-[var(--muted)]">
+                          <Icon className="h-4 w-4" name="arrowRight" style={{ transform: "rotate(90deg)" }} />
+                        </div>
+                      </div>
                     </div>
-                    {soDiscountError && (
-                      <span className="text-[12px] font-bold text-[var(--red)] px-1">{soDiscountError}</span>
-                    )}
+                    {soErrors.duration && <span className="text-[11px] text-[var(--red)] font-bold px-1">{soErrors.duration}</span>}
+                  </div>
+                )}
+
+                {/* Plan Price */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-[13px] font-bold text-[var(--ink)]">Plan Standard Price</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <span className="text-[14px] font-medium text-[var(--muted)]">₹</span>
+                    </div>
+                    <input
+                      type="number" min="0" value={soPrice} onChange={e => setSoPrice(e.target.value)}
+                      placeholder="0"
+                      className="w-full rounded-xl border border-[var(--line)] bg-white pl-8 pr-4 py-3 text-[14px] font-medium text-[var(--ink)] outline-none transition-all focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/10"
+                    />
+                  </div>
+                  {soErrors.price && <span className="text-[11px] text-[var(--red)] font-bold px-1">{soErrors.price}</span>}
+                </div>
+
+                {/* Discount Toggle */}
+                <div className="flex flex-col gap-4 bg-slate-50 border border-[var(--line)] p-4 rounded-2xl">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" checked={soHasDiscount} onChange={e => setSoHasDiscount(e.target.checked)} className="w-4 h-4 text-[var(--brand)] border-[var(--line)] rounded focus:ring-[var(--brand)] cursor-pointer" />
+                    <span className="text-[13.5px] font-bold text-[var(--ink)]">Offer discounted price on plan price</span>
+                  </label>
+
+                  {soHasDiscount && (
+                    <div className="mt-1 flex flex-col gap-1.5">
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                          <span className="text-[14px] font-medium text-[var(--muted)]">₹</span>
+                        </div>
+                        <input
+                          type="number" min="0" value={soDiscountedPrice}
+                          onChange={e => { setSoDiscountedPrice(e.target.value); if (soDiscountError) setSoDiscountError(""); }}
+                          placeholder="Discounted Price"
+                          className={`w-full rounded-xl border bg-white pl-8 pr-4 py-3 text-[14px] font-medium text-[var(--ink)] outline-none transition-all focus:ring-4 ${soDiscountError ? "border-[var(--red)] focus:border-[var(--red)] focus:ring-[var(--red)]/10" : "border-[var(--line)] focus:border-emerald-500 focus:ring-emerald-500/10"}`}
+                        />
+                      </div>
+                      {soDiscountError && (
+                        <span className="text-[12px] font-bold text-[var(--red)] px-1">{soDiscountError}</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Plan Dynamic Summary Help text */}
+                {Number(soPrice) > 0 && (
+                  <div className="bg-blue-50/40 border border-blue-100 rounded-2xl p-4 text-[12px] text-slate-600 leading-relaxed flex items-start gap-2.5 my-2">
+                    <Icon name="helpCircle" className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      {getDynamicSummaryText()}
+                    </div>
                   </div>
                 )}
               </div>
-            </div>
 
-            <div className="p-6 border-t border-[var(--line)] bg-white">
-              <button
-                type="button"
-                onClick={savePricingTier}
-                className="w-full flex items-center justify-center rounded-2xl bg-black px-6 py-4 text-[14px] font-bold text-white hover:opacity-90 transition-all shadow-[0_4px_14px_0_rgba(0,0,0,0.25)] active:scale-[0.98]"
-              >
-                Save Changes
-              </button>
-            </div>
+              <div className="p-6 border-t border-[var(--line)] bg-white">
+                <button
+                  type="button"
+                  onClick={savePricingTier}
+                  className="w-full flex items-center justify-center rounded-2xl bg-black px-6 py-4 text-[14px] font-bold text-white hover:opacity-90 transition-all shadow-[0_4px_14px_0_rgba(0,0,0,0.25)] active:scale-[0.98]"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </>
   );
 }

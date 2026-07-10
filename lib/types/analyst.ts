@@ -57,6 +57,7 @@ export interface Trade {
   reward_2_pct?: number;
   pnl_pct?: number;
   pnl_percent?: number;
+  combined_pnl_percent?: number;
   pnl_per_unit?: number;
   pnl_unit?: string;
   note?: string;
@@ -67,7 +68,7 @@ export interface Trade {
   updated_at?: string;
   exit_price?: number;
   exit_timestamp?: string;
-  status: "ACTIVE" | "CLOSED" | "PENDING" | "TARGET_HIT" | "SL_HIT";
+  status: "ACTIVE" | "LIVE" | "CLOSED" | "MANUALLY_CLOSED" | "CLOSED_BY_SL" | "CLOSED_BY_TARGET" | "PENDING" | "TARGET_HIT" | "SL_HIT";
 }
 
 export interface Subscriber {

@@ -48,7 +48,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const onTradeModifiedCallbackRef = useRef<(() => void) | null>(null);
   const onTradeCreatedCallbackRef = useRef<(() => void) | null>(null);
 
-  const { latestNotification } = useWebSocket();
+  const { latestNotification, prices } = useWebSocket();
 
   // Initial fetch to check for unread notifications
   useEffect(() => {
@@ -153,7 +153,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
       {/* Global Overlay Modal */}
       {isCreateTradeOpen && (
-        <CreateTradeModal onClose={closeCreateTrade} onSuccess={handleCreateSuccess} />
+        <CreateTradeModal livePrices={prices} onClose={closeCreateTrade} onSuccess={handleCreateSuccess} />
       )}
 
       {tradeToClose && (

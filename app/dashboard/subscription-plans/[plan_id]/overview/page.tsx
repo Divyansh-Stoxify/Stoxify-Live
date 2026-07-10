@@ -43,7 +43,7 @@ export default function PlanOverviewPage({ params }: { params: Promise<{ plan_id
     async function fetchSubscribers() {
       setIsSubscribersLoading(true);
       try {
-        const res = await fetch(`/api/analyst/subscribers?plan_id=${plan_id}&limit=10`, {
+        const res = await fetch(`/api/analyst/subscribers?plan_id=${plan_id}&limit=1000`, {
           credentials: "same-origin",
           cache: "no-store",
         });
@@ -60,6 +60,28 @@ export default function PlanOverviewPage({ params }: { params: Promise<{ plan_id
     }
     void fetchSubscribers();
   }, [plan_id]);
+
+  // Compute metrics from subscriptions
+  const computedMetrics = React.useMemo(() => {
+    const activeCount = subscribers.filter((s) => s.status === "ACTIVE").length;
+    
+    // Sum amount of successful subscriptions
+    const totalSales = subscribers
+      .filter((s) => s.status === "ACTIVE" || s.status === "CANCELLED" || s.status === "EXPIRED")
+      .reduce((sum, s) => sum + (s.amount || 0), 0);
+      
+    const completedOrActive = subscribers.filter(
+      (s) => s.status === "ACTIVE" || s.status === "CANCELLED" || s.status === "EXPIRED"
+    ).length;
+    const cancelledCount = subscribers.filter((s) => s.status === "CANCELLED").length;
+    const churnRate = completedOrActive > 0 ? (cancelledCount / completedOrActive) * 100 : 0;
+    
+    return {
+      activeCount,
+      totalSales,
+      churnRate,
+    };
+  }, [subscribers]);
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
@@ -106,7 +128,7 @@ export default function PlanOverviewPage({ params }: { params: Promise<{ plan_id
               </span>
             </div>
             <div className="text-[32px] font-extrabold leading-none tracking-tight text-[var(--ink)] mt-3.5 tabular-nums">
-              ₹0
+              {isSubscribersLoading ? "--" : formatCurrency(computedMetrics.totalSales)}
             </div>
           </div>
 
@@ -128,7 +150,7 @@ export default function PlanOverviewPage({ params }: { params: Promise<{ plan_id
               </span>
             </div>
             <div className="text-[32px] font-extrabold leading-none tracking-tight text-[var(--ink)] mt-3.5 tabular-nums">
-              --
+              {isSubscribersLoading ? "--" : computedMetrics.activeCount}
             </div>
           </div>
 
@@ -150,7 +172,7 @@ export default function PlanOverviewPage({ params }: { params: Promise<{ plan_id
               </span>
             </div>
             <div className="text-[32px] font-extrabold leading-none tracking-tight text-[var(--ink)] mt-3.5 tabular-nums">
-              0%
+              {isSubscribersLoading ? "--" : `${computedMetrics.churnRate.toFixed(0)}%`}
             </div>
           </div>
         </div>

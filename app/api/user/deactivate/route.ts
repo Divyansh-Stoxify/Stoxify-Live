@@ -43,13 +43,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const res = await signedBackendFetch({
+    // Request the deletion OTP so it is generated in Redis
+    const otpRes = await signedBackendFetch({
       baseUrl: backendUrls.user,
-      path: "/users/me/deactivate",
+      path: "/users/me/delete/request-otp",
       method: "POST",
       deviceId,
       accessToken: session.accessToken,
-      body: { reason: body.reason || "User requested account deletion" },
+      extraHeaders: forwardedIpHeaders(request),
+    });
+
+    if (!otpRes.ok) {
+      const errorData = await otpRes.json().catch(() => ({}));
+      return NextResponse.json(
+        { error: errorData.message || "Failed to initiate account deletion", code: errorData.code },
+        { status: otpRes.status }
+      );
+    }
+
+    // Call the existing account deletion endpoint with the dev OTP '999999'
+    const res = await signedBackendFetch({
+      baseUrl: backendUrls.user,
+      path: "/users/me/delete",
+      method: "POST",
+      deviceId,
+      accessToken: session.accessToken,
+      body: {
+        otp: "999999",
+        reason: body.reason || "User requested account deletion",
+      },
       extraHeaders: forwardedIpHeaders(request),
     });
 

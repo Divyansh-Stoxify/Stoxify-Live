@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Topbar } from "@/components/dashboard/topbar";
 import { Icon } from "@/components/stoxify-icon";
-import { useAnalystCoupons } from "@/hooks/use-analyst-dashboard";
+import { useAnalystCoupons, useSubscriptionPlans, Coupon } from "@/hooks/use-analyst-dashboard";
 import { useDashboard } from "@/components/dashboard/dashboard-context";
 import { CreateCouponModal } from "@/components/dashboard/coupons/CreateCouponModal";
 import { CreateCouponSidebar } from "@/components/dashboard/coupons/CreateCouponSidebar";
@@ -19,10 +19,12 @@ function formatCurrency(amount: number): string {
 export default function DiscountsPage() {
   const { showSuccessToast } = useDashboard();
   const { coupons, isLoading, refetch } = useAnalystCoupons();
+  const { plans } = useSubscriptionPlans();
 
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
   const [sidebarType, setSidebarType] = useState<"PERCENTAGE" | "FLAT" | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
 
   const handleCreateCouponClick = () => {
     setIsTypeModalOpen(true);
@@ -30,7 +32,13 @@ export default function DiscountsPage() {
 
   const handleSelectType = (type: "PERCENTAGE" | "FLAT") => {
     setIsTypeModalOpen(false);
+    setEditingCoupon(null);
     setSidebarType(type);
+  };
+
+  const handleEditCoupon = (coupon: Coupon) => {
+    setEditingCoupon(coupon);
+    setSidebarType(coupon.type);
   };
 
   const handleDeleteCoupon = async (coupon_id: string, code: string) => {
@@ -42,7 +50,7 @@ export default function DiscountsPage() {
       if (!res.ok) throw new Error("Failed to delete coupon");
       showSuccessToast("Coupon Deleted", `Coupon ${code} has been deleted.`);
       refetch();
-    } catch (err) {
+    } catch {
       showSuccessToast("Error", "Could not delete coupon.");
     }
   };
@@ -60,7 +68,7 @@ export default function DiscountsPage() {
         `Coupon ${code} is now ${!currentStatus ? "active" : "inactive"}.`
       );
       refetch();
-    } catch (err) {
+    } catch {
       showSuccessToast("Error", "Could not update coupon status.");
     }
   };
@@ -68,6 +76,29 @@ export default function DiscountsPage() {
   const filteredCoupons = coupons.filter((c) =>
     c.code.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Helper to resolve plan_ids to display names
+  const resolvePlanIds = (planIds: string[]) => {
+    const batchNames: string[] = [];
+    const pricingNames: string[] = [];
+
+    for (const id of planIds) {
+      if (id.startsWith("PLAN_")) {
+        const plan = plans.find((p) => p.plan_id === id);
+        if (plan) batchNames.push(plan.name);
+      } else if (id.startsWith("batch_")) {
+        for (const plan of plans) {
+          const batch = (plan.batches || []).find((b) => b.batch_id === id);
+          if (batch) {
+            pricingNames.push(`${batch.name} (${plan.name})`);
+            break;
+          }
+        }
+      }
+    }
+
+    return { batchNames, pricingNames };
+  };
 
   return (
     <>
@@ -124,54 +155,100 @@ export default function DiscountsPage() {
                     <th className="px-6 py-4">Code</th>
                     <th className="px-6 py-4">Type</th>
                     <th className="px-6 py-4">Discount</th>
+                    <th className="px-6 py-4">Batches</th>
+                    <th className="px-6 py-4">Plans</th>
                     <th className="px-6 py-4">Usage</th>
                     <th className="px-6 py-4">Status</th>
                     <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--line)] text-[13px] font-semibold text-[var(--ink)]">
-                  {filteredCoupons.map((coupon) => (
-                    <tr key={coupon.coupon_id} className="hover:bg-slate-50/40 transition-colors">
-                      <td className="px-6 py-4 font-mono font-bold text-[var(--brand)]">
-                        {coupon.code}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="rounded-lg bg-slate-100 border border-slate-200 px-2 py-0.5 text-[11px] text-slate-600 font-bold uppercase">
-                          {coupon.type}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        {coupon.type === "PERCENTAGE"
-                          ? `${coupon.discount_value}%`
-                          : formatCurrency(coupon.discount_value)}
-                      </td>
-                      <td className="px-6 py-4">
-                        {coupon.quantity_used} / {coupon.quantity_total === null ? "∞" : coupon.quantity_total}
-                      </td>
-                      <td className="px-6 py-4">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleStatus(coupon.coupon_id, coupon.is_active, coupon.code)}
-                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide uppercase cursor-pointer hover:opacity-85 transition-opacity ${
-                            coupon.is_active
-                              ? "bg-[var(--green-light)] text-[var(--green)] border border-[var(--green)]/15"
-                              : "bg-slate-100 text-slate-400 border border-slate-200"
-                          }`}
-                        >
-                          {coupon.is_active ? "Active" : "Inactive"}
-                        </button>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => handleDeleteCoupon(coupon.coupon_id, coupon.code)}
-                          className="p-1.5 rounded-lg border border-red-100 bg-white text-red-400 hover:text-red-600 hover:border-red-300 hover:bg-red-50/50 transition-all cursor-pointer"
-                          title="Delete Coupon"
-                        >
-                          <Icon className="h-3.5 w-3.5" name="trash" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredCoupons.map((coupon) => {
+                    const { batchNames, pricingNames } = resolvePlanIds(coupon.plan_ids || []);
+                    return (
+                      <tr key={coupon.coupon_id} className="hover:bg-slate-50/40 transition-colors">
+                        <td className="px-6 py-4 font-mono font-bold text-[var(--brand)]">
+                          {coupon.code}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="rounded-lg bg-slate-100 border border-slate-200 px-2 py-0.5 text-[11px] text-slate-600 font-bold uppercase">
+                            {coupon.type}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          {coupon.type === "PERCENTAGE"
+                            ? `${coupon.discount_value}%`
+                            : formatCurrency(coupon.discount_value)}
+                        </td>
+                        <td className="px-6 py-4">
+                          {batchNames.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {batchNames.map((name, i) => (
+                                <span
+                                  key={i}
+                                  className="inline-flex items-center rounded-full bg-blue-50 border border-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-600"
+                                >
+                                  {name}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-[var(--muted)] font-medium italic">All</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          {pricingNames.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {pricingNames.map((name, i) => (
+                                <span
+                                  key={i}
+                                  className="inline-flex items-center rounded-full bg-violet-50 border border-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-600"
+                                >
+                                  {name}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-[var(--muted)] font-medium italic">All</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          {coupon.quantity_used} / {coupon.quantity_total === null ? "∞" : coupon.quantity_total}
+                        </td>
+                        <td className="px-6 py-4">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStatus(coupon.coupon_id, coupon.is_active, coupon.code)}
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide uppercase cursor-pointer hover:opacity-85 transition-opacity ${
+                              coupon.is_active
+                                ? "bg-[var(--green-light)] text-[var(--green)] border border-[var(--green)]/15"
+                                : "bg-slate-100 text-slate-400 border border-slate-200"
+                            }`}
+                          >
+                            {coupon.is_active ? "Active" : "Inactive"}
+                          </button>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleEditCoupon(coupon)}
+                              className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-[var(--brand)] hover:border-[var(--brand)]/30 hover:bg-[var(--brand)]/5 transition-all cursor-pointer"
+                              title="Edit Coupon"
+                            >
+                              <Icon className="h-3.5 w-3.5" name="edit" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteCoupon(coupon.coupon_id, coupon.code)}
+                              className="p-1.5 rounded-lg border border-red-100 bg-white text-red-400 hover:text-red-600 hover:border-red-300 hover:bg-red-50/50 transition-all cursor-pointer"
+                              title="Delete Coupon"
+                            >
+                              <Icon className="h-3.5 w-3.5" name="trash" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -189,9 +266,13 @@ export default function DiscountsPage() {
       {sidebarType && (
         <CreateCouponSidebar
           type={sidebarType}
-          onClose={() => setSidebarType(null)}
+          onClose={() => {
+            setSidebarType(null);
+            setEditingCoupon(null);
+          }}
           onSave={refetch}
           showSuccessToast={showSuccessToast}
+          editCoupon={editingCoupon}
         />
       )}
     </>

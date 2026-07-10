@@ -182,6 +182,7 @@ export default function AnalystDetailPage() {
           code: couponCode,
           analyst_id: checkoutPlan.analyst_id,
           plan_id: checkoutPlan.plan_id,
+          batch_id: checkoutBatch ? checkoutBatch.batch_id : undefined,
           price: price
         })
       });

@@ -93,6 +93,7 @@ export default function CreatePlanPage() {
   const [soDiscountedPrice, setSoDiscountedPrice] = useState("");
   const [soIsActive, setSoIsActive] = useState(true);
   const [soDiscountError, setSoDiscountError] = useState("");
+  const [soErrors, setSoErrors] = useState<Record<string, string>>({});
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -132,6 +133,7 @@ export default function CreatePlanPage() {
   };
 
   const openSlideOver = (tier?: PlanBatch) => {
+    setSoErrors({});
     setSoDiscountError("");
     if (tier) {
       setEditingTierId(tier.batch_id);
@@ -166,30 +168,35 @@ export default function CreatePlanPage() {
   };
 
   const savePricingTier = () => {
-    if (!soName.trim()) return alert("Plan Name is required");
-    if (!soPrice || isNaN(Number(soPrice))) return alert("Valid Plan Price is required");
-    
-    const durationVal = parseInt(soDurationValue);
-    if (soPlanType === "SUBSCRIPTION" && (isNaN(durationVal) || durationVal <= 0)) {
-      return alert("Valid duration is required");
+    const newErrors: Record<string, string> = {};
+
+    if (!soName.trim()) {
+      newErrors.name = "Plan Name is required";
     }
 
     const priceNum = Number(soPrice);
-    const discountedNum = soHasDiscount && soDiscountedPrice ? Number(soDiscountedPrice) : undefined;
-
-    if (priceNum < MIN_BATCH_PRICE) {
-      return alert(`Plan price must be at least ₹${MIN_BATCH_PRICE}`);
+    if (!soPrice || isNaN(priceNum) || priceNum < 0) {
+      newErrors.price = "Valid Plan Price is required";
+    } else if (priceNum < MIN_BATCH_PRICE) {
+      newErrors.price = `Plan price must be at least ₹${MIN_BATCH_PRICE}`;
     }
+
+    const durationVal = parseInt(soDurationValue);
+    if (soPlanType === "SUBSCRIPTION" && (isNaN(durationVal) || durationVal <= 0)) {
+      newErrors.duration = "Valid duration is required";
+    }
+
+    const discountedNum = soHasDiscount && soDiscountedPrice ? Number(soDiscountedPrice) : undefined;
 
     if (discountedNum !== undefined && discountedNum >= priceNum) {
       setSoDiscountError("Discounted price cannot be more than the plan price");
-      return;
-    }
-    if (discountedNum !== undefined && discountedNum < MIN_BATCH_PRICE) {
+      newErrors.discount = "Discounted price is invalid";
+    } else if (discountedNum !== undefined && discountedNum < MIN_BATCH_PRICE) {
       setSoDiscountError(`Discounted price must be at least ₹${MIN_BATCH_PRICE}`);
-      return;
+      newErrors.discount = "Discounted price is invalid";
+    } else {
+      setSoDiscountError("");
     }
-    setSoDiscountError("");
 
     const newDays = soPlanType === "LIFETIME" ? 36500 : getDaysFromCycle(durationVal, soDurationUnit);
 
@@ -199,8 +206,14 @@ export default function CreatePlanPage() {
       t => t.batch_id !== editingTierId && t.days === newDays
     );
     if (hasDuplicateDuration) {
-      return alert("Another plan already uses this duration. Each plan must have a unique duration.");
+      newErrors.duration = "Another plan already uses this duration. Each plan must have a unique duration.";
     }
+
+    if (Object.keys(newErrors).length > 0) {
+      setSoErrors(newErrors);
+      return;
+    }
+    setSoErrors({});
 
     const newTier: PlanBatch = {
       batch_id: editingTierId || `batch_${nanoid(6)}`,
@@ -880,6 +893,7 @@ export default function CreatePlanPage() {
                     placeholder="e.g. Quarterly Advisory, Lifetime Special"
                     className="w-full rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-[14px] font-medium text-[var(--ink)] outline-none transition-all placeholder:text-[var(--muted-2)] focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/10"
                   />
+                  {soErrors.name && <span className="text-[11px] text-[var(--red)] font-bold px-1">{soErrors.name}</span>}
                 </div>
 
                 {/* Plan Type */}
@@ -936,6 +950,7 @@ export default function CreatePlanPage() {
                         </div>
                       </div>
                     </div>
+                    {soErrors.duration && <span className="text-[11px] text-[var(--red)] font-bold px-1">{soErrors.duration}</span>}
                   </div>
                 )}
 
@@ -952,6 +967,7 @@ export default function CreatePlanPage() {
                       className="w-full rounded-xl border border-[var(--line)] bg-white pl-8 pr-4 py-3 text-[14px] font-semibold text-[var(--ink)] outline-none transition-all focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/10"
                     />
                   </div>
+                  {soErrors.price && <span className="text-[11px] text-[var(--red)] font-bold px-1">{soErrors.price}</span>}
                 </div>
 
                 {/* Discount Switch & Price Input */}

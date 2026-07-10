@@ -298,6 +298,7 @@ export default function BatchDetailPage() {
           code: couponCode,
           analyst_id: batch.analyst_id,
           plan_id: batch.plan_id,
+          batch_id: checkoutPlan ? checkoutPlan.batch_id : undefined,
           price,
         }),
       });

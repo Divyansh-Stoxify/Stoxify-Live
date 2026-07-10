@@ -51,6 +51,8 @@ function resolveTradeError(data: BackendError): { field: string; message: string
 interface CreateTradeModalProps {
   onClose: () => void;
   onSuccess: (title: string, message: string) => void;
+  /** Live symbol → LTP map from the shared dashboard WebSocket */
+  livePrices?: Record<string, number>;
 }
 
 // Fallback popular symbols shown when the search input is empty
@@ -86,7 +88,7 @@ interface SearchResult {
   exchange: string;
 }
 
-export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) {
+export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTradeModalProps) {
   const { mutate } = useSWRConfig();
 
   // Form states
@@ -272,14 +274,20 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
     fetchLivePrice(item.symbol);
   };
 
-  // Entry price is always the live LTP from the market-data service (Angel One) —
-  // the analyst cannot type it manually, only re-fetch it.
-  const fetchLivePrice = useCallback(async (symbol: string) => {
-    setIsFetchingPrice(true);
+  // Entry price is always the live LTP — the analyst cannot type it manually.
+  // Watching a symbol subscribes it to the Angel One feed on the backend for a
+  // short TTL, so subsequent ticks arrive over the shared WebSocket for free.
+  // The response carries the current LTP as a seed. Silent mode (TTL renewal)
+  // never flashes a loading state and keeps the last good price on failure.
+  const fetchLivePrice = useCallback(async (symbol: string, silent = false) => {
+    if (!silent) setIsFetchingPrice(true);
     try {
-      const res = await fetch(`/api/market-data/price/${encodeURIComponent(symbol)}`, {
+      const res = await fetch("/api/market-data/watch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
         cache: "no-store",
+        body: JSON.stringify({ symbol }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -290,21 +298,41 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
           return;
         }
       }
+      if (silent) return;
       setEntryPrice("");
       setErrors((prev) => ({
         ...prev,
         entry: "Live price unavailable for this instrument — try refreshing",
       }));
     } catch {
+      if (silent) return;
       setEntryPrice("");
       setErrors((prev) => ({
         ...prev,
         entry: "Could not fetch live price — try refreshing",
       }));
     } finally {
-      setIsFetchingPrice(false);
+      if (!silent) setIsFetchingPrice(false);
     }
   }, []);
+
+  // Renew the watch while an instrument is selected so the backend keeps the
+  // feed subscription alive (server-side TTL is 90s; renew every 60s).
+  useEffect(() => {
+    if (!isSymbolSelected || !symbolQuery.trim()) return;
+    const symbol = symbolQuery;
+    const interval = setInterval(() => fetchLivePrice(symbol, true), 60_000);
+    return () => clearInterval(interval);
+  }, [isSymbolSelected, symbolQuery, fetchLivePrice]);
+
+  // Tick the entry price from the shared WebSocket as live prices stream in
+  const liveTick = isSymbolSelected ? livePrices?.[symbolQuery] : undefined;
+  useEffect(() => {
+    if (liveTick !== undefined && liveTick > 0) {
+      setEntryPrice(String(liveTick));
+      setErrors((prev) => (prev.entry ? { ...prev, entry: "" } : prev));
+    }
+  }, [liveTick]);
 
   const validate = () => {
     const nextErrors: { [key: string]: string } = {};

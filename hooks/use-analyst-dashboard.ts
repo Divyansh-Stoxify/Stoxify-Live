@@ -613,6 +613,7 @@ export interface Coupon {
   type: 'PERCENTAGE' | 'FLAT';
   discount_value: number;
   plan_ids: string[];
+  user_ids?: string[];
   availability: 'EVERYONE' | 'SPECIFIC';
   quantity_total: number | null;
   quantity_used: number;

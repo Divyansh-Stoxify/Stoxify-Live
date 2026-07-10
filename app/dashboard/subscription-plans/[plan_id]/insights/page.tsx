@@ -44,22 +44,32 @@ export default function BatchInsightsPage({ params }: { params: Promise<{ plan_i
     void fetchTrades();
   }, [plan_id]);
 
+  // Helper: read the PnL percentage from whichever field the backend provided.
+  // The DB stores `pnl_percent` but the Trade type also declares `pnl_pct`.
+  const getPnl = (t: Trade): number | undefined => t.pnl_pct ?? t.pnl_percent;
+
+  // All statuses the backend considers "closed"
+  const CLOSED_STATUSES = ["CLOSED", "MANUALLY_CLOSED", "CLOSED_BY_SL", "CLOSED_BY_TARGET", "TARGET_HIT", "SL_HIT"];
+
   // Compute Insights Metrics
   const insights = useMemo(() => {
     const totalTrades = trades.length;
     
-    // Status breakdown
-    const activeTrades = trades.filter((t) => t.status === "ACTIVE" || t.status === "PENDING").length;
-    const closedTrades = trades.filter((t) => t.status === "CLOSED" || t.status === "TARGET_HIT" || t.status === "SL_HIT");
+    // Status breakdown — backend creates trades with status "LIVE"
+    const activeTrades = trades.filter(
+      (t) => t.status === "LIVE" || t.status === "ACTIVE" || t.status === "PENDING"
+    ).length;
+    const closedTrades = trades.filter((t) => CLOSED_STATUSES.includes(t.status));
     
-    // Win Rate (Target Hit vs SL Hit). If status is explicitly TARGET_HIT / SL_HIT, use that.
-    // Otherwise, we might guess from PnL. For simplicity, we assume TARGET_HIT and SL_HIT are used.
+    // Win Rate: CLOSED_BY_TARGET / TARGET_HIT = win; CLOSED_BY_SL / SL_HIT = loss;
+    // MANUALLY_CLOSED / CLOSED = infer from PnL.
     let wins = 0;
     let losses = 0;
     
     closedTrades.forEach(t => {
-      if (t.status === "TARGET_HIT" || (t.pnl_pct && t.pnl_pct > 0)) wins++;
-      else if (t.status === "SL_HIT" || (t.pnl_pct && t.pnl_pct <= 0)) losses++;
+      const pnl = getPnl(t);
+      if (t.status === "TARGET_HIT" || t.status === "CLOSED_BY_TARGET" || (pnl !== undefined && pnl > 0)) wins++;
+      else if (t.status === "SL_HIT" || t.status === "CLOSED_BY_SL" || (pnl !== undefined && pnl <= 0)) losses++;
     });
 
     const winRate = wins + losses > 0 ? (wins / (wins + losses)) * 100 : 0;
@@ -71,11 +81,13 @@ export default function BatchInsightsPage({ params }: { params: Promise<{ plan_i
       segmentCounts[seg] = (segmentCounts[seg] || 0) + 1;
     });
 
-    // Best trade (highest pnl_pct)
+    // Best trade (highest pnl)
     let bestTrade: Trade | null = null;
     trades.forEach((t) => {
-      if (t.pnl_pct) {
-        if (!bestTrade || t.pnl_pct > (bestTrade.pnl_pct || 0)) {
+      const pnl = getPnl(t);
+      if (pnl !== undefined && pnl > 0) {
+        const bestPnl = bestTrade ? (getPnl(bestTrade) || 0) : 0;
+        if (!bestTrade || pnl > bestPnl) {
           bestTrade = t;
         }
       }
@@ -194,7 +206,7 @@ export default function BatchInsightsPage({ params }: { params: Promise<{ plan_i
                       </div>
                       <div className="text-right">
                         <div className="text-[20px] font-black text-emerald-500">
-                          +{(insights.bestTrade.pnl_pct || 0).toFixed(2)}%
+                          +{(getPnl(insights.bestTrade) || 0).toFixed(2)}%
                         </div>
                         <div className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider mt-0.5">
                           Return

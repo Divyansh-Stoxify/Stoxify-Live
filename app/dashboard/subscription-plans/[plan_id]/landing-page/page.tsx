@@ -233,7 +233,7 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
 
     const newValue = before + prefix + selected + suffix + after;
     setDescription(newValue);
-    
+
     // Reset focus and selection
     setTimeout(() => {
       textarea.focus();
@@ -251,7 +251,7 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
         {/* Main Content Area */}
         <div className={`flex-1 overflow-y-auto p-8 transition-all duration-300 ${isDrawerOpen ? 'mr-[420px]' : ''}`}>
           <div className="max-w-4xl mx-auto flex flex-col gap-8">
-            
+
             {/* Header / Back Link */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -319,7 +319,7 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
                   batches.map((batch) => {
                     const isActive = batch.is_active !== false;
                     const discountPct = batch.discounted_price ? Math.round(((batch.price - batch.discounted_price) / batch.price) * 100) : 0;
-                    
+
                     return (
                       <div key={batch.batch_id} className={`rounded-2xl border bg-white p-5 shadow-sm transition-all flex items-center justify-between ${!isActive ? 'opacity-60 grayscale' : 'border-slate-200 hover:border-slate-300 hover:shadow-md'}`}>
                         <div className="flex items-start gap-4">
@@ -383,9 +383,8 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
               <button
                 disabled={!hasUnsavedChanges || isSaving}
                 onClick={handlePersistChanges}
-                className={`px-8 py-3 rounded-full text-[14px] font-bold shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer ${
-                  hasUnsavedChanges ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-600/20" : "bg-slate-200 text-slate-400 shadow-none cursor-not-allowed"
-                }`}
+                className={`px-8 py-3 rounded-full text-[14px] font-bold shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer ${hasUnsavedChanges ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-600/20" : "bg-slate-200 text-slate-400 shadow-none cursor-not-allowed"
+                  }`}
               >
                 {isSaving ? (
                   <><Icon className="h-4 w-4 animate-spin" name="loader" /> Saving...</>
@@ -398,10 +397,9 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
         </div>
 
         {/* Side Drawer */}
-        <div 
-          className={`absolute top-0 right-0 h-full w-[420px] bg-white border-l border-slate-200 shadow-2xl transform transition-transform duration-300 ease-in-out flex flex-col z-10 ${
-            isDrawerOpen ? "translate-x-0" : "translate-x-full"
-          }`}
+        <div
+          className={`absolute top-0 right-0 h-full w-[420px] bg-white border-l border-slate-200 shadow-2xl transform transition-transform duration-300 ease-in-out flex flex-col z-10 ${isDrawerOpen ? "translate-x-0" : "translate-x-full"
+            }`}
         >
           {/* Drawer Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
@@ -409,7 +407,7 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
               <Icon className="h-4 w-4 text-slate-400" name="chevronRight" style={{ transform: "rotate(180deg)" }} />
               {editingBatchId ? "Edit Plan" : "New Plan"}
             </h2>
-            <button 
+            <button
               onClick={() => setIsDrawerOpen(false)}
               className="p-2 text-slate-400 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
             >
@@ -420,7 +418,7 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
           {/* Drawer Content Form */}
           <div className="flex-1 overflow-y-auto px-6 py-6">
             <form id="plan-form" onSubmit={handleSaveBatchToList} className="flex flex-col gap-6">
-              
+
               {/* Plan Name */}
               <div className="flex flex-col gap-2">
                 <label className="text-[13px] font-bold text-slate-800">Plan Name</label>
@@ -428,7 +426,7 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
                   <input
                     type="text"
                     value={name}
-                    onChange={(e) => { setName(e.target.value); if(formErrors.name) setFormErrors(p => ({...p, name:""})) }}
+                    onChange={(e) => { setName(e.target.value); if (formErrors.name) setFormErrors(p => ({ ...p, name: "" })) }}
                     placeholder="Give your plan a name"
                     className={`w-full rounded-lg border px-4 py-2.5 text-[14px] text-slate-900 outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all ${formErrors.name ? 'border-red-400' : 'border-slate-200'}`}
                   />
@@ -442,20 +440,20 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
                 <label className="text-[13px] font-bold text-slate-800">Plan Type</label>
                 <div className="flex items-center gap-6">
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input 
-                      type="radio" 
-                      checked={planType === "SUBSCRIPTION"} 
+                    <input
+                      type="radio"
+                      checked={planType === "SUBSCRIPTION"}
                       onChange={() => setPlanType("SUBSCRIPTION")}
-                      className="w-4 h-4 accent-slate-900 cursor-pointer" 
+                      className="w-4 h-4 accent-slate-900 cursor-pointer"
                     />
                     <span className="text-[14px] text-slate-700">Subscription</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input 
-                      type="radio" 
-                      checked={planType === "LIFETIME"} 
+                    <input
+                      type="radio"
+                      checked={planType === "LIFETIME"}
                       onChange={() => setPlanType("LIFETIME")}
-                      className="w-4 h-4 accent-slate-900 cursor-pointer" 
+                      className="w-4 h-4 accent-slate-900 cursor-pointer"
                     />
                     <span className="text-[14px] text-slate-700">Lifetime</span>
                   </label>
@@ -469,7 +467,7 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
                     <input
                       type="number"
                       value={days}
-                      onChange={(e) => { setDays(e.target.value); if(formErrors.days) setFormErrors(p => ({...p, days:""})) }}
+                      onChange={(e) => { setDays(e.target.value); if (formErrors.days) setFormErrors(p => ({ ...p, days: "" })) }}
                       className={`w-full rounded-lg border px-4 py-2.5 text-[14px] text-slate-900 outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all ${formErrors.days ? 'border-red-400' : 'border-slate-200'}`}
                     />
                   </div>
@@ -497,7 +495,7 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
                   <input
                     type="number"
                     value={price}
-                    onChange={(e) => { setPrice(e.target.value); if(formErrors.price) setFormErrors(p => ({...p, price:""})) }}
+                    onChange={(e) => { setPrice(e.target.value); if (formErrors.price) setFormErrors(p => ({ ...p, price: "" })) }}
                     className={`w-full rounded-lg border pl-8 pr-4 py-2.5 text-[14px] text-slate-900 outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all ${formErrors.price ? 'border-red-400' : 'border-slate-200'}`}
                   />
                 </div>
@@ -507,11 +505,11 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
               {/* Discount Checkbox */}
               <div className="flex flex-col gap-3">
                 <label className="flex items-start gap-2 cursor-pointer group">
-                  <input 
-                    type="checkbox" 
-                    checked={offerDiscount} 
+                  <input
+                    type="checkbox"
+                    checked={offerDiscount}
                     onChange={(e) => setOfferDiscount(e.target.checked)}
-                    className="mt-0.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer" 
+                    className="mt-0.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer"
                   />
                   <span className="text-[13.5px] text-slate-700 group-hover:text-slate-900 transition-colors">Offer discounted price on plan price</span>
                 </label>
@@ -524,7 +522,7 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
                       <input
                         type="number"
                         value={discountedPrice}
-                        onChange={(e) => { setDiscountedPrice(e.target.value); if(formErrors.discountedPrice) setFormErrors(p => ({...p, discountedPrice:""})) }}
+                        onChange={(e) => { setDiscountedPrice(e.target.value); if (formErrors.discountedPrice) setFormErrors(p => ({ ...p, discountedPrice: "" })) }}
                         className={`w-full rounded-lg border pl-8 pr-4 py-2.5 text-[14px] text-slate-900 outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all ${formErrors.discountedPrice ? 'border-red-400' : 'border-slate-200'}`}
                       />
                     </div>
@@ -569,10 +567,10 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
           </div>
         </div>
 
-        <CouponDrawer 
-          isOpen={isCouponDrawerOpen} 
-          onClose={() => setIsCouponDrawerOpen(false)} 
-          planId={plan_id} 
+        <CouponDrawer
+          isOpen={isCouponDrawerOpen}
+          onClose={() => setIsCouponDrawerOpen(false)}
+          planId={plan_id}
         />
       </div>
     </div>
