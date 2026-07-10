@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 
 import { Icon } from "@/components/stoxify-icon";
+import { cleanErrorMessage } from "@/lib/utils";
 
 type Step = "identifier" | "otp";
 
@@ -144,7 +145,7 @@ export function LoginModal({
       }
 
       if (!res.ok) {
-        setAuthError(data.error ?? "Unable to send code");
+        setAuthError(cleanErrorMessage(data, data.error ?? "Unable to send code"));
         setIsSubmitting(false);
         return;
       }
@@ -195,7 +196,7 @@ export function LoginModal({
       };
 
       if (!res.ok) {
-        setOtpError(data.error ?? "Verification failed. Try again.");
+        setOtpError(cleanErrorMessage(data, data.error ?? "Verification failed. Try again."));
         setOtp(Array.from({ length: 6 }, () => ""));
         setIsVerifying(false);
         otpInputs.current[0]?.focus();
@@ -241,7 +242,7 @@ export function LoginModal({
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
-        setOtpError(data.error ?? "Failed to resend code.");
+        setOtpError(cleanErrorMessage(data, data.error ?? "Failed to resend code."));
       } else {
         setCooldown(60);
       }

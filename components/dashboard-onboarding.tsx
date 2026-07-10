@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Icon } from "@/components/stoxify-icon";
+import { cleanErrorMessage } from "@/lib/utils";
 
 type OnboardingUser = {
   user_id: string;
@@ -69,7 +70,8 @@ export function DashboardOnboarding({ user }: { user: OnboardingUser }) {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(data.error || "KYC submission failed");
+        const cleaned = cleanErrorMessage(data, data.error || "KYC submission failed");
+        throw new Error(cleaned);
       }
 
       setSuccess(true);

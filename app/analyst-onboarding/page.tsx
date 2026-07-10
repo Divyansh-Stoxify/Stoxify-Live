@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Icon } from "@/components/stoxify-icon";
+import { cleanErrorMessage } from "@/lib/utils";
 
 interface FormErrors {
   name?: string;
@@ -367,12 +368,12 @@ function AnalystOnboardingForm() {
           if (newFieldErrors.name || newFieldErrors.email) {
             setFormStep(0);
           }
-          setGeneralError(data.error ?? "Please check the highlighted fields.");
+          setGeneralError(cleanErrorMessage(data, data.error ?? "Please check the highlighted fields."));
           setIsSubmitting(false);
           return;
         }
 
-        setGeneralError(data.error ?? "Registration failed. Please try again.");
+        setGeneralError(cleanErrorMessage(data, data.error ?? "Registration failed. Please try again."));
         setIsSubmitting(false);
         return;
       }

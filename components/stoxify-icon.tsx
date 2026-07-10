@@ -33,6 +33,7 @@ export type IconName =
   | "plus"
   | "power"
   | "receipt"
+  | "refresh"
   | "rupee"
   | "scale"
   | "search"
@@ -101,6 +102,7 @@ const icons: Record<IconName, string> = {
   plus: "fa-solid fa-plus",
   power: "fa-solid fa-power-off",
   receipt: "fa-solid fa-receipt",
+  refresh: "fa-solid fa-arrows-rotate",
   rupee: "fa-solid fa-indian-rupee-sign",
   scale: "fa-solid fa-scale-balanced",
   search: "fa-solid fa-magnifying-glass",

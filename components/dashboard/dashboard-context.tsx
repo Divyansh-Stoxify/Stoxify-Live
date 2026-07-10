@@ -31,6 +31,8 @@ interface DashboardContextType {
   setOnTradeClosedCallback: (cb: (() => void) | null) => void;
   /** Register a callback to be invoked after a trade is modified */
   setOnTradeModifiedCallback: (cb: (() => void) | null) => void;
+  /** Register a callback to be invoked after a trade is created */
+  setOnTradeCreatedCallback: (cb: (() => void) | null) => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -44,6 +46,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   const onTradeClosedCallbackRef = useRef<(() => void) | null>(null);
   const onTradeModifiedCallbackRef = useRef<(() => void) | null>(null);
+  const onTradeCreatedCallbackRef = useRef<(() => void) | null>(null);
 
   const { latestNotification } = useWebSocket();
 
@@ -97,6 +100,10 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     onTradeModifiedCallbackRef.current = cb;
   };
 
+  const setOnTradeCreatedCallback = (cb: (() => void) | null) => {
+    onTradeCreatedCallbackRef.current = cb;
+  };
+
   const handleCloseSuccess = (title: string, message: string) => {
     showSuccessToast(title, message);
     onTradeClosedCallbackRef.current?.();
@@ -105,6 +112,11 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const handleModifySuccess = (title: string, message: string) => {
     showSuccessToast(title, message);
     onTradeModifiedCallbackRef.current?.();
+  };
+
+  const handleCreateSuccess = (title: string, message: string) => {
+    showSuccessToast(title, message);
+    onTradeCreatedCallbackRef.current?.();
   };
 
   // Auto-dismiss toast after 5 seconds
@@ -134,13 +146,14 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         setHasUnreadNotifications,
         setOnTradeClosedCallback,
         setOnTradeModifiedCallback,
+        setOnTradeCreatedCallback,
       }}
     >
       {children}
 
       {/* Global Overlay Modal */}
       {isCreateTradeOpen && (
-        <CreateTradeModal onClose={closeCreateTrade} onSuccess={showSuccessToast} />
+        <CreateTradeModal onClose={closeCreateTrade} onSuccess={handleCreateSuccess} />
       )}
 
       {tradeToClose && (

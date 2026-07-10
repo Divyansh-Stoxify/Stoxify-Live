@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Icon } from "@/components/stoxify-icon";
 import type { Trade } from "@/lib/types/analyst";
+import { cleanErrorMessage } from "@/lib/utils";
 
 interface CloseTradeModalProps {
   trade: Trade;
@@ -40,9 +41,10 @@ export function CloseTradeModal({ trade, onClose, onSuccess }: CloseTradeModalPr
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.message || `Failed to close trade: ${res.statusText}`);
+        const cleaned = cleanErrorMessage(data, data.message || `Failed to close trade: ${res.statusText}`);
+        throw new Error(cleaned);
       }
 
       onSuccess("Trade Closed", `Successfully closed ${trade.symbol} trade.`);

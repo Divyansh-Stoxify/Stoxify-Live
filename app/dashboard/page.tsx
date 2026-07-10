@@ -14,6 +14,7 @@ import {
 import { useWebSocket } from "@/hooks/use-websocket";
 import { useDashboard } from "@/components/dashboard/dashboard-context";
 import type { Trade, Subscriber } from "@/lib/types/analyst";
+import { TradeDetailsModal } from "@/components/trade-details-modal";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -66,7 +67,15 @@ function avatarGradient(name?: string) {
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 /** Single row in the Active Live Trades table */
-function TradeRow({ trade, liveLtp }: { trade: Trade; liveLtp?: number }) {
+function TradeRow({
+  trade,
+  liveLtp,
+  onSelect,
+}: {
+  trade: Trade;
+  liveLtp?: number;
+  onSelect: (trade: Trade) => void;
+}) {
   const { openCloseTrade, openModifyTrade } = useDashboard();
   const isLong = trade.direction === "LONG";
   const ltp = liveLtp ?? trade.ltp;
@@ -78,7 +87,10 @@ function TradeRow({ trade, liveLtp }: { trade: Trade; liveLtp?: number }) {
   const pnlPositive = pnl >= 0;
 
   return (
-    <tr className="border-b border-[var(--line)] last:border-0 hover:bg-[var(--surface)] transition-colors">
+    <tr
+      className="border-b border-[var(--line)] last:border-0 hover:bg-[var(--surface)] transition-colors cursor-pointer"
+      onClick={() => onSelect(trade)}
+    >
       {/* Symbol + segment */}
       <td className="py-4 pl-5">
         <div className="text-[13px] font-bold text-[var(--ink)]">{trade.symbol}</div>
@@ -86,6 +98,13 @@ function TradeRow({ trade, liveLtp }: { trade: Trade; liveLtp?: number }) {
           {trade.segment}
           {trade.expiry ? ` • ${trade.expiry}` : ""}
         </div>
+        {trade.batch && (
+          <div className="mt-1">
+            <span className="inline-flex items-center rounded bg-slate-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-slate-500 border border-slate-200">
+              {trade.batch}
+            </span>
+          </div>
+        )}
       </td>
 
       {/* Direction badge */}
@@ -159,14 +178,20 @@ function TradeRow({ trade, liveLtp }: { trade: Trade; liveLtp?: number }) {
           <button
             className="rounded-md border border-[var(--line)] px-3 py-1.5 text-[12px] font-semibold text-[var(--ink)] transition-colors hover:border-[var(--muted-2)] hover:bg-[var(--surface)]"
             type="button"
-            onClick={() => openModifyTrade(trade)}
+            onClick={(e) => {
+              e.stopPropagation();
+              openModifyTrade(trade);
+            }}
           >
             Modify
           </button>
           <button
             className="rounded-md border border-[var(--red)]/30 px-3 py-1.5 text-[12px] font-semibold text-[var(--red)] transition-colors hover:bg-[var(--red-light)]"
             type="button"
-            onClick={() => openCloseTrade({ ...trade, ltp: liveLtp ?? trade.ltp })}
+            onClick={(e) => {
+              e.stopPropagation();
+              openCloseTrade({ ...trade, ltp: liveLtp ?? trade.ltp });
+            }}
           >
             Close
           </button>
@@ -254,12 +279,24 @@ function SubscriberRow({ subscriber }: { subscriber: Subscriber }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const { metrics, isLoading: metricsLoading, isError: metricsError } = useDashboardMetrics();
+  const { metrics, isLoading: metricsLoading, isError: metricsError, refetch: refetchMetrics } = useDashboardMetrics();
   const { trades, isLoading: tradesLoading, isError: tradesError, refetch: refetchTrades, removeTradeLocally } = useActiveTrades(5);
   const { subscribers, isLoading: subsLoading } = useRecentSubscribers(5);
   const { prices: livePrices, tradeClosedEvent, tradeModifiedEvent } = useWebSocket();
-  const { openCreateTrade } = useDashboard();
+  const { openCreateTrade, setOnTradeCreatedCallback } = useDashboard();
   const [showReactivationAlert, setShowReactivationAlert] = useState(false);
+  const [selectedTradeForDetails, setSelectedTradeForDetails] = useState<Trade | null>(null);
+
+  // Refetch trades and metrics when a trade is created
+  useEffect(() => {
+    setOnTradeCreatedCallback(() => {
+      void refetchTrades();
+      void refetchMetrics();
+    });
+    return () => {
+      setOnTradeCreatedCallback(null);
+    };
+  }, [setOnTradeCreatedCallback, refetchTrades, refetchMetrics]);
 
   useEffect(() => {
     if (tradeClosedEvent) {
@@ -411,6 +448,7 @@ export default function DashboardPage() {
                         key={trade.trade_id}
                         trade={trade}
                         liveLtp={livePrices[trade.symbol]}
+                        onSelect={setSelectedTradeForDetails}
                       />
                     ))
                   )}
@@ -461,6 +499,14 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {selectedTradeForDetails && (
+        <TradeDetailsModal
+          trade={selectedTradeForDetails}
+          onClose={() => setSelectedTradeForDetails(null)}
+          liveLtp={livePrices[selectedTradeForDetails.symbol]}
+        />
+      )}
 
       {/* ─── REACTIVATION ALERT MODAL ─── */}
       {showReactivationAlert && (

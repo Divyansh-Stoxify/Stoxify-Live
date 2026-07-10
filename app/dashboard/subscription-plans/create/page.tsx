@@ -13,6 +13,8 @@ import { motion, AnimatePresence } from "motion/react";
 const SEGMENTS = ["EQUITY", "FNO", "COMMODITY", "CURRENCY"];
 const HORIZONS = ["INTRADAY", "SWING", "SHORT", "MEDIUM", "LONG TERM"];
 const RISK_LEVELS = ["LOW", "MEDIUM", "HIGH"];
+// PRD: minimum batch price is ₹99 (applies to the discounted price too)
+const MIN_BATCH_PRICE = 99;
 
 const SEGMENT_ICONS: Record<string, IconName> = {
   EQUITY: "lineChart",
@@ -175,8 +177,16 @@ export default function CreatePlanPage() {
     const priceNum = Number(soPrice);
     const discountedNum = soHasDiscount && soDiscountedPrice ? Number(soDiscountedPrice) : undefined;
 
+    if (priceNum < MIN_BATCH_PRICE) {
+      return alert(`Plan price must be at least ₹${MIN_BATCH_PRICE}`);
+    }
+
     if (discountedNum !== undefined && discountedNum >= priceNum) {
       setSoDiscountError("Discounted price cannot be more than the plan price");
+      return;
+    }
+    if (discountedNum !== undefined && discountedNum < MIN_BATCH_PRICE) {
+      setSoDiscountError(`Discounted price must be at least ₹${MIN_BATCH_PRICE}`);
       return;
     }
     setSoDiscountError("");

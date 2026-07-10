@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { Icon } from "@/components/stoxify-icon";
+import { TradeDetailsModal } from "@/components/trade-details-modal";
 
 type DashboardUser = {
   user_id: string;
@@ -104,113 +105,124 @@ function StatCard({
 function TradeCard({ trade }: { trade: Trade }) {
   const isLong = trade.direction === "LONG";
   const isLive = trade.status === "LIVE";
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   return (
-    <div
-      className={[
-        "relative overflow-hidden rounded-xl border-[1.5px] border-[var(--line)] bg-white p-4 transition-all hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]",
-        "before:absolute before:inset-y-0 before:left-0 before:w-1 before:content-['']",
-        isLong ? "before:bg-[var(--green)]" : "before:bg-[var(--red)]",
-      ].join(" ")}
-    >
-      {/* Header */}
-      <div className="mb-3 flex items-start justify-between">
-        <div className="flex items-center gap-2.5">
-          <div
-            className={[
-              "flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] text-[10px] font-extrabold text-white",
-              isLong
-                ? "bg-[linear-gradient(135deg,#10B981,#059669)]"
-                : "bg-[linear-gradient(135deg,#EF4444,#DC2626)]",
-            ].join(" ")}
-          >
-            {isLong ? "L" : "S"}
+    <>
+      <div
+        onClick={() => setShowDetailsModal(true)}
+        className={[
+          "relative overflow-hidden rounded-xl border-[1.5px] border-[var(--line)] bg-white p-4 transition-all hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] cursor-pointer",
+          "before:absolute before:inset-y-0 before:left-0 before:w-1 before:content-['']",
+          isLong ? "before:bg-[var(--green)]" : "before:bg-[var(--red)]",
+        ].join(" ")}
+      >
+        {/* Header */}
+        <div className="mb-3 flex items-start justify-between">
+          <div className="flex items-center gap-2.5">
+            <div
+              className={[
+                "flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] text-[10px] font-extrabold text-white",
+                isLong
+                  ? "bg-[linear-gradient(135deg,#10B981,#059669)]"
+                  : "bg-[linear-gradient(135deg,#EF4444,#DC2626)]",
+              ].join(" ")}
+            >
+              {isLong ? "L" : "S"}
+            </div>
+            <div>
+              <div className="text-[13px] font-bold text-[var(--ink)]">{trade.analyst_name}</div>
+              <div className="text-[11px] text-[var(--muted-2)]">
+                {timeAgo(trade.entry_timestamp)} · {trade.category}
+              </div>
+            </div>
           </div>
+          <div className="flex items-center gap-2">
+            {trade.batch && (
+              <span className="inline-flex items-center rounded bg-[#f8fafc] px-2 py-[2px] text-[10.5px] font-bold uppercase text-[#475569] border border-[#cbd5e1]/50">
+                {trade.batch}
+              </span>
+            )}
+            <span
+              className={[
+                "rounded-md px-2.5 py-[3px] text-[11px] font-extrabold tracking-[0.05em]",
+                isLong
+                  ? "bg-[var(--green-light)] text-[var(--green)]"
+                  : "bg-[var(--red-light)] text-[var(--red)]",
+              ].join(" ")}
+            >
+              {isLong ? "BUY" : "SELL"}
+            </span>
+            {isLive && (
+              <span className="flex items-center gap-1 rounded-full border border-[rgba(5,150,105,0.2)] bg-[rgba(5,150,105,0.08)] px-2 py-[2px] text-[10px] font-bold text-[var(--green)]">
+                <span className="h-[5px] w-[5px] animate-[blink_1.5s_infinite] rounded-full bg-[var(--green)]" />
+                LIVE
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Symbol + Prices */}
+        <div className="flex items-end justify-between gap-3">
           <div>
-            <div className="text-[13px] font-bold text-[var(--ink)]">{trade.analyst_name}</div>
-            <div className="text-[11px] text-[var(--muted-2)]">
-              {timeAgo(trade.entry_timestamp)} · {trade.category}
+            <div className="font-sans text-xl font-extrabold leading-none tracking-[-0.5px] text-[var(--ink)]">
+              {trade.symbol}
+            </div>
+            <div className="mt-0.5 text-[11px] text-[var(--muted-2)]">{trade.segment} · NSE</div>
+          </div>
+          <div className="flex gap-4">
+            <div className="text-center">
+              <div className="mb-0.5 text-[10px] text-[var(--muted-2)]">Entry</div>
+              <div className="text-[13px] font-bold text-[var(--ink)]">
+                {formatCurrency(trade.entry_price)}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="mb-0.5 text-[10px] text-[var(--muted-2)]">Target</div>
+              <div className="text-[13px] font-bold text-[var(--green)]">
+                {formatCurrency(trade.targets && trade.targets.length > 0 ? ((trade.direction === "SHORT" || trade.direction === "SELL") ? Math.min(...trade.targets.map(t => t.target_price)) : Math.max(...trade.targets.map(t => t.target_price))) : (trade.target ?? 0))}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="mb-0.5 text-[10px] text-[var(--muted-2)]">SL</div>
+              <div className="text-[13px] font-bold text-[var(--red)]">
+                {formatCurrency(trade.stop_loss)}
+              </div>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {trade.batch && (
-            <span className="inline-flex items-center rounded bg-[#f8fafc] px-2 py-[2px] text-[10.5px] font-bold uppercase text-[#475569] border border-[#cbd5e1]/50">
-              {trade.batch}
+
+        {/* P&L if closed */}
+        {trade.pnl_percent !== undefined && trade.pnl_percent !== null && !isLive && (
+          <div className="mt-3 flex items-center gap-2 rounded-lg bg-[var(--surface)] px-3 py-2">
+            <Icon
+              name={trade.pnl_percent >= 0 ? "trendingUp" : "trendingDown"}
+              className={`h-3.5 w-3.5 ${
+                trade.pnl_percent >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"
+              }`}
+            />
+            <span
+              className={`text-[13px] font-bold ${
+                trade.pnl_percent >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"
+              }`}
+            >
+              {trade.pnl_percent >= 0 ? "+" : ""}
+              {trade.pnl_percent.toFixed(2)}%
             </span>
-          )}
-          <span
-            className={[
-              "rounded-md px-2.5 py-[3px] text-[11px] font-extrabold tracking-[0.05em]",
-              isLong
-                ? "bg-[var(--green-light)] text-[var(--green)]"
-                : "bg-[var(--red-light)] text-[var(--red)]",
-            ].join(" ")}
-          >
-            {isLong ? "BUY" : "SELL"}
-          </span>
-          {isLive && (
-            <span className="flex items-center gap-1 rounded-full border border-[rgba(5,150,105,0.2)] bg-[rgba(5,150,105,0.08)] px-2 py-[2px] text-[10px] font-bold text-[var(--green)]">
-              <span className="h-[5px] w-[5px] animate-[blink_1.5s_infinite] rounded-full bg-[var(--green)]" />
-              LIVE
+            <span className="text-[11px] text-[var(--muted-2)]">
+              Exit at {formatCurrency(trade.exit_price ?? 0)}
             </span>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Symbol + Prices */}
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <div className="font-sans text-xl font-extrabold leading-none tracking-[-0.5px] text-[var(--ink)]">
-            {trade.symbol}
-          </div>
-          <div className="mt-0.5 text-[11px] text-[var(--muted-2)]">{trade.segment} · NSE</div>
-        </div>
-        <div className="flex gap-4">
-          <div className="text-center">
-            <div className="mb-0.5 text-[10px] text-[var(--muted-2)]">Entry</div>
-            <div className="text-[13px] font-bold text-[var(--ink)]">
-              {formatCurrency(trade.entry_price)}
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="mb-0.5 text-[10px] text-[var(--muted-2)]">Target</div>
-            <div className="text-[13px] font-bold text-[var(--green)]">
-              {formatCurrency(trade.targets && trade.targets.length > 0 ? ((trade.direction === "SHORT" || trade.direction === "SELL") ? Math.min(...trade.targets.map(t => t.target_price)) : Math.max(...trade.targets.map(t => t.target_price))) : (trade.target ?? 0))}
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="mb-0.5 text-[10px] text-[var(--muted-2)]">SL</div>
-            <div className="text-[13px] font-bold text-[var(--red)]">
-              {formatCurrency(trade.stop_loss)}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* P&L if closed */}
-      {trade.pnl_percent !== undefined && trade.pnl_percent !== null && !isLive && (
-        <div className="mt-3 flex items-center gap-2 rounded-lg bg-[var(--surface)] px-3 py-2">
-          <Icon
-            name={trade.pnl_percent >= 0 ? "trendingUp" : "trendingDown"}
-            className={`h-3.5 w-3.5 ${
-              trade.pnl_percent >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"
-            }`}
-          />
-          <span
-            className={`text-[13px] font-bold ${
-              trade.pnl_percent >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"
-            }`}
-          >
-            {trade.pnl_percent >= 0 ? "+" : ""}
-            {trade.pnl_percent.toFixed(2)}%
-          </span>
-          <span className="text-[11px] text-[var(--muted-2)]">
-            Exit at {formatCurrency(trade.exit_price ?? 0)}
-          </span>
-        </div>
+      {showDetailsModal && (
+        <TradeDetailsModal
+          trade={trade as any}
+          onClose={() => setShowDetailsModal(false)}
+        />
       )}
-    </div>
+    </>
   );
 }
 

@@ -6,6 +6,7 @@ import { Toaster, toast } from "sonner";
 
 import { Icon } from "@/components/stoxify-icon";
 import { LogoutButton } from "@/components/logout-button";
+import { cleanErrorMessage } from "@/lib/utils";
 
 type ProfileUser = {
   user_id: string;
@@ -344,7 +345,8 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error || "Failed to update profile.");
+        const cleaned = cleanErrorMessage(data, data.error || "Failed to update profile.");
+        throw new Error(cleaned);
       }
       setUserData((prev) => ({ ...prev, name: cleanName }));
       toast.success("Profile updated successfully!");
@@ -391,7 +393,8 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(data.error || "KYC verification failed.");
+        const cleaned = cleanErrorMessage(data, data.error || "KYC verification failed.");
+        throw new Error(cleaned);
       }
 
       setUserData((prev) => ({ ...prev, state: data.state || "ACTIVE" }));
@@ -422,7 +425,8 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error || "Failed to delete account.");
+        const cleaned = cleanErrorMessage(data, data.error || "Failed to delete account.");
+        throw new Error(cleaned);
       }
       toast.success("Your account has been deleted.");
       // Redirect to home after a brief delay so the toast is visible

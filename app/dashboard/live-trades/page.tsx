@@ -13,6 +13,7 @@ import { useDashboard } from "@/components/dashboard/dashboard-context";
 import { BroadcastModal } from "@/components/dashboard/broadcast-modal";
 import { useWebSocket } from "@/hooks/use-websocket";
 import type { Trade } from "@/lib/types/analyst";
+import { TradeDetailsModal } from "@/components/trade-details-modal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -110,7 +111,14 @@ function CompactClosedCard({ trade, onClick }: { trade: Trade; onClick: () => vo
                   <span className="w-1.5 h-1.5 rounded-full bg-orange-500" /> NSE
                 </span>
               </div>
-              <div className="text-[11px] text-gray-500 mt-1 leading-none">{trade.segment_label ?? trade.segment}</div>
+              <div className="text-[11px] text-gray-500 mt-1.5 leading-none flex items-center gap-2">
+                <span>{trade.segment_label ?? trade.segment}</span>
+                {trade.batch && (
+                  <span className="inline-flex items-center rounded bg-slate-50 px-1.5 py-0.5 text-[9px] font-bold uppercase text-slate-500 border border-slate-200">
+                    {trade.batch}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <div className="text-right flex flex-col items-end">
@@ -638,8 +646,7 @@ function DetailedActiveCard({ trade, onClose, onBroadcast, liveLtpProp }: { trad
 /** Full trade card matching the Figma exactly */
 function TradeCard({ trade, onBroadcast, hideActions, liveLtpProp, onAutoClose, onOptimisticClose }: { trade: Trade; onBroadcast: (trade: Trade) => void; hideActions?: boolean; liveLtpProp?: number; onAutoClose?: () => void; onOptimisticClose?: (tradeId: string) => void }) {
   const { openCloseTrade, openModifyTrade, showSuccessToast } = useDashboard();
-  const [isExpanded, setIsExpanded] = useState(!hideActions);
-  const [showDetails, setShowDetails] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   
   // Live price via WebSockets
   const [liveLtp, setLiveLtp] = useState(liveLtpProp ?? trade.ltp ?? trade.entry_price);
@@ -743,17 +750,19 @@ function TradeCard({ trade, onBroadcast, hideActions, liveLtpProp, onAutoClose, 
     );
   };
 
-  if (hideActions && !isExpanded) {
-    return <CompactClosedCard trade={trade} onClick={() => setIsExpanded(true)} />;
-  }
-
-  if (hideActions && isExpanded) {
-    return <DetailedClosedCard trade={trade} onClose={() => setIsExpanded(false)} />;
-  }
-
-  // Show detailed active view when card is clicked
-  if (showDetails) {
-    return <DetailedActiveCard trade={trade} onClose={() => setShowDetails(false)} onBroadcast={onBroadcast} liveLtpProp={liveLtpProp} />;
+  if (hideActions) {
+    return (
+      <>
+        <CompactClosedCard trade={trade} onClick={() => setShowDetailsModal(true)} />
+        {showDetailsModal && (
+          <TradeDetailsModal
+            trade={trade}
+            onClose={() => setShowDetailsModal(false)}
+            liveLtp={liveLtp}
+          />
+        )}
+      </>
+    );
   }
 
   return (
@@ -779,7 +788,7 @@ function TradeCard({ trade, onBroadcast, hideActions, liveLtpProp, onAutoClose, 
         </div>
       </div>
 
-      <div className="p-5 flex-1 cursor-pointer" onClick={() => setShowDetails(true)}>
+      <div className="p-5 flex-1 cursor-pointer" onClick={() => setShowDetailsModal(true)}>
         {/* Symbol Row */}
         <div className="flex justify-between items-start mb-10">
           <div className="flex items-center gap-3">
@@ -793,7 +802,14 @@ function TradeCard({ trade, onBroadcast, hideActions, liveLtpProp, onAutoClose, 
                   <span className="w-1.5 h-1.5 rounded-full bg-orange-500" /> NSE
                 </span>
               </div>
-              <p className="text-xs text-gray-500 mt-1">{trade.segment_label ?? trade.segment}</p>
+              <div className="text-xs text-gray-500 mt-1.5 leading-none flex items-center gap-2">
+                <span>{trade.segment_label ?? trade.segment}</span>
+                {trade.batch && (
+                  <span className="inline-flex items-center rounded bg-slate-50 px-1.5 py-0.5 text-[9px] font-bold uppercase text-slate-500 border border-slate-200">
+                    {trade.batch}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -972,6 +988,14 @@ function TradeCard({ trade, onBroadcast, hideActions, liveLtpProp, onAutoClose, 
           </div>
         )}
       </div>
+
+      {showDetailsModal && (
+        <TradeDetailsModal
+          trade={trade}
+          onClose={() => setShowDetailsModal(false)}
+          liveLtp={liveLtp}
+        />
+      )}
     </div>
   );
 }
@@ -1013,7 +1037,7 @@ function TradeCardSkeleton() {
 export default function LiveTradesPage() {
   const [activeTab, setActiveTab] = useState<TabId>("active");
   const [broadcastTrade, setBroadcastTrade] = useState<Trade | null>(null);
-  const { openCreateTrade, showSuccessToast, setOnTradeClosedCallback, setOnTradeModifiedCallback } = useDashboard();
+  const { openCreateTrade, showSuccessToast, setOnTradeClosedCallback, setOnTradeModifiedCallback, setOnTradeCreatedCallback } = useDashboard();
   const { prices: livePrices, tradeClosedEvent, tradeModifiedEvent } = useWebSocket();
 
   const { stats, isLoading: statsLoading } = useLiveTradesStats();
@@ -1029,15 +1053,17 @@ export default function LiveTradesPage() {
   const pendingTotal = pendingTrades.length;
   const { trades: closedTrades, isLoading: closedLoading, refetch: refetchClosed } = useClosedTrades();
 
-  // Register callbacks so manual close/modify from modals trigger a refetch
+  // Register callbacks so manual close/modify/create from modals trigger a refetch
   useEffect(() => {
     setOnTradeClosedCallback(() => { void refetchActive(); void refetchClosed(); });
     setOnTradeModifiedCallback(() => { void refetchActive(); void refetchPending(); });
+    setOnTradeCreatedCallback(() => { void refetchActive(); void refetchPending(); });
     return () => {
       setOnTradeClosedCallback(null);
       setOnTradeModifiedCallback(null);
+      setOnTradeCreatedCallback(null);
     };
-  }, [setOnTradeClosedCallback, setOnTradeModifiedCallback, refetchActive, refetchClosed, refetchPending]);
+  }, [setOnTradeClosedCallback, setOnTradeModifiedCallback, setOnTradeCreatedCallback, refetchActive, refetchClosed, refetchPending]);
 
   // WS-driven refetch (backend-triggered closures)
   useEffect(() => {

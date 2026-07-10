@@ -5,6 +5,7 @@ import { useSWRConfig } from "swr";
 import { Icon } from "@/components/stoxify-icon";
 import type { TradeDirection } from "@/lib/types/analyst";
 import { useSubscriptionPlans } from "@/hooks/use-analyst-dashboard";
+import { cleanErrorMessage } from "@/lib/utils";
 
 // ─── Backend Error Mapping ────────────────────────────────────────────────────
 
@@ -23,108 +24,28 @@ interface BackendError {
  */
 function resolveTradeError(data: BackendError): { field: string; message: string } {
   const code = data.code ?? data.error ?? '';
-  const rawReason = data.details?.reason ?? '';
 
-  // ── RBAC / permissions ────────────────────────────────────────────────────
-  if (code === 'INSUFFICIENT_POWER') {
-    // Parse the live state from the RBAC reason string, e.g.
-    // "User state is KYC_PENDING. Power PWR_TRADE_CREATE requires ACTIVE state."
-    if (/KYC_PENDING/i.test(rawReason)) {
-      return { field: 'submit', message: '⚠️ Your account KYC is pending verification. Complete KYC before publishing trades.' };
-    }
-    if (/PENDING_VERIFICATION/i.test(rawReason)) {
-      return { field: 'submit', message: '⚠️ Your analyst account is awaiting admin verification. You cannot publish trades until approved.' };
-    }
-    if (/SUSPENDED/i.test(rawReason)) {
-      return { field: 'submit', message: '🚫 Your account is suspended. Contact support to restore publishing access.' };
-    }
-    if (/BLOCKED/i.test(rawReason)) {
-      return { field: 'submit', message: '🚫 Your account is blocked. Contact support for assistance.' };
-    }
-    if (/does not have power/i.test(rawReason)) {
-      return { field: 'submit', message: '🚫 You do not have permission to create trades. Contact your administrator.' };
-    }
-    if (/does not own/i.test(rawReason)) {
-      return { field: 'submit', message: '🚫 You do not have ownership of this resource.' };
-    }
-    // Fallback for any unrecognised RBAC reason
-    return { field: 'submit', message: `🚫 Permission denied${rawReason ? ': ' + rawReason : ''}. Contact support if this is unexpected.` };
+  // Determine which field this error belongs to
+  let field = 'submit';
+  if (code === 'BATCH_REQUIRED' || code === 'SEGMENT_MISMATCH' || code === 'INVALID_BATCH') {
+    field = 'batch';
+  } else if (code === 'MISSING_FIELDS') {
+    field = 'symbol';
+  } else if (code === 'MISSING_TARGET') {
+    field = 'target';
+  } else if (code === 'INVALID_PRICE_LEVELS') {
+    field = 'stopLoss';
+  } else if (code === 'INVALID_BOOK_PERCENT') {
+    field = 'targets';
+  } else if (code === 'MISSING_EXPIRY' || code === 'INVALID_EXPIRY' || code === 'INVALID_EXPIRY_FORMAT') {
+    field = 'expiry';
   }
 
-  if (code === 'UNAUTHORIZED') {
-    return { field: 'submit', message: '🔒 Your session has expired. Please sign in again.' };
-  }
-
-  // ── Account / analyst state ───────────────────────────────────────────────
-  if (code === 'ANALYST_NOT_ACTIVE') {
-    return { field: 'submit', message: '⚠️ Your analyst account is not yet active. Wait for admin approval before publishing trades.' };
-  }
-
-  // ── Market hours ─────────────────────────────────────────────────────────
-  if (code === 'OUTSIDE_MARKET_HOURS') {
-    return { field: 'submit', message: '🕐 Market is currently closed. Equity & F&O trades can only be published between 9:15 AM – 3:30 PM IST on weekdays.' };
-  }
-
-  // ── Batch / plan ─────────────────────────────────────────────────────────
-  if (code === 'BATCH_REQUIRED') {
-    return { field: 'batch', message: 'Please select a subscription batch to publish this trade to.' };
-  }
-
-  if (code === 'SEGMENT_MISMATCH') {
-    return { field: 'batch', message: 'The selected batch does not support this market segment (e.g. Equity, F&O, MCX). Choose a compatible batch or change the instrument.' };
-  }
-
-  if (code === 'INVALID_BATCH') {
-    return { field: 'batch', message: 'The selected batch was not found. It may have been deleted — please refresh and try again.' };
-  }
-
-  // ── Missing required fields ───────────────────────────────────────────────
-  if (code === 'MISSING_FIELDS') {
-    return { field: 'symbol', message: 'Required fields are missing. Please fill in the symbol, direction, entry price, stop loss and at least one target.' };
-  }
-
-  if (code === 'MISSING_TARGET') {
-    return { field: 'target', message: 'At least one target price must be provided.' };
-  }
-
-  // ── Price level validation ────────────────────────────────────────────────
-  if (code === 'INVALID_PRICE_LEVELS') {
-    // Try to give direction-specific guidance
-    const msg = data.message ?? '';
-    if (/LONG|BUY/i.test(msg)) {
-      return { field: 'stopLoss', message: 'Invalid price levels for a LONG trade. Required order: Stop Loss < Entry Price < Target(s).' };
-    }
-    if (/SHORT|SELL/i.test(msg)) {
-      return { field: 'stopLoss', message: 'Invalid price levels for a SHORT trade. Required order: Stop Loss > Entry Price > Target(s).' };
-    }
-    return { field: 'stopLoss', message: 'Invalid price levels. Check that stop loss, entry and targets are in the correct order for your trade direction.' };
-  }
-
-  if (code === 'INVALID_DIRECTION') {
-    return { field: 'submit', message: 'Invalid trade direction. Please select LONG or SHORT.' };
-  }
-
-  if (code === 'INVALID_BOOK_PERCENT') {
-    return { field: 'targets', message: 'Target allocations must add up to exactly 100%. Adjust your partial-target percentages.' };
-  }
-
-  // ── F&O expiry ────────────────────────────────────────────────────────────
-  if (code === 'MISSING_EXPIRY') {
-    return { field: 'expiry', message: 'A contract expiry date is required for F&O trades.' };
-  }
-
-  if (code === 'INVALID_EXPIRY' || code === 'INVALID_EXPIRY_FORMAT') {
-    return { field: 'expiry', message: 'Invalid or expired contract date. Please select a valid future expiry.' };
-  }
-
-  // ── Service / network errors ──────────────────────────────────────────────
-  if (code === 'INTERNAL_ERROR') {
-    return { field: 'submit', message: '⚙️ A server error occurred. Please try again in a moment.' };
-  }
-
-  // Fallback: surface the raw message from the backend if nothing matched
+  // Get the cleaned user-friendly error message
   const fallback = data.message || data.error || 'Failed to create trade. Please try again.';
-  return { field: 'submit', message: fallback };
+  const message = cleanErrorMessage(data, fallback);
+
+  return { field, message };
 }
 
 interface CreateTradeModalProps {
@@ -183,8 +104,8 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
   ]);
   const [stopLoss, setStopLoss] = useState("");
   const [notes, setNotes] = useState("");
-  const [selectedBatch, setSelectedBatch] = useState<string>("");
-  const [selectedPlanId, setSelectedPlanId] = useState("");
+  const [selectedPlanIds, setSelectedPlanIds] = useState<string[]>([]);
+  const [showBatchDropdown, setShowBatchDropdown] = useState(false);
   const [expiry, setExpiry] = useState("");
   const [strikePrice, setStrikePrice] = useState("");
   const [optionType, setOptionType] = useState<"CE" | "PE" | "">("");
@@ -252,6 +173,9 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
     function handleClickOutside(event: MouseEvent) {
       if (autocompleteRef.current && !autocompleteRef.current.contains(event.target as Node)) {
         setShowAutocomplete(false);
+      }
+      if (batchDropdownRef.current && !batchDropdownRef.current.contains(event.target as Node)) {
+        setShowBatchDropdown(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -346,9 +270,15 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
     });
 
     // Auto-fetch the latest price for this symbol
+    fetchLivePrice(item.symbol);
+  };
+
+  // Entry price is always the live LTP from the market-data service (Angel One) —
+  // the analyst cannot type it manually, only re-fetch it.
+  const fetchLivePrice = useCallback(async (symbol: string) => {
     setIsFetchingPrice(true);
     try {
-      const res = await fetch(`/api/market-data/price/${encodeURIComponent(item.symbol)}`, {
+      const res = await fetch(`/api/market-data/price/${encodeURIComponent(symbol)}`, {
         credentials: "same-origin",
         cache: "no-store",
       });
@@ -358,14 +288,25 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
         if (price !== null && price !== undefined) {
           setEntryPrice(String(price));
           setIsEntryLocked(true);
+          setErrors((prev) => ({ ...prev, entry: "" }));
+          return;
         }
       }
+      setEntryPrice("");
+      setErrors((prev) => ({
+        ...prev,
+        entry: "Live price unavailable for this instrument — try refreshing",
+      }));
     } catch {
-      // Non-critical — analyst can still type manually
+      setEntryPrice("");
+      setErrors((prev) => ({
+        ...prev,
+        entry: "Could not fetch live price — try refreshing",
+      }));
     } finally {
       setIsFetchingPrice(false);
     }
-  };
+  }, []);
 
   const validate = () => {
     const nextErrors: { [key: string]: string } = {};
@@ -377,12 +318,8 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
     const entry = parseFloat(entryPrice);
     const sl = parseFloat(stopLoss);
 
-    if (!selectedPlanId) {
-      nextErrors.planId = "Please select a Batch/Plan";
-    }
-
     if (isNaN(entry) || entry <= 0) {
-      nextErrors.entry = "Enter a valid entry price (> 0)";
+      nextErrors.entry = "Select an instrument from the search to fetch its live price";
     }
 
     let totalPercent = 0;
@@ -407,7 +344,7 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
     }
 
     // Batch is required (min 1)
-    if (!selectedPlanId) {
+    if (selectedPlanIds.length === 0) {
       nextErrors.batch = "Select at least one batch";
     }
 
@@ -484,7 +421,7 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
       direction = position === "LONG" ? "BUY" : "SELL";
     }
 
-    const tradePayload = {
+    const basePayload = {
       trade_type: tradeStructure,
       segment: segment,
       category: category,
@@ -496,39 +433,65 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
       targets: parsedTargets,
       target_note: notes.trim() || undefined,
       rationale: notes.trim() || undefined,
-      batch: selectedBatch || undefined,
-      plan_id: selectedPlanId || undefined,
       expiry: expiry || undefined,
       strike_price: strikePrice ? parseFloat(strikePrice) : undefined,
       option_type: optionType || undefined,
     };
 
+    // Each trade doc belongs to exactly one plan (subscriber access is keyed off
+    // plan_id), so publishing to multiple batches fans out one create per plan.
+    const selectedPlans = plans.filter((p) => selectedPlanIds.includes(p.plan_id));
+
     try {
-      const res = await fetch("/api/analyst/trades", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify(tradePayload),
-      });
+      const results = await Promise.allSettled(
+        selectedPlans.map(async (plan) => {
+          const res = await fetch("/api/analyst/trades", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify({ ...basePayload, batch: plan.name, plan_id: plan.plan_id }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw { planName: plan.name, data };
+          return data;
+        })
+      );
 
-      const data = await res.json().catch(() => ({}));
+      const failures = results.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
+      const successCount = results.length - failures.length;
 
-      if (!res.ok) {
-        const { field, message } = resolveTradeError(data);
-        setErrors({ [field]: message });
+      if (successCount > 0) {
+        // Mutate SWR keys to revalidate and update UI
+        mutate((key: string) => typeof key === "string" && key.startsWith("/trades/"));
+        mutate((key: string) => typeof key === "string" && key.startsWith("/analytics/"));
+      }
+
+      if (failures.length > 0) {
+        const { field, message } = resolveTradeError(failures[0].reason?.data ?? {});
+        if (successCount === 0) {
+          setErrors({ [field]: message });
+        } else {
+          const failedNames = failures
+            .map((f) => f.reason?.planName)
+            .filter(Boolean)
+            .join(", ");
+          setErrors({
+            submit: `Trade created for ${successCount} batch${successCount > 1 ? "es" : ""}, but failed for ${failedNames}: ${message}`,
+          });
+        }
         setIsSubmitting(false);
         return;
       }
 
-      // Mutate SWR keys to revalidate and update UI
-      mutate((key: string) => typeof key === "string" && key.startsWith("/trades/"));
-      mutate((key: string) => typeof key === "string" && key.startsWith("/analytics/"));
-
       // Trigger success confirmation toast notification
       const dirText = position === "LONG" ? "LONG" : "SHORT";
+      const batchText =
+        selectedPlans.length > 1
+          ? `${selectedPlans.length} batches`
+          : `the ${selectedPlans[0]?.name ?? "selected"} batch`;
       onSuccess(
         "Trade Created Successfully",
-        `${symbolQuery.toUpperCase()} ${dirText} trade has been created and broadcasted to your active subscribers.`
+        `${symbolQuery.toUpperCase()} ${dirText} trade has been published to ${batchText} and broadcasted to active subscribers.`
       );
 
       // Close the modal
@@ -581,6 +544,9 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
                   onChange={(e) => {
                     setSymbolQuery(e.target.value);
                     setIsSymbolSelected(false);
+                    // Entry price is tied to the selected instrument — clear the
+                    // stale LTP until a symbol is picked from the list again.
+                    setEntryPrice("");
                     setShowAutocomplete(true);
                     performSearch(e.target.value);
                   }}
@@ -905,54 +871,88 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
               </div>
             </div>
 
-            {/* Batch Selection */}
-            <div>
+            {/* Batch Selection (multi-select — the trade is published to every selected batch) */}
+            <div className="relative" ref={batchDropdownRef}>
               <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em] mb-1.5">
-                Batch <span className="text-[var(--red)]">*</span>
+                Batches <span className="text-[var(--red)]">*</span>
               </label>
-              <div className="relative">
-                <select
-                  className={`w-full appearance-none rounded-lg border bg-white py-2 px-3.5 text-[12.5px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
-                    (errors.batch || errors.planId) ? "border-[var(--red)]" : "border-[var(--line)]"
-                  }`}
-                  value={selectedPlanId}
-                  onChange={(e) => {
-                    const pId = e.target.value;
-                    setSelectedPlanId(pId);
-                    if (pId) {
-                      const selectedPlan = plans.find((p) => p.plan_id === pId);
-                      setSelectedBatch(selectedPlan?.name || "");
-                      if (errors.batch) setErrors((prev) => ({ ...prev, batch: "" }));
-                    } else {
-                      setSelectedBatch("");
-                    }
-                  }}
-                >
-                  <option value="">Select a batch...</option>
-                  {plans.map((p) => (
-                    <option key={p.plan_id} value={p.plan_id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
+              <button
+                type="button"
+                onClick={() => setShowBatchDropdown((v) => !v)}
+                className={`w-full flex items-center justify-between gap-2 rounded-lg border bg-white py-2 px-3.5 text-[12.5px] font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
+                  errors.batch ? "border-[var(--red)]" : "border-[var(--line)]"
+                } ${selectedPlanIds.length === 0 ? "text-[var(--muted-2)]" : "text-[var(--ink)]"}`}
+              >
+                <span className="flex flex-wrap items-center gap-1.5 text-left min-w-0">
+                  {selectedPlanIds.length === 0
+                    ? "Select batches..."
+                    : plans
+                        .filter((p) => selectedPlanIds.includes(p.plan_id))
+                        .map((p) => (
+                          <span
+                            key={p.plan_id}
+                            className="inline-flex items-center rounded bg-[var(--brand-light)] text-[var(--brand)] px-1.5 py-0.5 text-[11px] font-bold border border-[var(--brand)]/15"
+                          >
+                            {p.name}
+                          </span>
+                        ))}
+                </span>
                 <Icon
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-2)] pointer-events-none h-3 w-3"
+                  className="text-[var(--muted-2)] pointer-events-none h-3 w-3 shrink-0"
                   name="chevronDown"
                 />
-              </div>
-              {(errors.batch || errors.planId) && (
+              </button>
+
+              {showBatchDropdown && (
+                <div className="absolute top-[calc(100%+4px)] left-0 right-0 z-[100] max-h-52 overflow-y-auto rounded-lg border border-[var(--line)] bg-white py-1 shadow-lg">
+                  {plans.length === 0 && (
+                    <div className="px-4 py-3 text-center text-[12px] text-[var(--muted-2)]">
+                      No batches available — create a plan first
+                    </div>
+                  )}
+                  {plans.map((p) => {
+                    const checked = selectedPlanIds.includes(p.plan_id);
+                    return (
+                      <button
+                        key={p.plan_id}
+                        type="button"
+                        className="w-full px-3.5 py-2 text-left text-[12.5px] text-[var(--ink)] hover:bg-[var(--surface)] transition-colors flex items-center gap-2.5"
+                        onClick={() => {
+                          setSelectedPlanIds((prev) =>
+                            checked ? prev.filter((id) => id !== p.plan_id) : [...prev, p.plan_id]
+                          );
+                          if (errors.batch) setErrors((prev) => ({ ...prev, batch: "" }));
+                        }}
+                      >
+                        <span
+                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
+                            checked
+                              ? "bg-[var(--brand)] border-[var(--brand)] text-white"
+                              : "border-[var(--line)] bg-white"
+                          }`}
+                        >
+                          {checked && <Icon name="check" className="h-3 w-3" />}
+                        </span>
+                        <span className="font-semibold">{p.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {errors.batch && (
                 <div className="text-[10px] text-[var(--red)] font-semibold mt-1 leading-snug">
-                  {errors.batch || errors.planId}
+                  {errors.batch}
                 </div>
               )}
             </div>
 
             {/* Price Row: Entry Price, Target Price, Stop Loss */}
             <div className="grid grid-cols-3 gap-3">
-              {/* Entry */}
+              {/* Entry — read-only, always the live LTP fetched from Angel One */}
               <div>
                 <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em] mb-1.5">
-                  Entry Price
+                  Entry Price <span className="normal-case font-semibold text-[var(--muted-2)]">(Live)</span>
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[12.5px] font-medium text-[var(--muted-2)]">
@@ -962,19 +962,34 @@ export function CreateTradeModal({ onClose, onSuccess }: CreateTradeModalProps) 
                     className={`w-full rounded-lg border bg-white py-2 pl-6 pr-8 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
                       errors.entry ? "border-[var(--red)]" : "border-[var(--line)]"
                     } ${isFetchingPrice ? "animate-pulse bg-[var(--surface)]" : ""} ${isEntryLocked ? "bg-[var(--surface)] text-[var(--muted-2)] cursor-not-allowed border-dashed" : ""}`}
-                    onChange={(e) => setEntryPrice(e.target.value)}
-                    placeholder={isFetchingPrice ? "Fetching…" : "0.00"}
+                    onChange={(e) => {
+                      if (!isEntryLocked) setEntryPrice(e.target.value);
+                    }}
+                    placeholder={isFetchingPrice ? "Fetching…" : "Select instrument"}
                     type="number"
                     step="0.05"
                     value={entryPrice}
                     disabled={isFetchingPrice}
                     readOnly={isEntryLocked}
+                    title={isEntryLocked ? "Entry price is fetched live from the market — it cannot be edited" : ""}
                   />
-                  {isFetchingPrice && (
+                  {isFetchingPrice ? (
                     <Icon
                       className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin h-3.5 w-3.5 text-[var(--brand)]"
                       name="timer"
                     />
+                  ) : (
+                    isSymbolSelected && (
+                      <button
+                        type="button"
+                        aria-label="Refresh live price"
+                        title="Refresh live price"
+                        onClick={() => fetchLivePrice(symbolQuery)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[var(--muted-2)] hover:text-[var(--brand)] transition-colors"
+                      >
+                        <Icon className="h-3.5 w-3.5" name="refresh" />
+                      </button>
+                    )
                   )}
                   {isEntryLocked && !isFetchingPrice && (
                     <button

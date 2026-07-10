@@ -37,129 +37,118 @@ export function useDashboardMetrics() {
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      setIsLoading(true);
-      try {
-        // Fetch active trades count, batches, and active subscribers in parallel
-        const [tradesRes, plansRes, subscribersRes] = await Promise.all([
-          fetch("/api/analyst/trades?status=LIVE&limit=100", {
-            credentials: "same-origin",
-            cache: "no-store",
-          }),
-          fetch("/api/analyst/plans", {
-            credentials: "same-origin",
-            cache: "no-store",
-          }),
-          fetch("/api/analyst/subscribers?status=ACTIVE&limit=1000", {
-            credentials: "same-origin",
-            cache: "no-store",
-          }),
-        ]);
-
-        if (cancelled) return;
-
-        const tradesJson = tradesRes.ok ? await tradesRes.json().catch(() => ({})) : {};
-        const plansJson = plansRes.ok ? await plansRes.json().catch(() => ({})) : {};
-        const subsJson = subscribersRes.ok ? await subscribersRes.json().catch(() => ({})) : {};
-
-        // Normalise trade list
-        const tradeList: Trade[] = Array.isArray(tradesJson.trades)
-          ? tradesJson.trades
-          : Array.isArray(tradesJson.data)
-            ? tradesJson.data
-            : Array.isArray(tradesJson)
-              ? tradesJson
-              : [];
-
-        // Normalise active subscriptions
-        const activeSubscriptions = Array.isArray(subsJson.subscriptions)
-          ? subsJson.subscriptions
-          : Array.isArray(subsJson.data)
-            ? subsJson.data
-            : Array.isArray(subsJson)
-              ? subsJson
-              : [];
-
-        // Normalise plans list and enrich with status & subscribers_count
-        const planList: SubscriptionPlan[] = (
-          Array.isArray(plansJson.plans)
-            ? plansJson.plans
-            : Array.isArray(plansJson.data)
-              ? plansJson.data
-              : Array.isArray(plansJson)
-                ? plansJson
-                : []
-        ).map((p: any) => {
-          const planSubscribers = activeSubscriptions.filter((s: any) => s.plan_id === p.plan_id);
-          return {
-            ...p,
-            status: p.status || (p.is_active ? "ACTIVE" : "INACTIVE"),
-            subscribers_count: planSubscribers.length,
-          };
-        });
-
-        // Derive total subscriber count from plan subscriber counts
-        const totalSubscribers = planList.reduce((sum, p) => sum + (p.subscribers_count ?? 0), 0);
-
-        // Derive MRR: sum of active plans' actual subscription revenue
-        const mrr = activeSubscriptions.reduce((sum: number, sub: any) => {
-          const plan = planList.find((p) => p.plan_id === sub.plan_id);
-          if (plan && plan.status !== "ACTIVE") return sum;
-          
-          let monthlyAmount = sub.amount || 0;
-          if (sub.billing_cycle === "YEAR") monthlyAmount /= 12;
-          else if (sub.billing_cycle === "QUARTER") monthlyAmount /= 3;
-          else if (sub.billing_cycle === "WEEK") monthlyAmount *= 4;
-          return sum + monthlyAmount;
-        }, 0);
-
-        // Win rate: fraction of CLOSED trades that hit target (pnl_pct > 0)
-        const closedRes = await fetch("/api/analyst/trades?status=CLOSED&limit=100", {
+  const fetchMetrics = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      // Fetch active trades count, batches, and active subscribers in parallel
+      const [tradesRes, plansRes, subscribersRes] = await Promise.all([
+        fetch("/api/analyst/trades?status=LIVE&limit=100", {
           credentials: "same-origin",
           cache: "no-store",
-        });
-        const closedJson = closedRes.ok ? await closedRes.json().catch(() => ({})) : {};
-        const closedList: Trade[] = Array.isArray(closedJson.trades)
-          ? closedJson.trades
-          : Array.isArray(closedJson.data)
-            ? closedJson.data
-            : Array.isArray(closedJson)
-              ? closedJson
-              : [];
+        }),
+        fetch("/api/analyst/plans", {
+          credentials: "same-origin",
+          cache: "no-store",
+        }),
+        fetch("/api/analyst/subscribers?status=ACTIVE&limit=1000", {
+          credentials: "same-origin",
+          cache: "no-store",
+        }),
+      ]);
 
-        const wins = closedList.filter(
-          (t) => t.status === "TARGET_HIT" || (t.pnl_pct !== undefined && t.pnl_pct > 0)
-        ).length;
-        const winRate = closedList.length > 0 ? (wins / closedList.length) * 100 : 0;
+      const tradesJson = tradesRes.ok ? await tradesRes.json().catch(() => ({})) : {};
+      const plansJson = plansRes.ok ? await plansRes.json().catch(() => ({})) : {};
+      const subsJson = subscribersRes.ok ? await subscribersRes.json().catch(() => ({})) : {};
 
-        if (!cancelled) {
-          setMetrics({
-            active_trades: { value: tradeList.length, change_pct: 0, new_today: 0 },
-            total_subscribers: { value: totalSubscribers, change_pct: 0 },
-            total_batches: { value: planList.length, change_pct: 0 },
-            monthly_revenue: { value: Math.round(mrr), change_pct: 0 },
-          });
-          setIsError(false);
-        }
-      } catch {
-        if (!cancelled) {
-          setIsError(true);
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
+      // Normalise trade list
+      const tradeList: Trade[] = Array.isArray(tradesJson.trades)
+        ? tradesJson.trades
+        : Array.isArray(tradesJson.data)
+          ? tradesJson.data
+          : Array.isArray(tradesJson)
+            ? tradesJson
+            : [];
+
+      // Normalise active subscriptions
+      const activeSubscriptions = Array.isArray(subsJson.subscriptions)
+        ? subsJson.subscriptions
+        : Array.isArray(subsJson.data)
+          ? subsJson.data
+          : Array.isArray(subsJson)
+            ? subsJson
+            : [];
+
+      // Normalise plans list and enrich with status & subscribers_count
+      const planList: SubscriptionPlan[] = (
+        Array.isArray(plansJson.plans)
+          ? plansJson.plans
+          : Array.isArray(plansJson.data)
+            ? plansJson.data
+            : Array.isArray(plansJson)
+              ? plansJson
+              : []
+      ).map((p: any) => {
+        const planSubscribers = activeSubscriptions.filter((s: any) => s.plan_id === p.plan_id);
+        return {
+          ...p,
+          status: p.status || (p.is_active ? "ACTIVE" : "INACTIVE"),
+          subscribers_count: planSubscribers.length,
+        };
+      });
+
+      // Derive total subscriber count from plan subscriber counts
+      const totalSubscribers = planList.reduce((sum, p) => sum + (p.subscribers_count ?? 0), 0);
+
+      // Derive MRR: sum of active plans' actual subscription revenue
+      const mrr = activeSubscriptions.reduce((sum: number, sub: any) => {
+        const plan = planList.find((p) => p.plan_id === sub.plan_id);
+        if (plan && plan.status !== "ACTIVE") return sum;
+        
+        let monthlyAmount = sub.amount || 0;
+        if (sub.billing_cycle === "YEAR") monthlyAmount /= 12;
+        else if (sub.billing_cycle === "QUARTER") monthlyAmount /= 3;
+        else if (sub.billing_cycle === "WEEK") monthlyAmount *= 4;
+        return sum + monthlyAmount;
+      }, 0);
+
+      // Win rate: fraction of CLOSED trades that hit target (pnl_pct > 0)
+      const closedRes = await fetch("/api/analyst/trades?status=CLOSED&limit=100", {
+        credentials: "same-origin",
+        cache: "no-store",
+      });
+      const closedJson = closedRes.ok ? await closedRes.json().catch(() => ({})) : {};
+      const closedList: Trade[] = Array.isArray(closedJson.trades)
+        ? closedJson.trades
+        : Array.isArray(closedJson.data)
+          ? closedJson.data
+          : Array.isArray(closedJson)
+            ? closedJson
+            : [];
+
+      const wins = closedList.filter(
+        (t) => t.status === "TARGET_HIT" || (t.pnl_pct !== undefined && t.pnl_pct > 0)
+      ).length;
+      const winRate = closedList.length > 0 ? (wins / closedList.length) * 100 : 0;
+
+      setMetrics({
+        active_trades: { value: tradeList.length, change_pct: 0, new_today: 0 },
+        total_subscribers: { value: totalSubscribers, change_pct: 0 },
+        total_batches: { value: planList.length, change_pct: 0 },
+        monthly_revenue: { value: Math.round(mrr), change_pct: 0 },
+      });
+      setIsError(false);
+    } catch {
+      setIsError(true);
+    } finally {
+      setIsLoading(false);
     }
-
-    void load();
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
-  return { metrics, isLoading, isError };
+  useEffect(() => {
+    void fetchMetrics();
+  }, [fetchMetrics]);
+
+  return { metrics, isLoading, isError, refetch: fetchMetrics };
 }
 
 export function useActiveTrades(limit: number = 5) {
