@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Icon } from "@/components/stoxify-icon";
 import type { Trade } from "@/lib/types/analyst";
 
@@ -21,6 +21,30 @@ export function ModifyTradeModal({ trade, onClose, onSuccess }: ModifyTradeModal
     : [{ price: String(trade.target ?? trade.target_price ?? ""), percent: "100" }];
   const [targets, setTargets] = useState<{ price: string; percent: string }[]>(initialTargets);
   const [reason, setReason] = useState("");
+  const [ltp, setLtp] = useState<number | null>(trade.ltp ?? null);
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchLtp = async () => {
+      try {
+        const res = await fetch(`/api/market-data/price/${encodeURIComponent(trade.symbol)}`);
+        if (res.ok && mounted) {
+          const data = await res.json();
+          if (data?.price || data?.ltp) {
+            setLtp(data.price ?? data.ltp);
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+    fetchLtp();
+    const interval = setInterval(fetchLtp, 2000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [trade.symbol]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +57,28 @@ export function ModifyTradeModal({ trade, onClose, onSuccess }: ModifyTradeModal
       }
 
       const slValue = parseFloat(stopLoss);
+      if (ltp !== null) {
+        if (!isNaN(slValue) && slValue > 0) {
+          if ((trade.direction === "LONG" || trade.direction === "BUY") && slValue >= ltp) {
+            throw new Error(`SL (₹${slValue}) must be less than current market price (₹${ltp})`);
+          }
+          if ((trade.direction === "SHORT" || trade.direction === "SELL") && slValue <= ltp) {
+            throw new Error(`SL (₹${slValue}) must be greater than current market price (₹${ltp})`);
+          }
+        }
+        for (const t of targets) {
+          const tp = parseFloat(t.price);
+          if (!isNaN(tp) && tp > 0) {
+            if ((trade.direction === "LONG" || trade.direction === "BUY") && tp <= ltp) {
+              throw new Error(`Target (₹${tp}) must be greater than current market price (₹${ltp})`);
+            }
+            if ((trade.direction === "SHORT" || trade.direction === "SELL") && tp >= ltp) {
+              throw new Error(`Target (₹${tp}) must be less than current market price (₹${ltp})`);
+            }
+          }
+        }
+      }
+
       const payload: any = { modification_reason: reason.trim() };
       if (!isNaN(slValue) && slValue > 0) payload.stop_loss = slValue;
 
@@ -105,7 +151,20 @@ export function ModifyTradeModal({ trade, onClose, onSuccess }: ModifyTradeModal
             <div className="rounded-xl border border-[var(--line)] bg-[#f8fafc] p-4 flex justify-between items-center">
               <div>
                 <div className="text-[12px] font-semibold text-[var(--muted)]">Symbol</div>
-                <div className="text-[15px] font-extrabold text-[var(--ink)]">{trade.symbol}</div>
+                <div className="text-[15px] font-extrabold text-[var(--ink)] flex items-center gap-2">
+                  {trade.symbol}
+                  {ltp !== null && (
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-[var(--brand)]/10 text-[var(--brand)]">
+                      LTP: ₹{ltp}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="text-center border-x border-[var(--line)] px-4">
+                <div className="text-[12px] font-semibold text-[var(--muted)] flex items-center justify-center gap-1">
+                  <Icon name="lock" className="h-3 w-3" /> Entry
+                </div>
+                <div className="text-[13px] font-bold text-[var(--ink)]">₹{trade.entry_price}</div>
               </div>
               <div className="text-right">
                 <div className="text-[12px] font-semibold text-[var(--muted)]">Direction</div>
