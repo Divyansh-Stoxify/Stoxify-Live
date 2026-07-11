@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Icon } from "@/components/stoxify-icon";
 import type { Trade } from "@/lib/types/analyst";
 import { cleanErrorMessage } from "@/lib/utils";
@@ -9,9 +9,11 @@ interface ModifyTradeModalProps {
   trade: Trade;
   onClose: () => void;
   onSuccess: (title: string, message: string) => void;
+  /** Live symbol → LTP map from the shared dashboard WebSocket */
+  livePrices?: Record<string, number>;
 }
 
-export function ModifyTradeModal({ trade, onClose, onSuccess }: ModifyTradeModalProps) {
+export function ModifyTradeModal({ trade, onClose, onSuccess, livePrices }: ModifyTradeModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,30 +24,10 @@ export function ModifyTradeModal({ trade, onClose, onSuccess }: ModifyTradeModal
     : [{ price: String(trade.target ?? trade.target_price ?? ""), percent: "100" }];
   const [targets, setTargets] = useState<{ price: string; percent: string }[]>(initialTargets);
   const [reason, setReason] = useState("");
-  const [ltp, setLtp] = useState<number | null>(trade.ltp ?? null);
 
-  useEffect(() => {
-    let mounted = true;
-    const fetchLtp = async () => {
-      try {
-        const res = await fetch(`/api/market-data/price/${encodeURIComponent(trade.symbol)}`);
-        if (res.ok && mounted) {
-          const data = await res.json();
-          if (data?.price || data?.ltp) {
-            setLtp(data.price ?? data.ltp);
-          }
-        }
-      } catch (e) {
-        // ignore
-      }
-    };
-    fetchLtp();
-    const interval = setInterval(fetchLtp, 2000);
-    return () => {
-      mounted = false;
-      clearInterval(interval);
-    };
-  }, [trade.symbol]);
+  // Live LTP comes from the shared dashboard WebSocket feed (no per-symbol
+  // polling). Fall back to the last-known LTP carried on the trade.
+  const ltp = livePrices?.[trade.symbol] ?? trade.ltp ?? null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +63,13 @@ export function ModifyTradeModal({ trade, onClose, onSuccess }: ModifyTradeModal
           }
         }
       }
-      if (!isNaN(slValue) && slValue > 0) payload.stop_loss = slValue;
+      // Only send the stop loss when the analyst actually changed it. The field is
+      // pre-filled, so re-sending an unchanged value would log a phantom "Stop Loss
+      // Updated" action and could trip buffer validation on a target-only edit.
+      const originalSl = trade.stop_loss ?? trade.stop_loss_price;
+      if (!isNaN(slValue) && slValue > 0 && slValue !== originalSl) {
+        payload.stop_loss = slValue;
+      }
 
       const validTargets = targets.filter(t => parseFloat(t.price) > 0 && parseFloat(t.percent) > 0);
       if (validTargets.length > 0) {
@@ -94,15 +82,27 @@ export function ModifyTradeModal({ trade, onClose, onSuccess }: ModifyTradeModal
           totalPercent += bp;
           return { target_price: parseFloat(t.price), book_percent: bp };
         });
-        
+
         if (Math.abs(totalPercent - 100) > 0.01) {
           throw new Error("Total book percentage must equal exactly 100%.");
         }
-        payload.targets = parsedTargets;
+
+        // Only send targets when they differ from what's already on the trade.
+        const originalTargets = initialTargets
+          .filter(t => parseFloat(t.price) > 0 && parseFloat(t.percent) > 0)
+          .map(t => ({ target_price: parseFloat(t.price), book_percent: parseFloat(t.percent) }));
+        const targetsChanged =
+          originalTargets.length !== parsedTargets.length ||
+          parsedTargets.some((t, i) =>
+            t.target_price !== originalTargets[i].target_price ||
+            t.book_percent !== originalTargets[i].book_percent);
+        if (targetsChanged) {
+          payload.targets = parsedTargets;
+        }
       }
 
-      if (!payload.stop_loss && !payload.targets) {
-        throw new Error("Please provide at least a stop loss or targets.");
+      if (payload.stop_loss === undefined && payload.targets === undefined) {
+        throw new Error("No changes detected. Update the stop loss or a target before submitting.");
       }
 
       const res = await fetch(`/api/analyst/trades/${trade.trade_id}`, {

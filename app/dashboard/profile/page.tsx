@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Topbar } from "@/components/dashboard/topbar";
@@ -16,13 +16,22 @@ const TABS = [
   { name: "Delete Account", icon: "trash" as const },
 ];
 
-// Seed collection of beautiful avatar images to cycle through when user clicks "Change Avatar"
-const AVATAR_POOL = [
-  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200", // Rohan (glasses)
-  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=200", // Man 2
-  "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200", // Man 3
-  "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=200", // Man 4
-];
+// Accepted upload formats + client-side size cap (backend enforces 3 MB too).
+const ACCEPTED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_AVATAR_BYTES = 3 * 1024 * 1024;
+
+/** Read a File as a base64 string (without the data: URL prefix). */
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result.includes(",") ? result.split(",")[1] : result);
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
 
 // ─── Notifications Tab ────────────────────────────────────────────────────────
 
@@ -479,6 +488,8 @@ export default function ProfilePage() {
   const [twitterUrl, setTwitterUrl] = useState("");
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [username, setUsername] = useState("");
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const isUsernameSet = Boolean(profile?.username);
@@ -594,12 +605,45 @@ export default function ProfilePage() {
     }
   };
 
-  // Cycle avatar selection
-  const handleCycleAvatar = () => {
-    const currentIndex = AVATAR_POOL.indexOf(avatarUrl);
-    const nextIndex = (currentIndex + 1) % AVATAR_POOL.length;
-    setAvatarUrl(AVATAR_POOL[nextIndex]);
-    showSuccessToast("Avatar Changed", "New avatar selection updated in form.");
+  // Upload a chosen image file → host it → set it in the form (Save persists it).
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Reset the input so selecting the same file again re-fires onChange.
+    e.target.value = "";
+    if (!file) return;
+
+    if (!ACCEPTED_AVATAR_TYPES.includes(file.type)) {
+      showSuccessToast("Unsupported File", "Please choose a JPEG, PNG, or WebP image.");
+      return;
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      showSuccessToast("Image Too Large", "Please choose an image under 3 MB.");
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const image_base64 = await fileToBase64(file);
+      const res = await fetch("/api/analyst/avatar", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image_base64, content_type: file.type }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.profile_pic_url) {
+        showSuccessToast("Upload Failed", data.error ?? "Unable to upload the image.");
+        return;
+      }
+
+      setAvatarUrl(data.profile_pic_url);
+      showSuccessToast("Photo Uploaded", "Click Save to apply your new profile picture.");
+    } catch {
+      showSuccessToast("Network Error", "Unable to upload the image. Please try again.");
+    } finally {
+      setUploadingAvatar(false);
+    }
   };
 
   // Remove avatar
@@ -694,16 +738,25 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="flex gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleAvatarFileChange}
+                      className="hidden"
+                    />
                     <button
-                      onClick={handleCycleAvatar}
-                      className="px-4 py-1.5 border border-slate-200 rounded-lg text-[12.5px] font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingAvatar}
+                      className="px-4 py-1.5 border border-slate-200 rounded-lg text-[12.5px] font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors shadow-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                       type="button"
                     >
-                      Change Avatar
+                      {uploadingAvatar ? "Uploading…" : "Upload Photo"}
                     </button>
                     <button
                       onClick={handleRemoveAvatar}
-                      className="px-3 py-1.5 text-red-500 text-[12.5px] font-bold hover:text-red-600 transition-colors cursor-pointer bg-transparent border-none"
+                      disabled={uploadingAvatar}
+                      className="px-3 py-1.5 text-red-500 text-[12.5px] font-bold hover:text-red-600 transition-colors cursor-pointer bg-transparent border-none disabled:opacity-60"
                       type="button"
                     >
                       Remove

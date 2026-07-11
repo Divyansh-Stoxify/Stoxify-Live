@@ -33,6 +33,14 @@ preloadSigningKeyFromPath();
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  images: {
+    remotePatterns: [
+      // Profile pictures uploaded to Azure Blob Storage (any storage account).
+      { protocol: "https", hostname: "**.blob.core.windows.net" },
+      // Legacy stock avatars still referenced by existing profiles.
+      { protocol: "https", hostname: "images.unsplash.com" },
+    ],
+  },
   async headers() {
     return [
       {

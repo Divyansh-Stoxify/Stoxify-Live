@@ -2,8 +2,10 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 import { userCookieNames, userCookieOptions } from "@/lib/auth/cookies";
+import { backendUrls, forwardedIpHeaders, signedBackendFetch } from "@/lib/backend/index";
 
 type JwtPayload = {
   user_id?: string;
@@ -109,20 +111,62 @@ export async function clearUserCookies(response: NextResponse) {
   return response;
 }
 
-export async function readUserSessionFromCookies(): Promise<UserSession> {
+/**
+ * Silently mints a fresh access token from the refresh-token cookie by calling
+ * the backend `/auth/refresh`. Returns the new tokens (plus the device id) on
+ * success, or `null` when there is no usable refresh session. Callers are
+ * responsible for persisting the tokens via {@link writeUserTokenCookies}.
+ */
+export async function refreshUserTokens(
+  request?: NextRequest
+): Promise<{ access_token: string; refresh_token?: string; deviceId: string } | null> {
   const store = await cookies();
-  const accessToken = store.get(userCookieNames.accessToken)?.value;
-  if (!accessToken) return { authenticated: false };
+  const refreshToken = store.get(userCookieNames.refreshToken)?.value;
+  const deviceId = store.get(userCookieNames.deviceId)?.value;
+  if (!refreshToken || !deviceId) return null;
 
+  let response: Response;
+  try {
+    response = await signedBackendFetch({
+      baseUrl: backendUrls.auth,
+      path: "/auth/refresh",
+      method: "POST",
+      deviceId,
+      body: { refresh_token: refreshToken },
+      extraHeaders: request ? forwardedIpHeaders(request) : undefined,
+    });
+  } catch {
+    return null;
+  }
+
+  if (!response.ok) return null;
+
+  const data = (await response.json().catch(() => ({}))) as {
+    access_token?: string;
+    refresh_token?: string;
+  };
+  if (!data.access_token) return null;
+
+  return { access_token: data.access_token, refresh_token: data.refresh_token, deviceId };
+}
+
+/**
+ * Builds a {@link UserSession} from an access token, filling email/phone (which
+ * are not in the JWT) from the `userInfo` cookie. `rawInfo` is the raw userInfo
+ * cookie value; pass it explicitly so this works with a freshly minted token
+ * that isn't yet reflected in the request's cookie store.
+ */
+export function buildUserSessionFromToken(
+  accessToken: string,
+  rawInfo: string | undefined
+): UserSession {
   const jwt = decodeJwtPayload(accessToken);
   if (!jwt?.user_id) return { authenticated: false };
 
-  // email/phone are not in the JWT payload — read from the userInfo cookie set at login.
   let name = jwt.name ?? "";
   let email = "";
   let phone = "";
   let user_type = jwt.user_type ?? "";
-  const rawInfo = store.get(userCookieNames.userInfo)?.value;
   if (rawInfo) {
     try {
       const info = JSON.parse(rawInfo) as {
@@ -152,4 +196,12 @@ export async function readUserSessionFromCookies(): Promise<UserSession> {
     },
     accessToken,
   };
+}
+
+export async function readUserSessionFromCookies(): Promise<UserSession> {
+  const store = await cookies();
+  const accessToken = store.get(userCookieNames.accessToken)?.value;
+  if (!accessToken) return { authenticated: false };
+
+  return buildUserSessionFromToken(accessToken, store.get(userCookieNames.userInfo)?.value);
 }

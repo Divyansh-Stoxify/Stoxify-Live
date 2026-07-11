@@ -167,6 +167,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       {tradeToModify && (
         <ModifyTradeModal
           trade={tradeToModify}
+          livePrices={prices}
           onClose={closeModifyTrade}
           onSuccess={handleModifySuccess}
         />
