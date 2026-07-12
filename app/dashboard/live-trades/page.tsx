@@ -27,11 +27,13 @@ function StatStrip({
   value,
   sub,
   valueClass = "text-[var(--ink)]",
+  subClass = "text-[var(--green)]",
 }: {
   label: string;
   value: string;
   sub?: string;
   valueClass?: string;
+  subClass?: string;
 }) {
   return (
     <div className="flex-1 rounded-xl border border-[var(--line)] bg-white px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
@@ -39,7 +41,7 @@ function StatStrip({
       <div className={`text-[22px] font-extrabold leading-tight tracking-[-0.5px] ${valueClass}`}>
         {value}
       </div>
-      {sub && <div className="mt-1 text-[11px] font-semibold text-[var(--green)]">{sub}</div>}
+      {sub && <div className={`mt-1 text-[11px] font-semibold ${subClass}`}>{sub}</div>}
     </div>
   );
 }
@@ -1113,11 +1115,10 @@ export default function LiveTradesPage() {
           </button>
         </div>
 
-        {/* ── Stat strip: 4 mini stats ── */}
+        {/* ── Stat strip: mini stats ── */}
         <div className="mb-5 flex gap-3 max-[860px]:grid max-[860px]:grid-cols-2">
           {statsLoading || !stats ? (
             <>
-              <StatStripSkeleton />
               <StatStripSkeleton />
               <StatStripSkeleton />
               <StatStripSkeleton />
@@ -1126,19 +1127,20 @@ export default function LiveTradesPage() {
             <>
               <StatStrip label="Total Active Trades" value={String(stats.total_active)} />
               <StatStrip
-                label="Avg. Win Rate (Monthly)"
-                value={`${stats.avg_win_rate_monthly}%`}
-                sub={`+${stats.win_rate_change_pct}% from last month`}
+                label="Win Rate (This Month)"
+                value={`${stats.win_rate_monthly}%`}
+                sub={
+                  stats.has_win_rate_comparison
+                    ? `${stats.win_rate_change_pct >= 0 ? "+" : ""}${stats.win_rate_change_pct}% from last month`
+                    : undefined
+                }
+                subClass={
+                  stats.win_rate_change_pct >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"
+                }
               />
               <StatStrip
                 label="Active Subscribers"
                 value={stats.active_subscribers.toLocaleString("en-IN")}
-              />
-              <StatStrip
-                label="Live Viewers"
-                value={String(stats.live_viewers)}
-                sub="Watching your trades"
-                valueClass="text-[var(--green)]"
               />
             </>
           )}

@@ -250,10 +250,11 @@ export function useClosedTrades() {
 
 interface LiveTradesStats {
   total_active: number;
-  avg_win_rate_monthly: number;
+  win_rate_monthly: number;
   win_rate_change_pct: number;
+  /** True only when the previous month had closed trades to compare against. */
+  has_win_rate_comparison: boolean;
   active_subscribers: number;
-  live_viewers: number;
 }
 
 export function useLiveTradesStats() {
@@ -265,12 +266,8 @@ export function useLiveTradesStats() {
 
     async function load() {
       try {
-        const [tradesRes, plansRes, closedRes, subscribersRes] = await Promise.all([
+        const [tradesRes, closedRes, subscribersRes] = await Promise.all([
           fetch("/api/analyst/trades?status=LIVE&limit=100", {
-            credentials: "same-origin",
-            cache: "no-store",
-          }),
-          fetch("/api/analyst/plans", {
             credentials: "same-origin",
             cache: "no-store",
           }),
@@ -287,7 +284,6 @@ export function useLiveTradesStats() {
         if (cancelled) return;
 
         const tradesJson = tradesRes.ok ? await tradesRes.json().catch(() => ({})) : {};
-        const plansJson = plansRes.ok ? await plansRes.json().catch(() => ({})) : {};
         const closedJson = closedRes.ok ? await closedRes.json().catch(() => ({})) : {};
         const subsJson = subscribersRes.ok ? await subscribersRes.json().catch(() => ({})) : {};
 
@@ -307,23 +303,6 @@ export function useLiveTradesStats() {
               ? subsJson
               : [];
 
-        const planList: SubscriptionPlan[] = (
-          Array.isArray(plansJson.plans)
-            ? plansJson.plans
-            : Array.isArray(plansJson.data)
-              ? plansJson.data
-              : Array.isArray(plansJson)
-                ? plansJson
-                : []
-        ).map((p: any) => {
-          const planSubscribers = activeSubscriptions.filter((s: any) => s.plan_id === p.plan_id);
-          return {
-            ...p,
-            status: p.status || (p.is_active ? "ACTIVE" : "INACTIVE"),
-            subscribers_count: planSubscribers.length,
-          };
-        });
-
         const closedList: Trade[] = Array.isArray(closedJson.trades)
           ? closedJson.trades
           : Array.isArray(closedJson.data)
@@ -332,25 +311,45 @@ export function useLiveTradesStats() {
               ? closedJson
               : [];
 
-        const totalSubscribers = planList.reduce((sum, p) => sum + (p.subscribers_count ?? 0), 0);
+        // Active Subscribers = unique people. A subscriber on multiple batches
+        // must count once, so dedupe on user_id (falling back to subscription_id
+        // for legacy rows that don't carry a user_id).
+        const uniqueSubscribers = new Set(
+          activeSubscriptions
+            .map((s: any) => s.user_id ?? s.subscription_id)
+            .filter(Boolean)
+        ).size;
 
-        const wins = closedList.filter(
-          (t) => t.status === "TARGET_HIT" || (t.pnl_pct !== undefined && t.pnl_pct > 0)
-        ).length;
-        const winRate = closedList.length > 0 ? (wins / closedList.length) * 100 : 0;
+        // Win rate for the *current calendar month*, with a real month-over-month
+        // delta. A closed trade counts as a win if it hit target or booked a
+        // positive P&L; trades are bucketed by when they closed (exit_timestamp,
+        // falling back to updated_at/created_at).
+        const isWin = (t: Trade) =>
+          t.status === "TARGET_HIT" || (t.pnl_pct !== undefined && t.pnl_pct > 0);
+        const closedMonth = (t: Trade): number | null => {
+          const iso = t.exit_timestamp ?? t.updated_at ?? t.created_at;
+          if (!iso) return null;
+          const d = new Date(iso);
+          return isNaN(d.getTime()) ? null : d.getFullYear() * 12 + d.getMonth();
+        };
+        const winRateOf = (list: Trade[]) =>
+          list.length > 0
+            ? Math.round((list.filter(isWin).length / list.length) * 1000) / 10
+            : 0;
 
-        // live_viewers: sum of live_viewers across active live-streaming trades
-        const liveViewers = tradeList
-          .filter((t) => t.is_live_streaming)
-          .reduce((sum, t) => sum + (t.live_viewers ?? 0), 0);
+        const nowMonth = new Date().getFullYear() * 12 + new Date().getMonth();
+        const thisMonthClosed = closedList.filter((t) => closedMonth(t) === nowMonth);
+        const lastMonthClosed = closedList.filter((t) => closedMonth(t) === nowMonth - 1);
+        const thisRate = winRateOf(thisMonthClosed);
+        const lastRate = winRateOf(lastMonthClosed);
 
         if (!cancelled) {
           setStats({
             total_active: tradeList.length,
-            avg_win_rate_monthly: Math.round(winRate * 10) / 10,
-            win_rate_change_pct: 0,
-            active_subscribers: totalSubscribers,
-            live_viewers: liveViewers,
+            win_rate_monthly: thisRate,
+            win_rate_change_pct: Math.round((thisRate - lastRate) * 10) / 10,
+            has_win_rate_comparison: lastMonthClosed.length > 0,
+            active_subscribers: uniqueSubscribers,
           });
         }
       } catch {
