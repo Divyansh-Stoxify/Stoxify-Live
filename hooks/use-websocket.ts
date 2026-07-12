@@ -29,6 +29,11 @@ interface UseWebSocketReturn {
   tradeClosedEvent: any | null;
   /** Emitted when a trade is modified */
   tradeModifiedEvent: any | null;
+  /**
+   * Send an arbitrary JSON message over the WebSocket connection.
+   * No-ops silently if the connection is not yet open.
+   */
+  sendMessage: (msg: Record<string, unknown>) => void;
 }
 
 const MAX_RECONNECT_ATTEMPTS = 5;
@@ -165,5 +170,11 @@ export function useWebSocket(): UseWebSocketReturn {
     };
   }, [connect]);
 
-  return { prices, isConnected, error, latestNotification, tradeClosedEvent, tradeModifiedEvent };
+  const sendMessage = useCallback((msg: Record<string, unknown>) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(msg));
+    }
+  }, []);
+
+  return { prices, isConnected, error, latestNotification, tradeClosedEvent, tradeModifiedEvent, sendMessage };
 }

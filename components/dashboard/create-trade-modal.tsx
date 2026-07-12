@@ -53,6 +53,8 @@ interface CreateTradeModalProps {
   onSuccess: (title: string, message: string) => void;
   /** Live symbol → LTP map from the shared dashboard WebSocket */
   livePrices?: Record<string, number>;
+  /** Send a message over the shared dashboard WebSocket connection */
+  sendMessage?: (msg: Record<string, unknown>) => void;
 }
 
 // Fallback popular symbols shown when the search input is empty
@@ -88,7 +90,7 @@ interface SearchResult {
   exchange: string;
 }
 
-export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTradeModalProps) {
+export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }: CreateTradeModalProps) {
   const { mutate } = useSWRConfig();
 
   // Form states
@@ -424,14 +426,24 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTrade
     }
   }, []);
 
-  // Renew the watch while an instrument is selected so the backend keeps the
-  // feed subscription alive (server-side TTL is 90s; renew every 60s).
+  // Keep the backend watch TTL alive while an instrument is selected.
+  // Preferred path: send a 'watch' message over the already-open WebSocket
+  // (zero extra HTTP connections, and the heartbeat stops automatically if
+  // the WebSocket itself drops — no resource leaks on the server).
+  // Fallback: if sendMessage is unavailable (e.g. WS not yet connected),
+  // silently call the HTTP endpoint to ensure the first 60 s window is covered.
   useEffect(() => {
     if (!isSymbolSelected || !symbolQuery.trim()) return;
     const symbol = symbolQuery;
-    const interval = setInterval(() => fetchLivePrice(symbol, true), 60_000);
+    const interval = setInterval(() => {
+      if (sendMessage) {
+        sendMessage({ type: 'watch', symbol });
+      } else {
+        fetchLivePrice(symbol, true);
+      }
+    }, 60_000);
     return () => clearInterval(interval);
-  }, [isSymbolSelected, symbolQuery, fetchLivePrice]);
+  }, [isSymbolSelected, symbolQuery, fetchLivePrice, sendMessage]);
 
   // Tick the entry price from the shared WebSocket as live prices stream in
   const liveTick = isSymbolSelected ? livePrices?.[symbolQuery] : undefined;
