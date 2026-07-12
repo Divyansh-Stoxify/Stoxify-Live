@@ -614,7 +614,7 @@ export interface Coupon {
   discount_value: number;
   plan_ids: string[];
   user_ids?: string[];
-  availability: 'EVERYONE' | 'SPECIFIC';
+  availability: 'EVERYONE' | 'NEW_USER' | 'EXISTING_USER' | 'SPECIFIC';
   quantity_total: number | null;
   quantity_used: number;
   valid_from?: string;

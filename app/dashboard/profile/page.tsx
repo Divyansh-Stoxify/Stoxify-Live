@@ -298,10 +298,48 @@ function DeleteAccountTab() {
   const [showModal, setShowModal] = useState(false);
   const [reason, setReason] = useState("");
   const [confirmText, setConfirmText] = useState("");
+  // "confirm" → reason + type DELETE; "otp" → enter the code sent to the phone
+  const [step, setStep] = useState<"confirm" | "otp">("confirm");
+  const [otp, setOtp] = useState("");
+  const [phoneMasked, setPhoneMasked] = useState("");
+  const [sendingOtp, setSendingOtp] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const handleDelete = async () => {
+  const closeModal = () => {
+    setShowModal(false);
+    setStep("confirm");
+    setConfirmText("");
+    setReason("");
+    setOtp("");
+  };
+
+  const handleRequestOtp = async () => {
     if (confirmText !== "DELETE") return;
+
+    setSendingOtp(true);
+    try {
+      const res = await fetch("/api/user/delete/request-otp", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to send verification code.");
+      }
+      setPhoneMasked(data.phone_masked || "");
+      setOtp("");
+      setStep("otp");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Something went wrong.";
+      showSuccessToast("Error", msg);
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (otp.length !== 6) return;
 
     setDeleting(true);
     try {
@@ -309,7 +347,7 @@ function DeleteAccountTab() {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: reason.trim() || undefined }),
+        body: JSON.stringify({ otp, reason: reason.trim() || undefined }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -382,7 +420,7 @@ function DeleteAccountTab() {
       {showModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
-          onClick={() => !deleting && setShowModal(false)}
+          onClick={() => !deleting && !sendingOtp && closeModal()}
         >
           <div
             className="w-full max-w-[460px] rounded-2xl bg-white p-7 shadow-2xl"
@@ -395,66 +433,119 @@ function DeleteAccountTab() {
               </div>
               <div>
                 <h3 className="text-[17px] font-extrabold text-slate-800">
-                  Confirm Account Deletion
+                  {step === "confirm" ? "Confirm Account Deletion" : "Verify It's You"}
                 </h3>
                 <p className="text-[12px] text-slate-400">
-                  This action is permanent and cannot be reversed.
+                  {step === "confirm"
+                    ? "This action is permanent and cannot be reversed."
+                    : `Enter the 6-digit code sent to ${phoneMasked || "your registered phone"}.`}
                 </p>
               </div>
             </div>
 
-            {/* Reason */}
-            <div className="mb-4">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                Why are you leaving? (optional)
-              </label>
-              <textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                disabled={deleting}
-                placeholder="Your feedback helps us improve..."
-                className="w-full h-20 rounded-xl border border-slate-200 bg-white py-3 px-4 text-[13px] text-slate-800 placeholder:text-slate-400 outline-none focus:border-red-400 transition-colors resize-none"
-              />
-            </div>
+            {step === "confirm" ? (
+              <>
+                {/* Reason */}
+                <div className="mb-4">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                    Why are you leaving? (optional)
+                  </label>
+                  <textarea
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    disabled={sendingOtp}
+                    placeholder="Your feedback helps us improve..."
+                    className="w-full h-20 rounded-xl border border-slate-200 bg-white py-3 px-4 text-[13px] text-slate-800 placeholder:text-slate-400 outline-none focus:border-red-400 transition-colors resize-none"
+                  />
+                </div>
 
-            {/* Type DELETE */}
-            <div className="mb-6">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                Type <span className="text-red-600 font-extrabold">DELETE</span> to confirm
-              </label>
-              <input
-                type="text"
-                value={confirmText}
-                onChange={(e) => setConfirmText(e.target.value.toUpperCase())}
-                disabled={deleting}
-                placeholder="DELETE"
-                className="w-full rounded-xl border border-slate-200 bg-white py-3 px-4 text-[13.5px] font-mono tracking-wider text-slate-800 placeholder:text-slate-300 outline-none focus:border-red-400 transition-colors"
-              />
-            </div>
+                {/* Type DELETE */}
+                <div className="mb-6">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                    Type <span className="text-red-600 font-extrabold">DELETE</span> to confirm
+                  </label>
+                  <input
+                    type="text"
+                    value={confirmText}
+                    onChange={(e) => setConfirmText(e.target.value.toUpperCase())}
+                    disabled={sendingOtp}
+                    placeholder="DELETE"
+                    className="w-full rounded-xl border border-slate-200 bg-white py-3 px-4 text-[13.5px] font-mono tracking-wider text-slate-800 placeholder:text-slate-300 outline-none focus:border-red-400 transition-colors"
+                  />
+                </div>
 
-            {/* Actions */}
-            <div className="flex gap-3">
-              <button
-                type="button"
-                disabled={deleting}
-                onClick={() => {
-                  setShowModal(false);
-                  setConfirmText("");
-                  setReason("");
-                }}
-                className="flex-1 px-4 py-2.5 border border-slate-200 rounded-lg text-[13px] font-bold text-slate-600 hover:bg-slate-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={deleting || confirmText !== "DELETE"}
-                onClick={handleDelete}
-                className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 rounded-lg text-[13px] font-bold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
-              >
-                {deleting ? "Deleting..." : "Permanently Delete"}
-              </button>
-            </div>
+                {/* Actions */}
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    disabled={sendingOtp}
+                    onClick={closeModal}
+                    className="flex-1 px-4 py-2.5 border border-slate-200 rounded-lg text-[13px] font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={sendingOtp || confirmText !== "DELETE"}
+                    onClick={handleRequestOtp}
+                    className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 rounded-lg text-[13px] font-bold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
+                  >
+                    {sendingOtp ? "Sending code..." : "Continue"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* OTP input */}
+                <div className="mb-6">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                    Verification code
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    disabled={deleting}
+                    placeholder="••••••"
+                    className="w-full rounded-xl border border-slate-200 bg-white py-3 px-4 text-[17px] font-mono tracking-[0.5em] text-center text-slate-800 placeholder:text-slate-300 outline-none focus:border-red-400 transition-colors"
+                  />
+                  <button
+                    type="button"
+                    disabled={sendingOtp || deleting}
+                    onClick={handleRequestOtp}
+                    className="mt-2 text-[12px] font-bold text-red-600 hover:text-red-700 disabled:opacity-40 transition-colors"
+                  >
+                    {sendingOtp ? "Resending..." : "Resend code"}
+                  </button>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    disabled={deleting}
+                    onClick={() => {
+                      setStep("confirm");
+                      setOtp("");
+                    }}
+                    className="flex-1 px-4 py-2.5 border border-slate-200 rounded-lg text-[13px] font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    disabled={deleting || otp.length !== 6}
+                    onClick={handleDelete}
+                    className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 rounded-lg text-[13px] font-bold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
+                  >
+                    {deleting ? "Deleting..." : "Permanently Delete"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

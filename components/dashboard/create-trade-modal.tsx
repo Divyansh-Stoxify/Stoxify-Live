@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useSWRConfig } from "swr";
 import { Icon } from "@/components/stoxify-icon";
 import type { TradeDirection } from "@/lib/types/analyst";
@@ -167,176 +167,15 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTrade
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFetchingPrice, setIsFetchingPrice] = useState(false);
 
-  const autocompleteRef = useRef<HTMLDivElement>(null);
-  const batchDropdownRef = useRef<HTMLDivElement>(null);
+  // Real-time Validation States
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [isSubmittedOnce, setIsSubmittedOnce] = useState(false);
 
-  // Close autocomplete & batch dropdown on click outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (autocompleteRef.current && !autocompleteRef.current.contains(event.target as Node)) {
-        setShowAutocomplete(false);
-      }
-      if (batchDropdownRef.current && !batchDropdownRef.current.contains(event.target as Node)) {
-        setShowBatchDropdown(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+  const markTouched = useCallback((field: string) => {
+    setTouched((prev) => prev[field] ? prev : { ...prev, [field]: true });
   }, []);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-      if (searchAbortRef.current) searchAbortRef.current.abort();
-    };
-  }, []);
-
-  const handleClearRecentSearches = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setRecentSearches([]);
-    try {
-      localStorage.removeItem("stoxify_recent_searches");
-    } catch (err) {
-      console.error("Failed to clear recent searches", err);
-    }
-  };
-
-  // Debounced search function
-  const performSearch = useCallback((query: string) => {
-    // Cancel any in-flight request
-    if (searchAbortRef.current) searchAbortRef.current.abort();
-    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-
-    if (!query.trim()) {
-      setSearchResults([]);
-      setIsSearching(false);
-      return;
-    }
-
-    setIsSearching(true);
-
-    debounceTimerRef.current = setTimeout(async () => {
-      const controller = new AbortController();
-      searchAbortRef.current = controller;
-
-      try {
-        const res = await fetch(
-          `/api/market-data/search?q=${encodeURIComponent(query.trim())}&limit=20`,
-          {
-            credentials: "same-origin",
-            signal: controller.signal,
-          }
-        );
-        if (res.ok) {
-          const data = await res.json();
-          if (!controller.signal.aborted) {
-            setSearchResults(data.results ?? []);
-          }
-        }
-      } catch (err: unknown) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        // Non-critical: fall back to no results
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsSearching(false);
-        }
-      }
-    }, 300);
-  }, []);
-
-  const handleSelectSymbol = async (item: SearchResult) => {
-    setSymbolQuery(item.symbol);
-    const derivedSegment = exchangeToSegment(item.exchange) as "EQUITY" | "FNO";
-    setSegment(derivedSegment);
-    setIsSymbolSelected(true);
-    setShowAutocomplete(false);
-    // Clear symbol error if it was set
-    if (errors.symbol) {
-      setErrors((prev) => ({ ...prev, symbol: "" }));
-    }
-
-    // Prepend to recent searches, capping at 5
-    setRecentSearches((prev) => {
-      const filtered = prev.filter((r) => r.symbol !== item.symbol || r.exchange !== item.exchange);
-      const updated = [
-        { symbol: item.symbol, token: item.token || "", exchange: item.exchange },
-        ...filtered,
-      ].slice(0, 5);
-      try {
-        localStorage.setItem("stoxify_recent_searches", JSON.stringify(updated));
-      } catch (e) {
-        console.error("Failed to save recent searches", e);
-      }
-      return updated;
-    });
-
-    // Auto-fetch the latest price for this symbol
-    fetchLivePrice(item.symbol);
-  };
-
-  // Entry price is always the live LTP — the analyst cannot type it manually.
-  // Watching a symbol subscribes it to the Angel One feed on the backend for a
-  // short TTL, so subsequent ticks arrive over the shared WebSocket for free.
-  // The response carries the current LTP as a seed. Silent mode (TTL renewal)
-  // never flashes a loading state and keeps the last good price on failure.
-  const fetchLivePrice = useCallback(async (symbol: string, silent = false) => {
-    if (!silent) setIsFetchingPrice(true);
-    try {
-      const res = await fetch("/api/market-data/watch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        cache: "no-store",
-        body: JSON.stringify({ symbol }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const price = data?.price ?? data?.ltp;
-        if (price !== null && price !== undefined) {
-          setEntryPrice(String(price));
-          setIsEntryLocked(true);
-          setErrors((prev) => ({ ...prev, entry: "" }));
-          return;
-        }
-      }
-      if (silent) return;
-      setEntryPrice("");
-      setErrors((prev) => ({
-        ...prev,
-        entry: "Live price unavailable for this instrument — try refreshing",
-      }));
-    } catch {
-      if (silent) return;
-      setEntryPrice("");
-      setErrors((prev) => ({
-        ...prev,
-        entry: "Could not fetch live price — try refreshing",
-      }));
-    } finally {
-      if (!silent) setIsFetchingPrice(false);
-    }
-  }, []);
-
-  // Renew the watch while an instrument is selected so the backend keeps the
-  // feed subscription alive (server-side TTL is 90s; renew every 60s).
-  useEffect(() => {
-    if (!isSymbolSelected || !symbolQuery.trim()) return;
-    const symbol = symbolQuery;
-    const interval = setInterval(() => fetchLivePrice(symbol, true), 60_000);
-    return () => clearInterval(interval);
-  }, [isSymbolSelected, symbolQuery, fetchLivePrice]);
-
-  // Tick the entry price from the shared WebSocket as live prices stream in
-  const liveTick = isSymbolSelected ? livePrices?.[symbolQuery] : undefined;
-  useEffect(() => {
-    if (liveTick !== undefined && liveTick > 0) {
-      setEntryPrice(String(liveTick));
-      setErrors((prev) => (prev.entry ? { ...prev, entry: "" } : prev));
-    }
-  }, [liveTick]);
-
-  const validate = () => {
+  const validationErrors = useMemo(() => {
     const nextErrors: { [key: string]: string } = {};
 
     if (!symbolQuery.trim()) {
@@ -423,13 +262,190 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTrade
       }
     }
 
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
+    return nextErrors;
+  }, [symbolQuery, entryPrice, targets, stopLoss, selectedPlanIds, expiry, segment, position]);
+
+  const getFieldError = useCallback((field: string) => {
+    if (touched[field] || isSubmittedOnce) {
+      if (validationErrors[field]) return validationErrors[field];
+    }
+    return errors[field];
+  }, [touched, isSubmittedOnce, validationErrors, errors]);
+
+  const autocompleteRef = useRef<HTMLDivElement>(null);
+  const batchDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close autocomplete & batch dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (autocompleteRef.current && !autocompleteRef.current.contains(event.target as Node)) {
+        setShowAutocomplete(false);
+      }
+      if (batchDropdownRef.current && !batchDropdownRef.current.contains(event.target as Node)) {
+        setShowBatchDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      if (searchAbortRef.current) searchAbortRef.current.abort();
+    };
+  }, []);
+
+  const handleClearRecentSearches = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRecentSearches([]);
+    try {
+      localStorage.removeItem("stoxify_recent_searches");
+    } catch (err) {
+      console.error("Failed to clear recent searches", err);
+    }
   };
+
+  // Debounced search function
+  const performSearch = useCallback((query: string) => {
+    // Cancel any in-flight request
+    if (searchAbortRef.current) searchAbortRef.current.abort();
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+
+    if (!query.trim()) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+
+    debounceTimerRef.current = setTimeout(async () => {
+      const controller = new AbortController();
+      searchAbortRef.current = controller;
+
+      try {
+        const res = await fetch(
+          `/api/market-data/search?q=${encodeURIComponent(query.trim())}&limit=20`,
+          {
+            credentials: "same-origin",
+            signal: controller.signal,
+          }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (!controller.signal.aborted) {
+            setSearchResults(data.results ?? []);
+          }
+        }
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        // Non-critical: fall back to no results
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsSearching(false);
+        }
+      }
+    }, 300);
+  }, []);
+
+  const handleSelectSymbol = async (item: SearchResult) => {
+    setSymbolQuery(item.symbol);
+    const derivedSegment = exchangeToSegment(item.exchange) as "EQUITY" | "FNO";
+    setSegment(derivedSegment);
+    setIsSymbolSelected(true);
+    setShowAutocomplete(false);
+    markTouched("symbol");
+    // Clear symbol error if it was set
+    if (errors.symbol) {
+      setErrors((prev) => ({ ...prev, symbol: "" }));
+    }
+
+    // Prepend to recent searches, capping at 5
+    setRecentSearches((prev) => {
+      const filtered = prev.filter((r) => r.symbol !== item.symbol || r.exchange !== item.exchange);
+      const updated = [
+        { symbol: item.symbol, token: item.token || "", exchange: item.exchange },
+        ...filtered,
+      ].slice(0, 5);
+      try {
+        localStorage.setItem("stoxify_recent_searches", JSON.stringify(updated));
+      } catch (e) {
+        console.error("Failed to save recent searches", e);
+      }
+      return updated;
+    });
+
+    // Auto-fetch the latest price for this symbol
+    fetchLivePrice(item.symbol);
+  };
+
+  // Entry price is always the live LTP — the analyst cannot type it manually.
+  // Watching a symbol subscribes it to the Angel One feed on the backend for a
+  // short TTL, so subsequent ticks arrive over the shared WebSocket for free.
+  // The response carries the current LTP as a seed. Silent mode (TTL renewal)
+  // never flashes a loading state and keeps the last good price on failure.
+  const fetchLivePrice = useCallback(async (symbol: string, silent = false) => {
+    if (!silent) setIsFetchingPrice(true);
+    try {
+      const res = await fetch("/api/market-data/watch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        cache: "no-store",
+        body: JSON.stringify({ symbol }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const price = data?.price ?? data?.ltp;
+        if (price !== null && price !== undefined) {
+          setEntryPrice(String(price));
+          setIsEntryLocked(true);
+          setErrors((prev) => ({ ...prev, entry: "" }));
+          return;
+        }
+      }
+      if (silent) return;
+      setEntryPrice("");
+      setErrors((prev) => ({
+        ...prev,
+        entry: "Live price unavailable for this instrument — try refreshing",
+      }));
+    } catch {
+      if (silent) return;
+      setEntryPrice("");
+      setErrors((prev) => ({
+        ...prev,
+        entry: "Could not fetch live price — try refreshing",
+      }));
+    } finally {
+      if (!silent) setIsFetchingPrice(false);
+    }
+  }, []);
+
+  // Renew the watch while an instrument is selected so the backend keeps the
+  // feed subscription alive (server-side TTL is 90s; renew every 60s).
+  useEffect(() => {
+    if (!isSymbolSelected || !symbolQuery.trim()) return;
+    const symbol = symbolQuery;
+    const interval = setInterval(() => fetchLivePrice(symbol, true), 60_000);
+    return () => clearInterval(interval);
+  }, [isSymbolSelected, symbolQuery, fetchLivePrice]);
+
+  // Tick the entry price from the shared WebSocket as live prices stream in
+  const liveTick = isSymbolSelected ? livePrices?.[symbolQuery] : undefined;
+  useEffect(() => {
+    if (liveTick !== undefined && liveTick > 0) {
+      setEntryPrice(String(liveTick));
+      setErrors((prev) => (prev.entry ? { ...prev, entry: "" } : prev));
+    }
+  }, [liveTick]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    setIsSubmittedOnce(true);
+    if (Object.keys(validationErrors).length > 0) return;
 
     setIsSubmitting(true);
 
@@ -564,11 +580,12 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTrade
                 />
                 <input
                   className={`w-full rounded-lg border bg-white py-2.5 pl-10 pr-4 text-[13px] text-[var(--ink)] transition-all placeholder:text-[var(--muted-2)] focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
-                    errors.symbol
+                    getFieldError("symbol")
                       ? "border-[var(--red)] ring-[var(--red)]/20"
                       : "border-[var(--line)]"
                   }`}
                   onFocus={() => setShowAutocomplete(true)}
+                  onBlur={() => markTouched("symbol")}
                   onChange={(e) => {
                     setSymbolQuery(e.target.value);
                     setIsSymbolSelected(false);
@@ -577,6 +594,7 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTrade
                     setEntryPrice("");
                     setShowAutocomplete(true);
                     performSearch(e.target.value);
+                    markTouched("symbol");
                   }}
                   placeholder="Search stocks, futures, options..."
                   type="text"
@@ -589,10 +607,10 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTrade
                   />
                 )}
               </div>
-              {errors.symbol && (
+              {getFieldError("symbol") && (
                 <div className="text-[11px] text-[var(--red)] font-semibold mt-1 flex items-center gap-1">
                   <Icon name="x" className="h-2.5 w-2.5" />
-                  {errors.symbol}
+                  {getFieldError("symbol")}
                 </div>
               )}
 
@@ -779,17 +797,21 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTrade
                     </label>
                     <input
                       className={`w-full rounded-lg border py-2 px-3 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
-                        errors.expiry ? "border-[var(--red)]" : "border-[var(--line)]"
+                        getFieldError("expiry") ? "border-[var(--red)]" : "border-[var(--line)]"
                       } ${isAutoDetected ? "bg-[var(--surface)] opacity-70 cursor-not-allowed" : "bg-white"}`}
-                      onChange={(e) => setExpiry(e.target.value)}
+                      onChange={(e) => {
+                        setExpiry(e.target.value);
+                        markTouched("expiry");
+                      }}
+                      onBlur={() => markTouched("expiry")}
                       placeholder="e.g. 26JUN"
                       type="text"
                       value={expiry}
                       disabled={isAutoDetected}
                     />
-                    {errors.expiry && (
+                    {getFieldError("expiry") && (
                       <div className="text-[10px] text-[var(--red)] font-semibold mt-1 leading-snug">
-                        {errors.expiry}
+                        {getFieldError("expiry")}
                       </div>
                     )}
                   </div>
@@ -908,7 +930,7 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTrade
                 type="button"
                 onClick={() => setShowBatchDropdown((v) => !v)}
                 className={`w-full flex items-center justify-between gap-2 rounded-lg border bg-white py-2 px-3.5 text-[12.5px] font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
-                  errors.batch ? "border-[var(--red)]" : "border-[var(--line)]"
+                  getFieldError("batch") ? "border-[var(--red)]" : "border-[var(--line)]"
                 } ${selectedPlanIds.length === 0 ? "text-[var(--muted-2)]" : "text-[var(--ink)]"}`}
               >
                 <span className="flex flex-wrap items-center gap-1.5 text-left min-w-0">
@@ -949,6 +971,7 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTrade
                           setSelectedPlanIds((prev) =>
                             checked ? prev.filter((id) => id !== p.plan_id) : [...prev, p.plan_id]
                           );
+                          markTouched("batch");
                           if (errors.batch) setErrors((prev) => ({ ...prev, batch: "" }));
                         }}
                       >
@@ -968,9 +991,9 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTrade
                 </div>
               )}
 
-              {errors.batch && (
+              {getFieldError("batch") && (
                 <div className="text-[10px] text-[var(--red)] font-semibold mt-1 leading-snug">
-                  {errors.batch}
+                  {getFieldError("batch")}
                 </div>
               )}
             </div>
@@ -988,11 +1011,15 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTrade
                   </span>
                   <input
                     className={`w-full rounded-lg border bg-white py-2 pl-6 pr-8 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
-                      errors.entry ? "border-[var(--red)]" : "border-[var(--line)]"
+                      getFieldError("entry") ? "border-[var(--red)]" : "border-[var(--line)]"
                     } ${isFetchingPrice ? "animate-pulse bg-[var(--surface)]" : ""} ${isEntryLocked ? "bg-[var(--surface)] text-[var(--muted-2)] cursor-not-allowed border-dashed" : ""}`}
                     onChange={(e) => {
-                      if (!isEntryLocked) setEntryPrice(e.target.value);
+                      if (!isEntryLocked) {
+                        setEntryPrice(e.target.value);
+                        markTouched("entry");
+                      }
                     }}
+                    onBlur={() => markTouched("entry")}
                     placeholder={isFetchingPrice ? "Fetching…" : "Select instrument"}
                     type="number"
                     step="0.05"
@@ -1030,14 +1057,14 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTrade
                     </button>
                   )}
                 </div>
-                {isEntryLocked && !errors.entry && (
+                {isEntryLocked && !getFieldError("entry") && (
                   <div className="text-[10.5px] text-[var(--muted-2)] mt-1 font-medium italic">
                     Fetched from market
                   </div>
                 )}
-                {errors.entry && (
+                {getFieldError("entry") && (
                   <div className="text-[10px] text-[var(--red)] font-semibold mt-1 leading-snug">
-                    {errors.entry}
+                    {getFieldError("entry")}
                   </div>
                 )}
               </div>
@@ -1061,9 +1088,9 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTrade
                     <Icon name="plus" className="h-3 w-3" /> Add Target
                   </button>
                 </div>
-                {errors.targets && (
+                {getFieldError("targets") && (
                   <div className="text-[10px] text-[var(--red)] font-semibold leading-snug">
-                    {errors.targets}
+                    {getFieldError("targets")}
                   </div>
                 )}
                 
@@ -1076,22 +1103,24 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTrade
                         </span>
                         <input
                           className={`w-full rounded-lg border bg-white py-2 pl-6 pr-3.5 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
-                            errors[`target_${idx}_price`] ? "border-[var(--red)]" : "border-[var(--line)]"
+                            getFieldError(`target_${idx}_price`) ? "border-[var(--red)]" : "border-[var(--line)]"
                           }`}
                           onChange={(e) => {
                             const newTargets = [...targets];
                             newTargets[idx].price = e.target.value;
                             setTargets(newTargets);
+                            markTouched(`target_${idx}_price`);
                           }}
+                          onBlur={() => markTouched(`target_${idx}_price`)}
                           placeholder={`Target ${idx + 1}`}
                           type="number"
                           step="0.05"
                           value={t.price}
                         />
                       </div>
-                      {errors[`target_${idx}_price`] && (
+                      {getFieldError(`target_${idx}_price`) && (
                         <div className="text-[10px] text-[var(--red)] font-semibold mt-1 leading-snug">
-                          {errors[`target_${idx}_price`]}
+                          {getFieldError(`target_${idx}_price`)}
                         </div>
                       )}
                     </div>
@@ -1100,12 +1129,18 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTrade
                       <div className="relative">
                         <input
                           className={`w-full rounded-lg border bg-white py-2 pl-3 pr-6 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
-                            errors[`target_${idx}_percent`] ? "border-[var(--red)]" : "border-[var(--line)]"
+                            getFieldError(`target_${idx}_percent`) ? "border-[var(--red)]" : "border-[var(--line)]"
                           }`}
                           onChange={(e) => {
                             const newTargets = [...targets];
                             newTargets[idx].percent = e.target.value;
                             setTargets(newTargets);
+                            markTouched(`target_${idx}_percent`);
+                            markTouched("targets");
+                          }}
+                          onBlur={() => {
+                            markTouched(`target_${idx}_percent`);
+                            markTouched("targets");
                           }}
                           placeholder="%"
                           type="number"
@@ -1118,9 +1153,9 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTrade
                           %
                         </span>
                       </div>
-                      {errors[`target_${idx}_percent`] && (
+                      {getFieldError(`target_${idx}_percent`) && (
                         <div className="text-[10px] text-[var(--red)] font-semibold mt-1 leading-snug">
-                          {errors[`target_${idx}_percent`]}
+                          {getFieldError(`target_${idx}_percent`)}
                         </div>
                       )}
                     </div>
@@ -1131,6 +1166,22 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTrade
                         onClick={() => {
                           const newTargets = targets.filter((_, i) => i !== idx);
                           setTargets(newTargets);
+                          setTouched((prev) => {
+                            const next = { ...prev };
+                            delete next[`target_${idx}_price`];
+                            delete next[`target_${idx}_percent`];
+                            for (let i = idx + 1; i <= targets.length; i++) {
+                              if (next[`target_${i}_price`]) {
+                                next[`target_${i - 1}_price`] = true;
+                                delete next[`target_${i}_price`];
+                              }
+                              if (next[`target_${i}_percent`]) {
+                                next[`target_${i - 1}_percent`] = true;
+                                delete next[`target_${i}_percent`];
+                              }
+                            }
+                            return next;
+                          });
                         }}
                         className="p-2 text-[var(--muted-2)] hover:text-[var(--red)] transition-colors rounded-lg hover:bg-[var(--red)]/10 mt-[2px]"
                       >
@@ -1152,18 +1203,22 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices }: CreateTrade
                   </span>
                   <input
                     className={`w-full rounded-lg border bg-white py-2 pl-6 pr-3.5 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
-                      errors.stopLoss ? "border-[var(--red)]" : "border-[var(--line)]"
+                      getFieldError("stopLoss") ? "border-[var(--red)]" : "border-[var(--line)]"
                     }`}
-                    onChange={(e) => setStopLoss(e.target.value)}
+                    onChange={(e) => {
+                      setStopLoss(e.target.value);
+                      markTouched("stopLoss");
+                    }}
+                    onBlur={() => markTouched("stopLoss")}
                     placeholder="0.00"
                     type="number"
                     step="0.05"
                     value={stopLoss}
                   />
                 </div>
-                {errors.stopLoss && (
+                {getFieldError("stopLoss") && (
                   <div className="text-[10px] text-[var(--red)] font-semibold mt-1 leading-snug font-medium">
-                    {errors.stopLoss}
+                    {getFieldError("stopLoss")}
                   </div>
                 )}
               </div>

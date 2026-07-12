@@ -233,6 +233,11 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteReason, setDeleteReason] = useState("");
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  // "confirm" → reason + type DELETE; "otp" → enter the code sent to the phone
+  const [deleteStep, setDeleteStep] = useState<"confirm" | "otp">("confirm");
+  const [deleteOtp, setDeleteOtp] = useState("");
+  const [deletePhoneMasked, setDeletePhoneMasked] = useState("");
+  const [sendingDeleteOtp, setSendingDeleteOtp] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
 
   // Subscriptions Tab states
@@ -412,16 +417,42 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
     }
   };
 
-  // Account Deletion handler
-  const handleDeleteAccount = async () => {
+  // Account Deletion — step 1: send the confirmation OTP to the registered phone
+  const handleRequestDeleteOtp = async () => {
     if (deleteConfirmText !== "DELETE") return;
+
+    setSendingDeleteOtp(true);
+    try {
+      const res = await fetch("/api/user/delete/request-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const cleaned = cleanErrorMessage(data, data.error || "Failed to send verification code.");
+        throw new Error(cleaned);
+      }
+      setDeletePhoneMasked(data.phone_masked || "");
+      setDeleteOtp("");
+      setDeleteStep("otp");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Something went wrong.";
+      toast.error(errorMessage);
+    } finally {
+      setSendingDeleteOtp(false);
+    }
+  };
+
+  // Account Deletion — step 2: confirm with the OTP
+  const handleDeleteAccount = async () => {
+    if (deleteOtp.length !== 6) return;
 
     setDeletingAccount(true);
     try {
       const res = await fetch("/api/user/deactivate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: deleteReason.trim() || undefined }),
+        body: JSON.stringify({ otp: deleteOtp, reason: deleteReason.trim() || undefined }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -1010,7 +1041,14 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
       {showDeleteModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
-          onClick={() => !deletingAccount && setShowDeleteModal(false)}
+          onClick={() => {
+            if (deletingAccount || sendingDeleteOtp) return;
+            setShowDeleteModal(false);
+            setDeleteStep("confirm");
+            setDeleteConfirmText("");
+            setDeleteReason("");
+            setDeleteOtp("");
+          }}
         >
           <div
             className="w-full max-w-[460px] rounded-2xl bg-white p-7 shadow-2xl"
@@ -1023,77 +1061,134 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
               </div>
               <div>
                 <h3 className="text-[17px] font-extrabold text-[var(--ink)] select-none">
-                  Delete Account
+                  {deleteStep === "confirm" ? "Delete Account" : "Verify It's You"}
                 </h3>
                 <p className="text-[12px] text-[var(--muted)]">
-                  This action cannot be undone.
+                  {deleteStep === "confirm"
+                    ? "This action cannot be undone."
+                    : `Enter the 6-digit code sent to ${deletePhoneMasked || "your registered phone"}.`}
                 </p>
               </div>
             </div>
 
-            {/* Warning */}
-            <div className="rounded-xl bg-red-50 border border-red-100 p-4 mb-5 text-[12.5px] text-red-700 leading-relaxed">
-              <strong className="text-red-800">Warning:</strong> Deleting your account will:
-              <ul className="mt-2 ml-4 space-y-1 list-disc">
-                <li>Cancel all your active subscriptions</li>
-                <li>Revoke access to all analyst signals</li>
-                <li>Log you out of all devices immediately</li>
-                <li>Make this phone number unavailable for re-registration</li>
-              </ul>
-            </div>
+            {deleteStep === "confirm" ? (
+              <>
+                {/* Warning */}
+                <div className="rounded-xl bg-red-50 border border-red-100 p-4 mb-5 text-[12.5px] text-red-700 leading-relaxed">
+                  <strong className="text-red-800">Warning:</strong> Deleting your account will:
+                  <ul className="mt-2 ml-4 space-y-1 list-disc">
+                    <li>Cancel all your active subscriptions</li>
+                    <li>Revoke access to all analyst signals</li>
+                    <li>Log you out of all devices immediately</li>
+                    <li>Make this phone number unavailable for re-registration</li>
+                  </ul>
+                </div>
 
-            {/* Reason input */}
-            <div className="mb-4">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] mb-2 select-none">
-                Reason for leaving (optional)
-              </label>
-              <textarea
-                value={deleteReason}
-                onChange={(e) => setDeleteReason(e.target.value)}
-                disabled={deletingAccount}
-                placeholder="Help us improve by sharing your reason..."
-                className="w-full h-20 rounded-xl border border-slate-200 bg-white py-3 px-4 text-[13px] text-[var(--ink)] placeholder:text-slate-400 outline-none focus:border-red-400 transition-colors resize-none"
-              />
-            </div>
+                {/* Reason input */}
+                <div className="mb-4">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] mb-2 select-none">
+                    Reason for leaving (optional)
+                  </label>
+                  <textarea
+                    value={deleteReason}
+                    onChange={(e) => setDeleteReason(e.target.value)}
+                    disabled={sendingDeleteOtp}
+                    placeholder="Help us improve by sharing your reason..."
+                    className="w-full h-20 rounded-xl border border-slate-200 bg-white py-3 px-4 text-[13px] text-[var(--ink)] placeholder:text-slate-400 outline-none focus:border-red-400 transition-colors resize-none"
+                  />
+                </div>
 
-            {/* Confirmation input */}
-            <div className="mb-6">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] mb-2 select-none">
-                Type <span className="text-red-600 font-extrabold">DELETE</span> to confirm
-              </label>
-              <input
-                type="text"
-                value={deleteConfirmText}
-                onChange={(e) => setDeleteConfirmText(e.target.value.toUpperCase())}
-                disabled={deletingAccount}
-                placeholder="DELETE"
-                className="w-full rounded-xl border border-slate-200 bg-white py-3 px-4 text-[13.5px] font-mono tracking-wider text-[var(--ink)] placeholder:text-slate-300 outline-none focus:border-red-400 transition-colors"
-              />
-            </div>
+                {/* Confirmation input */}
+                <div className="mb-6">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] mb-2 select-none">
+                    Type <span className="text-red-600 font-extrabold">DELETE</span> to confirm
+                  </label>
+                  <input
+                    type="text"
+                    value={deleteConfirmText}
+                    onChange={(e) => setDeleteConfirmText(e.target.value.toUpperCase())}
+                    disabled={sendingDeleteOtp}
+                    placeholder="DELETE"
+                    className="w-full rounded-xl border border-slate-200 bg-white py-3 px-4 text-[13.5px] font-mono tracking-wider text-[var(--ink)] placeholder:text-slate-300 outline-none focus:border-red-400 transition-colors"
+                  />
+                </div>
 
-            {/* Buttons */}
-            <div className="flex gap-3">
-              <button
-                type="button"
-                disabled={deletingAccount}
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setDeleteConfirmText("");
-                  setDeleteReason("");
-                }}
-                className="flex-1 rounded-full border border-slate-200 px-4 py-2.5 text-[13px] font-bold text-[var(--muted)] hover:text-[var(--ink)] hover:border-slate-400 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={deletingAccount || deleteConfirmText !== "DELETE"}
-                onClick={handleDeleteAccount}
-                className="flex-1 rounded-full bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-[13px] px-4 py-2.5 transition-all active:scale-[0.98]"
-              >
-                {deletingAccount ? "Deleting..." : "Permanently Delete"}
-              </button>
-            </div>
+                {/* Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    disabled={sendingDeleteOtp}
+                    onClick={() => {
+                      setShowDeleteModal(false);
+                      setDeleteConfirmText("");
+                      setDeleteReason("");
+                    }}
+                    className="flex-1 rounded-full border border-slate-200 px-4 py-2.5 text-[13px] font-bold text-[var(--muted)] hover:text-[var(--ink)] hover:border-slate-400 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={sendingDeleteOtp || deleteConfirmText !== "DELETE"}
+                    onClick={handleRequestDeleteOtp}
+                    className="flex-1 rounded-full bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-[13px] px-4 py-2.5 transition-all active:scale-[0.98]"
+                  >
+                    {sendingDeleteOtp ? "Sending code..." : "Continue"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* OTP input */}
+                <div className="mb-6">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] mb-2 select-none">
+                    Verification code
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    value={deleteOtp}
+                    onChange={(e) => setDeleteOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    disabled={deletingAccount}
+                    placeholder="••••••"
+                    className="w-full rounded-xl border border-slate-200 bg-white py-3 px-4 text-[17px] font-mono tracking-[0.5em] text-center text-[var(--ink)] placeholder:text-slate-300 outline-none focus:border-red-400 transition-colors"
+                  />
+                  <button
+                    type="button"
+                    disabled={sendingDeleteOtp || deletingAccount}
+                    onClick={handleRequestDeleteOtp}
+                    className="mt-2 text-[12px] font-bold text-red-600 hover:text-red-700 disabled:opacity-40 transition-colors"
+                  >
+                    {sendingDeleteOtp ? "Resending..." : "Resend code"}
+                  </button>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    disabled={deletingAccount}
+                    onClick={() => {
+                      setDeleteStep("confirm");
+                      setDeleteOtp("");
+                    }}
+                    className="flex-1 rounded-full border border-slate-200 px-4 py-2.5 text-[13px] font-bold text-[var(--muted)] hover:text-[var(--ink)] hover:border-slate-400 transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    disabled={deletingAccount || deleteOtp.length !== 6}
+                    onClick={handleDeleteAccount}
+                    className="flex-1 rounded-full bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-[13px] px-4 py-2.5 transition-all active:scale-[0.98]"
+                  >
+                    {deletingAccount ? "Deleting..." : "Permanently Delete"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

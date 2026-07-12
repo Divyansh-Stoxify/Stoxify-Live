@@ -9,9 +9,10 @@ import { readUserSessionFromCookies } from "@/lib/auth/server-session";
 /**
  * POST /api/user/deactivate
  *
- * Self-serve account deletion (soft-delete → DEACTIVATED).
- * Proxies to the backend `POST /users/me/deactivate` route, then clears all
- * session cookies so the user is immediately logged out on the client side.
+ * Step 2 of self-serve account deletion. Requires the OTP that was sent to the
+ * user's phone via `POST /api/user/delete/request-otp`. Proxies to the backend
+ * `POST /users/me/delete` route, then clears all session cookies so the user
+ * is immediately logged out on the client side.
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const csrfRejection = rejectCrossOriginPost(request);
@@ -35,33 +36,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  let body: { reason?: string } = {};
+  let body: { otp?: string; reason?: string } = {};
   try {
     body = await request.json();
   } catch {
     // Body is optional — an empty object is fine
   }
 
+  const otp = typeof body.otp === "string" ? body.otp.trim() : "";
+  if (!/^\d{6}$/.test(otp)) {
+    return NextResponse.json(
+      { error: "A valid 6-digit OTP is required", code: "OTP_REQUIRED" },
+      { status: 400 }
+    );
+  }
+
   try {
-    // Request the deletion OTP so it is generated in Redis
-    const otpRes = await signedBackendFetch({
-      baseUrl: backendUrls.user,
-      path: "/users/me/delete/request-otp",
-      method: "POST",
-      deviceId,
-      accessToken: session.accessToken,
-      extraHeaders: forwardedIpHeaders(request),
-    });
-
-    if (!otpRes.ok) {
-      const errorData = await otpRes.json().catch(() => ({}));
-      return NextResponse.json(
-        { error: errorData.message || "Failed to initiate account deletion", code: errorData.code },
-        { status: otpRes.status }
-      );
-    }
-
-    // Call the existing account deletion endpoint with the dev OTP '999999'
     const res = await signedBackendFetch({
       baseUrl: backendUrls.user,
       path: "/users/me/delete",
@@ -69,7 +59,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       deviceId,
       accessToken: session.accessToken,
       body: {
-        otp: "999999",
+        otp,
         reason: body.reason || "User requested account deletion",
       },
       extraHeaders: forwardedIpHeaders(request),
@@ -78,7 +68,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
       return NextResponse.json(
-        { error: errorData.message || "Failed to delete account", code: errorData.code },
+        {
+          error: errorData.message || errorData.error || "Failed to delete account",
+          code: errorData.code,
+        },
         { status: res.status }
       );
     }

@@ -29,7 +29,7 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
   const [isCaseInsensitive, setIsCaseInsensitive] = useState(false);
   const [selectedPlans, setSelectedPlans] = useState<string[]>([]);
   const [discountValue, setDiscountValue] = useState("");
-  const [availability, setAvailability] = useState<"EVERYONE" | "SPECIFIC">("EVERYONE");
+  const [availability, setAvailability] = useState<"EVERYONE" | "NEW_USER" | "EXISTING_USER" | "SPECIFIC">("EVERYONE");
   const [quantity, setQuantity] = useState<"UNLIMITED" | "LIMITED">("UNLIMITED");
   const [quantityTotal, setQuantityTotal] = useState("");
   const [validFrom, setValidFrom] = useState(todayStr);
@@ -58,7 +58,7 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
   // Pre-fill state when editing
   useEffect(() => {
     if (!editCoupon || plans.length === 0) return;
-    setCode(editCoupon.code);
+    setCode(editCoupon.code.toUpperCase());
     setIsCaseInsensitive(editCoupon.is_case_insensitive);
     setDiscountValue(String(editCoupon.discount_value));
     setAvailability(editCoupon.availability);
@@ -137,11 +137,12 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
     };
   }, []);
 
+  // user_name/user_email can be missing (phone-OTP signups have no email)
   const filteredSubscribers = subscribers.filter((sub) => {
     const q = userSearchQuery.toLowerCase();
     return (
-      sub.user_name.toLowerCase().includes(q) ||
-      sub.user_email.toLowerCase().includes(q)
+      (sub.user_name || "").toLowerCase().includes(q) ||
+      (sub.user_email || "").toLowerCase().includes(q)
     );
   });
 
@@ -258,7 +259,8 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
     setErrors({});
 
     const payload = {
-      code: code.trim(),
+      // Coupon code is immutable after creation — never send it on update
+      ...(isEditMode ? {} : { code: code.trim().toUpperCase() }),
       type,
       discount_value: Number(discountValue),
       plan_ids: batchScope === "SPECIFIC" ? [...selectedPlans, ...selectedPricingPlans] : [],
@@ -327,13 +329,20 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
               <input
                 type="text"
                 value={code}
-                onChange={(e) => setCode(e.target.value)}
-                className={`w-full rounded-xl border px-4 py-2.5 text-[13px] font-semibold outline-none transition-all focus:ring-2 focus:ring-[var(--brand)]/20 ${
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                autoCapitalize="characters"
+                disabled={isEditMode}
+                className={`w-full rounded-xl border px-4 py-2.5 text-[13px] font-semibold outline-none transition-all focus:ring-2 focus:ring-[var(--brand)]/20 uppercase ${
                   errors.code ? "border-red-400" : "border-[var(--line)] focus:border-[var(--brand)]"
-                }`}
+                } ${isEditMode ? "bg-slate-100 text-[var(--muted)] cursor-not-allowed" : ""}`}
                 placeholder="Enter coupon code"
                 maxLength={20}
               />
+              {isEditMode && (
+                <span className="text-[11px] text-[var(--muted-2)] font-medium">
+                  Coupon code cannot be changed
+                </span>
+              )}
               {errors.code && <span className="text-[11px] font-bold text-red-500">{errors.code}</span>}
             </div>
 
@@ -588,14 +597,19 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
               <label className="text-[12px] font-bold text-[var(--ink)]">Offer Availability</label>
               <select
                 value={availability}
-                onChange={(e) => setAvailability(e.target.value as "EVERYONE" | "SPECIFIC")}
+                onChange={(e) => setAvailability(e.target.value as "EVERYONE" | "NEW_USER" | "EXISTING_USER" | "SPECIFIC")}
                 className="w-full rounded-xl border border-[var(--line)] bg-white px-4 py-2.5 text-[13px] font-semibold outline-none focus:border-[var(--brand)]"
               >
                 <option value="EVERYONE">Everyone</option>
+                <option value="NEW_USER">New Users</option>
+                <option value="EXISTING_USER">Existing Users</option>
                 <option value="SPECIFIC">Specific Users</option>
               </select>
               <span className="text-[11px] text-[var(--muted-2)] font-medium">
-                Offer available to {availability === "EVERYONE" ? "Everyone" : "Specific Users"}
+                {availability === "EVERYONE" && "Offer available to everyone"}
+                {availability === "NEW_USER" && "Only users who have never subscribed to you can redeem this"}
+                {availability === "EXISTING_USER" && "Only your current or past subscribers can redeem this"}
+                {availability === "SPECIFIC" && "Offer available only to the users you select below"}
               </span>
             </div>
 
@@ -681,12 +695,14 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
                                   <img src={sub.user_avatar} alt="" className="h-6 w-6 rounded-full object-cover" />
                                 ) : (
                                   <div className="h-6 w-6 rounded-full bg-[var(--brand)]/10 text-[var(--brand)] flex items-center justify-center text-xs font-bold uppercase">
-                                    {sub.user_name[0]}
+                                    {(sub.user_name || "U")[0]}
                                   </div>
                                 )}
                                 <div className="flex flex-col min-w-0">
-                                  <span className="text-[12.5px] font-bold text-[var(--ink)] truncate">{sub.user_name}</span>
-                                  <span className="text-[11px] text-[var(--muted-2)] font-semibold truncate">{sub.user_email}</span>
+                                  <span className="text-[12.5px] font-bold text-[var(--ink)] truncate">{sub.user_name || "Subscriber"}</span>
+                                  {sub.user_email && (
+                                    <span className="text-[11px] text-[var(--muted-2)] font-semibold truncate">{sub.user_email}</span>
+                                  )}
                                 </div>
                               </div>
                               {isSelected && (

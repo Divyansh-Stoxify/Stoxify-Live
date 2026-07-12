@@ -130,69 +130,90 @@ export function ModifyTradeModal({ trade, onClose, onSuccess, livePrices }: Modi
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-[var(--ink)]/40 backdrop-blur-sm transition-opacity" 
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-[6px] transition-opacity duration-300" 
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-[440px] rounded-2xl bg-white shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-[440px] rounded-[24px] bg-gradient-to-b from-white to-slate-50 border border-slate-100 shadow-[0_20px_50px_rgba(15,23,42,0.08),0_1px_3px_rgba(0,0,0,0.02)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        {/* Decorative Top Accent */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
         
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--line)] px-5 py-4">
-          <h2 className="text-[16px] font-extrabold text-[var(--ink)]">Modify Trade</h2>
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4.5">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+              <Icon name="edit" className="h-4 w-4" />
+            </div>
+            <h2 className="text-[16px] font-bold text-slate-800 tracking-tight">Modify Trade</h2>
+          </div>
           <button
+            type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--surface)] text-[var(--muted)] transition-colors hover:bg-[var(--line)] hover:text-[var(--ink)]"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-all duration-200 hover:bg-slate-100 hover:text-slate-700 hover:rotate-90"
           >
-            <Icon name="x" className="h-4 w-4" />
+            <Icon name="x" className="h-3.5 w-3.5" />
           </button>
         </div>
 
         {/* Form Body */}
         <form onSubmit={handleSubmit}>
-          <div className="p-5 space-y-5">
+          <div className="p-6 space-y-5">
             
             {/* Trade Context Info */}
-            <div className="rounded-xl border border-[var(--line)] bg-[#f8fafc] p-4 flex justify-between items-center">
+            <div className="rounded-2xl border border-slate-100 bg-gradient-to-r from-slate-50 via-slate-100/50 to-slate-50 p-4 flex justify-between items-center shadow-inner">
               <div>
-                <div className="text-[12px] font-semibold text-[var(--muted)]">Symbol</div>
-                <div className="text-[15px] font-extrabold text-[var(--ink)] flex items-center gap-2">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Symbol</div>
+                <div className="text-[15px] font-extrabold text-slate-800 flex items-center gap-1.5 mt-0.5">
                   {trade.symbol}
                   {ltp !== null && (
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-[var(--brand)]/10 text-[var(--brand)]">
-                      LTP: ₹{ltp}
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      ₹{ltp}
                     </span>
                   )}
                 </div>
               </div>
-              <div className="text-center border-x border-[var(--line)] px-4">
-                <div className="text-[12px] font-semibold text-[var(--muted)] flex items-center justify-center gap-1">
-                  <Icon name="lock" className="h-3 w-3" /> Entry
+              <div className="text-center border-x border-slate-200/80 px-5">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-center gap-1">
+                  <Icon name="lock" className="h-3 w-3 text-slate-400" /> Entry
                 </div>
-                <div className="text-[13px] font-bold text-[var(--ink)]">₹{trade.entry_price}</div>
+                <div className="text-[14px] font-extrabold text-slate-700 mt-0.5">₹{trade.entry_price}</div>
               </div>
               <div className="text-right">
-                <div className="text-[12px] font-semibold text-[var(--muted)]">Direction</div>
-                <div className={`text-[12.5px] font-bold ${trade.direction === "LONG" || trade.direction === "BUY" ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
-                  {trade.direction}
+                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Direction</div>
+                <div className="mt-0.5">
+                  {trade.direction === "LONG" || trade.direction === "BUY" ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/40 shadow-[0_2px_8px_rgba(16,185,129,0.04)]">
+                      <Icon name="trendingUp" className="h-3.5 w-3.5" />
+                      {trade.direction}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200/40 shadow-[0_2px_8px_rgba(244,63,94,0.04)]">
+                      <Icon name="trendingDown" className="h-3.5 w-3.5" />
+                      {trade.direction}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
 
             {error && (
-              <div className="rounded-lg bg-[var(--red-light)] p-3 text-[12.5px] font-semibold text-[var(--red)]">
-                {error}
+              <div className="rounded-xl bg-rose-50 border border-rose-100 p-3.5 text-[12.5px] font-semibold text-rose-600 flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                <span className="flex h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
+                <span>{error}</span>
               </div>
             )}
 
-            <div className="flex gap-4">
+            {/* Stop Loss & Targets Stack */}
+            <div className="space-y-4">
               {/* Stop Loss */}
-              <div className="flex-1">
-                <label className="mb-1.5 block text-[13px] font-bold text-[var(--ink)]">
-                  Stop Loss <span className="text-[var(--muted-2)] font-medium">(Opt)</span>
+              <div>
+                <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  Stop Loss <span className="text-slate-400 font-medium lowercase italic">(optional)</span>
                 </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[15px] font-bold text-[var(--muted)]">
+                <div className="relative group">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] font-extrabold text-slate-400 transition-colors group-focus-within:text-blue-500">
                     ₹
                   </span>
                   <input
@@ -200,17 +221,17 @@ export function ModifyTradeModal({ trade, onClose, onSuccess, livePrices }: Modi
                     step="0.05"
                     value={stopLoss}
                     onChange={(e) => setStopLoss(e.target.value)}
-                    className="w-full rounded-xl border border-[var(--line)] bg-white py-2.5 pl-8 pr-4 text-[14px] font-semibold text-[var(--ink)] shadow-sm outline-none transition-all placeholder:text-[var(--muted-2)] focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/10"
+                    className="w-full rounded-xl border border-slate-200/80 bg-white py-2.5 pl-8 pr-4 text-[14px] font-semibold text-slate-700 shadow-sm outline-none transition-all placeholder:text-slate-300 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/50"
                     placeholder="0.00"
                   />
                 </div>
               </div>
 
               {/* Targets */}
-              <div className="flex-1 flex flex-col gap-2">
-                <div className="flex items-center justify-between mb-0.5">
-                  <label className="block text-[13px] font-bold text-[var(--ink)]">
-                    Target Prices <span className="text-[var(--muted-2)] font-medium">(Opt)</span>
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    Target Prices <span className="text-slate-400 font-medium lowercase italic">(optional)</span>
                   </label>
                   <button
                     type="button"
@@ -220,71 +241,87 @@ export function ModifyTradeModal({ trade, onClose, onSuccess, livePrices }: Modi
                       setTargets([...targets, { price: "", percent: remainingPct > 0 ? String(remainingPct) : "0" }]);
                     }}
                     disabled={targets.length >= 5}
-                    className="text-[11px] font-bold text-[var(--brand)] hover:text-[var(--brand-dark)] transition-colors flex items-center gap-1 disabled:opacity-50"
+                    className="text-[12px] font-bold text-blue-600 hover:text-blue-700 transition-all flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
                   >
-                    <Icon name="plus" className="h-3 w-3" /> Add
+                    <Icon name="plus" className="h-3 w-3" /> Add Target
                   </button>
                 </div>
-                {targets.map((t, index) => (
-                  <div key={index} className="flex gap-2 items-center">
-                    <div className="relative flex-1">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[15px] font-bold text-[var(--muted)]">₹</span>
-                      <input
-                        className="w-full rounded-xl border border-[var(--line)] bg-white py-2.5 pl-8 pr-3 text-[14px] font-semibold text-[var(--ink)] shadow-sm outline-none transition-all placeholder:text-[var(--muted-2)] focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/10"
-                        placeholder={`T${index + 1}`}
-                        type="number"
-                        step="0.05"
-                        value={t.price}
-                        onChange={(e) => {
-                          const newTargets = [...targets];
-                          newTargets[index].price = e.target.value;
-                          setTargets(newTargets);
-                        }}
-                      />
-                    </div>
-                    <div className="relative w-[85px]">
-                      <input
-                        className="w-full rounded-xl border border-[var(--line)] bg-white py-2.5 pl-3 pr-6 text-[14px] font-semibold text-[var(--ink)] shadow-sm outline-none transition-all focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/10"
-                        placeholder="%"
-                        type="number"
-                        min="1"
-                        max="100"
-                        value={t.percent}
-                        onChange={(e) => {
-                          const newTargets = [...targets];
-                          newTargets[index].percent = e.target.value;
-                          setTargets(newTargets);
-                        }}
-                      />
-                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[13px] font-bold text-[var(--muted)]">%</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newTargets = targets.filter((_, i) => i !== index);
-                        setTargets(newTargets);
-                      }}
-                      className="text-[var(--muted)] hover:text-[var(--red)] transition-colors"
-                      disabled={targets.length === 1}
+                
+                <div className="space-y-2 max-h-[190px] overflow-y-auto pr-1 no-scrollbar">
+                  {targets.map((t, index) => (
+                    <div 
+                      key={index} 
+                      className="flex gap-2 items-center animate-in slide-in-from-top-1 duration-200"
                     >
-                      <Icon name="trash" className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
+                      {/* Target Indicator Badge */}
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-[11px] font-bold text-slate-500 border border-slate-200/40">
+                        T{index + 1}
+                      </span>
+                      
+                      {/* Price Input */}
+                      <div className="relative flex-1 group">
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] font-extrabold text-slate-400 transition-colors group-focus-within:text-blue-500">₹</span>
+                        <input
+                          className="w-full rounded-xl border border-slate-200/80 bg-white py-2.5 pl-8 pr-3 text-[14px] font-semibold text-slate-700 shadow-sm outline-none transition-all placeholder:text-slate-300 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/50"
+                          placeholder="Price"
+                          type="number"
+                          step="0.05"
+                          value={t.price}
+                          onChange={(e) => {
+                            const newTargets = [...targets];
+                            newTargets[index].price = e.target.value;
+                            setTargets(newTargets);
+                          }}
+                        />
+                      </div>
+
+                      {/* Percentage Input */}
+                      <div className="relative w-[95px] group">
+                        <input
+                          className="w-full rounded-xl border border-slate-200/80 bg-white py-2.5 pl-3.5 pr-8 text-[14px] font-semibold text-slate-700 shadow-sm outline-none transition-all placeholder:text-slate-300 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/50"
+                          placeholder="Alloc"
+                          type="number"
+                          min="1"
+                          max="100"
+                          value={t.percent}
+                          onChange={(e) => {
+                            const newTargets = [...targets];
+                            newTargets[index].percent = e.target.value;
+                            setTargets(newTargets);
+                          }}
+                        />
+                        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[12px] font-bold text-slate-400 transition-colors group-focus-within:text-blue-500">%</span>
+                      </div>
+
+                      {/* Delete Action */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newTargets = targets.filter((_, i) => i !== index);
+                          setTargets(newTargets);
+                        }}
+                        className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 hover:bg-rose-50 hover:text-rose-600 border border-transparent hover:border-rose-100 transition-all"
+                        disabled={targets.length === 1}
+                      >
+                        <Icon name="trash" className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* Modification Reason */}
             <div>
-              <label className="mb-1.5 block text-[13px] font-bold text-[var(--ink)]">
-                Reason for Modification <span className="text-[var(--red)]">*</span>
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                Reason for Modification <span className="text-rose-500 font-extrabold">*</span>
               </label>
               <textarea
                 rows={2}
                 required
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                className="w-full resize-none rounded-xl border border-[var(--line)] bg-white p-3 text-[14px] font-semibold text-[var(--ink)] shadow-sm outline-none transition-all placeholder:text-[var(--muted-2)] focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/10"
+                className="w-full resize-none rounded-xl border border-slate-200/80 bg-white p-3 text-[14px] font-semibold text-slate-700 shadow-sm outline-none transition-all placeholder:text-slate-300 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/50"
                 placeholder="e.g. Trailing SL due to market volatility"
               />
             </div>
@@ -292,19 +329,19 @@ export function ModifyTradeModal({ trade, onClose, onSuccess, livePrices }: Modi
           </div>
 
           {/* Footer Actions */}
-          <div className="flex gap-3 border-t border-[var(--line)] bg-[var(--surface)] px-5 py-4">
+          <div className="flex gap-3 border-t border-slate-100 bg-slate-50/50 px-6 py-4.5">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="flex-1 rounded-xl border border-[var(--line)] bg-white py-2.5 text-[14px] font-bold text-[var(--ink)] shadow-sm transition-all hover:bg-[var(--line)] disabled:opacity-50"
+              className="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-[14px] font-bold text-slate-600 shadow-sm transition-all hover:bg-slate-50 hover:border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.01] active:scale-[0.99]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[var(--brand)] py-2.5 text-[14px] font-bold text-white shadow-sm transition-all hover:bg-[var(--brand-dark)] disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 py-2.5 text-[14px] font-bold text-white shadow-md shadow-blue-500/10 hover:shadow-lg hover:shadow-blue-500/15 transition-all hover:scale-[1.01] active:scale-[0.99] hover:from-blue-700 hover:to-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <>
