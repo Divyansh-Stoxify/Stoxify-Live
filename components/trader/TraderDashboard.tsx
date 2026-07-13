@@ -103,7 +103,7 @@ function StatCard({
 }
 
 function TradeCard({ trade }: { trade: Trade }) {
-  const isLong = trade.direction === "LONG";
+  const isLong = !(trade.direction === "SHORT" || trade.direction === "SELL");
   const isLive = trade.status === "LIVE";
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 

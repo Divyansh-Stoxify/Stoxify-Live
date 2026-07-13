@@ -77,7 +77,7 @@ function TradeRow({
   onSelect: (trade: Trade) => void;
 }) {
   const { openCloseTrade, openModifyTrade } = useDashboard();
-  const isLong = trade.direction === "LONG";
+  const isLong = !(trade.direction === "SHORT" || trade.direction === "SELL");
   const ltp = liveLtp ?? trade.ltp;
   // Compute live P&L from LTP if available
   const pnl =
