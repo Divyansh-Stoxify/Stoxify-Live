@@ -399,7 +399,7 @@ export default function AnalystDetailPage() {
               {analystName}
             </h1>
             <div className="flex flex-wrap items-center gap-3">
-              {analyst?.sebi_license_number && (
+              {analyst?.state === "ACTIVE" && analyst?.sebi_license_number && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[12px] font-extrabold text-emerald-700 border border-emerald-200">
                   <Icon name="shieldCheck" className="h-3.5 w-3.5" />
                   SEBI Verified

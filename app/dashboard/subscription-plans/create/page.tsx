@@ -241,7 +241,7 @@ export default function CreatePlanPage() {
     if (!name.trim()) newErrors.name = "Batch name is required";
     if (segments.length === 0) newErrors.segments = "Select at least one segment";
     if (horizons.length === 0) newErrors.horizons = "Select at least one horizon";
-    if (pricingTiers.length === 0) newErrors.form = "At least one pricing tier is mandatory while creating a batch.";
+    // if (pricingTiers.length === 0) newErrors.form = "At least one pricing tier is mandatory while creating a batch.";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);

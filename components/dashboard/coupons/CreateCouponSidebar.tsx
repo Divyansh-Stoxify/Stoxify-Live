@@ -3,6 +3,13 @@ import React, { useState, useEffect, useRef } from "react";
 import { Icon } from "@/components/stoxify-icon";
 import { useSubscriptionPlans, Coupon } from "@/hooks/use-analyst-dashboard";
 
+// "Specific Users" is no longer offered when creating a coupon, but coupons
+// created before it was retired still live in the DB and are still honoured at
+// redemption. The editor must therefore be able to hold — and round-trip — the
+// SPECIFIC value without ever letting it be picked fresh.
+type CouponAvailability = "EVERYONE" | "NEW_USER" | "EXISTING_USER" | "SPECIFIC";
+type SelectableAvailability = Exclude<CouponAvailability, "SPECIFIC">;
+
 interface CreateCouponSidebarProps {
   type: "PERCENTAGE" | "FLAT";
   onClose: () => void;
@@ -29,7 +36,11 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
   const [isCaseInsensitive, setIsCaseInsensitive] = useState(false);
   const [selectedPlans, setSelectedPlans] = useState<string[]>([]);
   const [discountValue, setDiscountValue] = useState("");
-  const [availability, setAvailability] = useState<"EVERYONE" | "NEW_USER" | "EXISTING_USER" | "SPECIFIC">("EVERYONE");
+  const [availability, setAvailability] = useState<CouponAvailability>("EVERYONE");
+  // Targeting list of a legacy SPECIFIC coupon. Held verbatim and sent back
+  // untouched on update — the backend Object.assign()s the payload, so omitting
+  // it or sending [] would erase the coupon's audience.
+  const [legacyUserIds, setLegacyUserIds] = useState<string[]>([]);
   const [quantity, setQuantity] = useState<"UNLIMITED" | "LIMITED">("UNLIMITED");
   const [quantityTotal, setQuantityTotal] = useState("");
   const [validFrom, setValidFrom] = useState(todayStr);
@@ -37,13 +48,6 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const [subscribers, setSubscribers] = useState<{ user_id: string; user_name: string; user_email: string; user_avatar?: string }[]>([]);
-  const [isLoadingSubscribers, setIsLoadingSubscribers] = useState(false);
-  const [userSearchQuery, setUserSearchQuery] = useState("");
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [batchScope, setBatchScope] = useState<"ALL" | "SPECIFIC">("ALL");
   const [batchSearchQuery, setBatchSearchQuery] = useState("");
@@ -62,13 +66,11 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
     setIsCaseInsensitive(editCoupon.is_case_insensitive);
     setDiscountValue(String(editCoupon.discount_value));
     setAvailability(editCoupon.availability);
+    setLegacyUserIds(editCoupon.availability === "SPECIFIC" ? editCoupon.user_ids ?? [] : []);
     setQuantity(editCoupon.quantity_total != null ? "LIMITED" : "UNLIMITED");
     setQuantityTotal(editCoupon.quantity_total != null ? String(editCoupon.quantity_total) : "");
     if (editCoupon.valid_from) setValidFrom(editCoupon.valid_from.substring(0, 10));
     if (editCoupon.valid_to) setValidTo(editCoupon.valid_to.substring(0, 10));
-    if (editCoupon.user_ids && editCoupon.user_ids.length > 0) {
-      setSelectedUsers(editCoupon.user_ids);
-    }
     const planIds = editCoupon.plan_ids || [];
     if (planIds.length > 0) {
       setBatchScope("SPECIFIC");
@@ -82,48 +84,7 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
   }, [editCoupon, plans]);
 
   useEffect(() => {
-    let active = true;
-    async function loadSubscribers() {
-      setIsLoadingSubscribers(true);
-      try {
-        const res = await fetch("/api/analyst/subscribers?limit=1000");
-        if (!res.ok) throw new Error();
-        const json = await res.json();
-        const rawList = json.subscriptions || json.data || json || [];
-        const uniqueUsers: any[] = [];
-        const seenIds = new Set<string>();
-        for (const s of rawList) {
-          if (s.user_id && !seenIds.has(s.user_id)) {
-            seenIds.add(s.user_id);
-            uniqueUsers.push(s);
-          }
-        }
-        if (active) {
-          setSubscribers(uniqueUsers);
-        }
-      } catch (err) {
-        console.error("Failed to load subscribers", err);
-      } finally {
-        if (active) {
-          setIsLoadingSubscribers(false);
-        }
-      }
-    }
-
-    if (availability === "SPECIFIC") {
-      void loadSubscribers();
-    }
-
-    return () => {
-      active = false;
-    };
-  }, [availability]);
-
-  useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen(false);
-      }
       if (batchDropdownRef.current && !batchDropdownRef.current.contains(event.target as Node)) {
         setBatchDropdownOpen(false);
       }
@@ -137,26 +98,7 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
     };
   }, []);
 
-  // user_name/user_email can be missing (phone-OTP signups have no email)
-  const filteredSubscribers = subscribers.filter((sub) => {
-    const q = userSearchQuery.toLowerCase();
-    return (
-      (sub.user_name || "").toLowerCase().includes(q) ||
-      (sub.user_email || "").toLowerCase().includes(q)
-    );
-  });
-
-  const handleToggleUser = (userId: string) => {
-    setSelectedUsers((prev) =>
-      prev.includes(userId)
-        ? prev.filter((id) => id !== userId)
-        : [...prev, userId]
-    );
-  };
-
-  const handleRemoveUser = (userId: string) => {
-    setSelectedUsers((prev) => prev.filter((id) => id !== userId));
-  };
+  const isLegacySpecific = availability === "SPECIFIC";
 
   // Flatten all pricing batches across all plans/batch groups
   const allBatches = (plans || []).flatMap((p) =>
@@ -238,12 +180,8 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
       newErrors.discountValue = "Percentage must be between 1 and 100";
     }
 
-    if (quantity === "LIMITED" && (!quantityTotal || Number(quantityTotal) <= 0)) {
-      newErrors.quantityTotal = "Valid quantity is required";
-    }
-
-    if (availability === "SPECIFIC" && selectedUsers.length === 0) {
-      newErrors.users = "At least one specific user must be selected";
+    if (quantity === "LIMITED" && (!quantityTotal || !Number.isInteger(Number(quantityTotal)) || Number(quantityTotal) < 1)) {
+      newErrors.quantityTotal = "Quantity must be a whole number of 1 or more";
     }
 
     if (batchScope === "SPECIFIC" && selectedPlans.length === 0) {
@@ -265,7 +203,7 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
       discount_value: Number(discountValue),
       plan_ids: batchScope === "SPECIFIC" ? [...selectedPlans, ...selectedPricingPlans] : [],
       availability,
-      user_ids: availability === "SPECIFIC" ? selectedUsers : [],
+      user_ids: availability === "SPECIFIC" ? legacyUserIds : [],
       quantity_total: quantity === "UNLIMITED" ? null : Number(quantityTotal),
       valid_from: validFrom || undefined,
       valid_to: validTo || undefined,
@@ -595,128 +533,57 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
             {/* Offer Availability */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[12px] font-bold text-[var(--ink)]">Offer Availability</label>
-              <select
-                value={availability}
-                onChange={(e) => setAvailability(e.target.value as "EVERYONE" | "NEW_USER" | "EXISTING_USER" | "SPECIFIC")}
-                className="w-full rounded-xl border border-[var(--line)] bg-white px-4 py-2.5 text-[13px] font-semibold outline-none focus:border-[var(--brand)]"
-              >
-                <option value="EVERYONE">Everyone</option>
-                <option value="NEW_USER">New Users</option>
-                <option value="EXISTING_USER">Existing Users</option>
-                <option value="SPECIFIC">Specific Users</option>
-              </select>
-              <span className="text-[11px] text-[var(--muted-2)] font-medium">
-                {availability === "EVERYONE" && "Offer available to everyone"}
-                {availability === "NEW_USER" && "Only users who have never subscribed to you can redeem this"}
-                {availability === "EXISTING_USER" && "Only your current or past subscribers can redeem this"}
-                {availability === "SPECIFIC" && "Offer available only to the users you select below"}
-              </span>
+
+              {isLegacySpecific ? (
+                <>
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-2.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--muted)]" name="lock" />
+                      <span className="text-[13px] font-semibold text-[var(--ink)] truncate">
+                        Specific Users
+                        {legacyUserIds.length > 0 && (
+                          <span className="text-[var(--muted)] font-medium">
+                            {" "}· {legacyUserIds.length} user{legacyUserIds.length === 1 ? "" : "s"}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAvailability("EVERYONE");
+                        setLegacyUserIds([]);
+                      }}
+                      className="shrink-0 text-[11px] font-bold text-[var(--brand)] hover:underline cursor-pointer"
+                    >
+                      Change to Everyone
+                    </button>
+                  </div>
+                  <span className="text-[11px] text-[var(--muted-2)] font-medium">
+                    This coupon targets a fixed list of users. That option is no longer offered for new
+                    coupons, so the list can&apos;t be edited here — it stays as-is unless you switch this
+                    coupon to Everyone, which releases it to all users permanently.
+                  </span>
+                </>
+              ) : (
+                <>
+                  <select
+                    value={availability}
+                    onChange={(e) => setAvailability(e.target.value as SelectableAvailability)}
+                    className="w-full rounded-xl border border-[var(--line)] bg-white px-4 py-2.5 text-[13px] font-semibold outline-none focus:border-[var(--brand)]"
+                  >
+                    <option value="EVERYONE">Everyone</option>
+                    <option value="NEW_USER">New Users</option>
+                    <option value="EXISTING_USER">Existing Users</option>
+                  </select>
+                  <span className="text-[11px] text-[var(--muted-2)] font-medium">
+                    {availability === "EVERYONE" && "Offer available to everyone"}
+                    {availability === "NEW_USER" && "Only users who have never subscribed to you can redeem this"}
+                    {availability === "EXISTING_USER" && "Only your current or past subscribers can redeem this"}
+                  </span>
+                </>
+              )}
             </div>
-
-            {availability === "SPECIFIC" && (
-              <div className="flex flex-col gap-1.5 relative" ref={dropdownRef}>
-                <label className="text-[12px] font-bold text-[var(--ink)]">Select Users</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={userSearchQuery}
-                    onChange={(e) => {
-                      setUserSearchQuery(e.target.value);
-                      setDropdownOpen(true);
-                    }}
-                    onFocus={() => setDropdownOpen(true)}
-                    placeholder="Search users by name or email..."
-                    className={`w-full rounded-xl border pl-10 pr-4 py-2.5 text-[13px] font-semibold outline-none transition-all focus:ring-2 focus:ring-[var(--brand)]/20 ${
-                      errors.users ? "border-red-400" : "border-[var(--line)] focus:border-[var(--brand)]"
-                    }`}
-                  />
-                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted)]">
-                    <Icon className="h-4 w-4" name="search" />
-                  </div>
-                </div>
-                {errors.users && <span className="text-[11px] font-bold text-red-500">{errors.users}</span>}
-
-                {/* Selected Users Badges */}
-                {selectedUsers.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-1 max-h-28 overflow-y-auto p-1 bg-slate-50 rounded-xl border border-[var(--line)]">
-                    {selectedUsers.map((userId) => {
-                      const user = subscribers.find((s) => s.user_id === userId);
-                      return (
-                        <div
-                          key={userId}
-                          className="flex items-center gap-1 bg-white border border-slate-200 rounded-full px-2.5 py-1 text-[11px] font-bold text-[var(--ink)] shadow-sm"
-                        >
-                          {user?.user_avatar ? (
-                            <img src={user.user_avatar} alt="" className="h-3.5 w-3.5 rounded-full object-cover" />
-                          ) : (
-                            <div className="h-3.5 w-3.5 rounded-full bg-[var(--brand)]/10 text-[var(--brand)] flex items-center justify-center text-[8px] font-bold uppercase">
-                              {(user?.user_name || "U")[0]}
-                            </div>
-                          )}
-                          <span className="truncate max-w-[120px]">{user?.user_name || user?.user_email || "User"}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveUser(userId)}
-                            className="text-slate-400 hover:text-slate-600 focus:outline-none ml-1 cursor-pointer"
-                          >
-                            <Icon className="h-2.5 w-2.5" name="x" />
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Dropdown Options */}
-                {dropdownOpen && (
-                  <div className="absolute top-[calc(100%+4px)] left-0 z-10 w-full bg-white border border-[var(--line)] rounded-xl shadow-xl max-h-56 overflow-y-auto">
-                    {isLoadingSubscribers ? (
-                      <div className="p-4 text-center text-xs text-[var(--muted)] flex items-center justify-center gap-2">
-                        <Icon className="h-4 w-4 animate-spin text-[var(--brand)]" name="loader" />
-                        <span>Loading users...</span>
-                      </div>
-                    ) : filteredSubscribers.length === 0 ? (
-                      <div className="p-4 text-center text-xs text-[var(--muted)] font-semibold">
-                        No users found
-                      </div>
-                    ) : (
-                      <div className="py-1">
-                        {filteredSubscribers.map((sub) => {
-                          const isSelected = selectedUsers.includes(sub.user_id);
-                          return (
-                            <button
-                              key={sub.user_id}
-                              type="button"
-                              onClick={() => handleToggleUser(sub.user_id)}
-                              className="w-full flex items-center justify-between px-4 py-2 text-left hover:bg-slate-50 transition-colors cursor-pointer"
-                            >
-                              <div className="flex items-center gap-3">
-                                {sub.user_avatar ? (
-                                  <img src={sub.user_avatar} alt="" className="h-6 w-6 rounded-full object-cover" />
-                                ) : (
-                                  <div className="h-6 w-6 rounded-full bg-[var(--brand)]/10 text-[var(--brand)] flex items-center justify-center text-xs font-bold uppercase">
-                                    {(sub.user_name || "U")[0]}
-                                  </div>
-                                )}
-                                <div className="flex flex-col min-w-0">
-                                  <span className="text-[12.5px] font-bold text-[var(--ink)] truncate">{sub.user_name || "Subscriber"}</span>
-                                  {sub.user_email && (
-                                    <span className="text-[11px] text-[var(--muted-2)] font-semibold truncate">{sub.user_email}</span>
-                                  )}
-                                </div>
-                              </div>
-                              {isSelected && (
-                                <Icon className="h-3.5 w-3.5 text-[var(--brand)]" name="check" />
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Available Quantity */}
             <div className="flex flex-col gap-1.5">
@@ -733,8 +600,11 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
                 <div className="mt-2">
                   <input
                     type="number"
+                    inputMode="numeric"
+                    min={1}
+                    step={1}
                     value={quantityTotal}
-                    onChange={(e) => setQuantityTotal(e.target.value)}
+                    onChange={(e) => setQuantityTotal(e.target.value.replace(/[^0-9]/g, ""))}
                     className={`w-full rounded-xl border px-4 py-2.5 text-[13px] font-semibold outline-none transition-all ${
                       errors.quantityTotal ? "border-red-400" : "border-[var(--line)] focus:border-[var(--brand)]"
                     }`}

@@ -102,7 +102,6 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
   const [position, setPosition] = useState<"LONG" | "SHORT">("LONG");
   const [category, setCategory] = useState<"INTRADAY" | "SWING" | "POSITIONAL" | "SHORT_TERM" | "MEDIUM_TERM" | "LONG_TERM">("INTRADAY");
   const [entryPrice, setEntryPrice] = useState("");
-  const [isEntryLocked, setIsEntryLocked] = useState(false);
   const [targets, setTargets] = useState<{ price: string; percent: string }[]>([
     { price: "", percent: "100" }
   ]);
@@ -403,7 +402,6 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
         const price = data?.price ?? data?.ltp;
         if (price !== null && price !== undefined) {
           setEntryPrice(String(price));
-          setIsEntryLocked(true);
           setErrors((prev) => ({ ...prev, entry: "" }));
           return;
         }
@@ -463,7 +461,7 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
 
     const entry = parseFloat(entryPrice);
     const sl = parseFloat(stopLoss);
-    
+
     const parsedTargets = targets.map((t) => ({
       target_price: parseFloat(t.price),
       book_percent: parseFloat(t.percent)
@@ -591,11 +589,10 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                   name="search"
                 />
                 <input
-                  className={`w-full rounded-lg border bg-white py-2.5 pl-10 pr-4 text-[13px] text-[var(--ink)] transition-all placeholder:text-[var(--muted-2)] focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
-                    getFieldError("symbol")
+                  className={`w-full rounded-lg border bg-white py-2.5 pl-10 pr-4 text-[13px] text-[var(--ink)] transition-all placeholder:text-[var(--muted-2)] focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${getFieldError("symbol")
                       ? "border-[var(--red)] ring-[var(--red)]/20"
                       : "border-[var(--line)]"
-                  }`}
+                    }`}
                   onFocus={() => setShowAutocomplete(true)}
                   onBlur={() => markTouched("symbol")}
                   onChange={(e) => {
@@ -735,22 +732,20 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                 </label>
                 <div className="flex bg-[var(--surface)] p-1 rounded-lg border border-[var(--line)]">
                   <button
-                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${
-                      tradeStructure === "SIMPLE"
+                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${tradeStructure === "SIMPLE"
                         ? "bg-white text-[var(--ink)] shadow-sm border border-[var(--line)]/50"
                         : "text-[var(--muted)] hover:text-[var(--ink)]"
-                    }`}
+                      }`}
                     onClick={() => setTradeStructure("SIMPLE")}
                     type="button"
                   >
                     Simple
                   </button>
                   <button
-                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${
-                      tradeStructure === "PAIR"
+                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${tradeStructure === "PAIR"
                         ? "bg-white text-[var(--ink)] shadow-sm border border-[var(--line)]/50"
                         : "text-[var(--muted)] hover:text-[var(--ink)]"
-                    }`}
+                      }`}
                     onClick={() => setTradeStructure("PAIR")}
                     type="button"
                   >
@@ -766,11 +761,10 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                 </label>
                 <div className={`flex bg-[var(--surface)] p-1 rounded-lg border border-[var(--line)] ${isSymbolSelected ? "opacity-75 cursor-not-allowed" : ""}`}>
                   <button
-                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${
-                      segment === "EQUITY"
+                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${segment === "EQUITY"
                         ? "bg-white text-[var(--ink)] shadow-sm border border-[var(--line)]/50"
                         : "text-[var(--muted)] hover:text-[var(--ink)]"
-                    }`}
+                      }`}
                     onClick={() => setSegment("EQUITY")}
                     type="button"
                     disabled={isSymbolSelected}
@@ -778,11 +772,10 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                     Equity
                   </button>
                   <button
-                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${
-                      segment === "FNO"
+                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${segment === "FNO"
                         ? "bg-white text-[var(--ink)] shadow-sm border border-[var(--line)]/50"
                         : "text-[var(--muted)] hover:text-[var(--ink)]"
-                    }`}
+                      }`}
                     onClick={() => setSegment("FNO")}
                     type="button"
                     disabled={isSymbolSelected}
@@ -808,9 +801,8 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                       Expiry <span className="text-[var(--red)]">*</span>
                     </label>
                     <input
-                      className={`w-full rounded-lg border py-2 px-3 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
-                        getFieldError("expiry") ? "border-[var(--red)]" : "border-[var(--line)]"
-                      } ${isAutoDetected ? "bg-[var(--surface)] opacity-70 cursor-not-allowed" : "bg-white"}`}
+                      className={`w-full rounded-lg border py-2 px-3 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${getFieldError("expiry") ? "border-[var(--red)]" : "border-[var(--line)]"
+                        } ${isAutoDetected ? "bg-[var(--surface)] opacity-70 cursor-not-allowed" : "bg-white"}`}
                       onChange={(e) => {
                         setExpiry(e.target.value);
                         markTouched("expiry");
@@ -834,9 +826,8 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                       Strike Price
                     </label>
                     <input
-                      className={`w-full rounded-lg border border-[var(--line)] py-2 px-3 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
-                        isAutoDetected ? "bg-[var(--surface)] opacity-70 cursor-not-allowed" : "bg-white"
-                      }`}
+                      className={`w-full rounded-lg border border-[var(--line)] py-2 px-3 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${isAutoDetected ? "bg-[var(--surface)] opacity-70 cursor-not-allowed" : "bg-white"
+                        }`}
                       onChange={(e) => setStrikePrice(e.target.value)}
                       placeholder="e.g. 1350"
                       type="number"
@@ -853,9 +844,8 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                     </label>
                     <div className="relative">
                       <select
-                        className={`w-full appearance-none rounded-lg border border-[var(--line)] py-2 px-3.5 text-[12.5px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
-                          isOptionAutoDetected ? "bg-[var(--surface)] opacity-70 cursor-not-allowed" : "bg-white"
-                        }`}
+                        className={`w-full appearance-none rounded-lg border border-[var(--line)] py-2 px-3.5 text-[12.5px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${isOptionAutoDetected ? "bg-[var(--surface)] opacity-70 cursor-not-allowed" : "bg-white"
+                          }`}
                         onChange={(e) => setOptionType(e.target.value as "CE" | "PE" | "")}
                         value={optionType}
                         disabled={isOptionAutoDetected}
@@ -883,22 +873,20 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                 </label>
                 <div className="flex bg-[var(--surface)] p-1 rounded-lg border border-[var(--line)]">
                   <button
-                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${
-                      position === "LONG"
+                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${position === "LONG"
                         ? "bg-white text-[var(--green)] shadow-sm border border-[var(--line)]/50"
                         : "text-[var(--muted)] hover:text-[var(--ink)]"
-                    }`}
+                      }`}
                     onClick={() => setPosition("LONG")}
                     type="button"
                   >
                     Long
                   </button>
                   <button
-                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${
-                      position === "SHORT"
+                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${position === "SHORT"
                         ? "bg-white text-[var(--red)] shadow-sm border border-[var(--line)]/50"
                         : "text-[var(--muted)] hover:text-[var(--ink)]"
-                    }`}
+                      }`}
                     onClick={() => setPosition("SHORT")}
                     type="button"
                   >
@@ -941,23 +929,22 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
               <button
                 type="button"
                 onClick={() => setShowBatchDropdown((v) => !v)}
-                className={`w-full flex items-center justify-between gap-2 rounded-lg border bg-white py-2 px-3.5 text-[12.5px] font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
-                  getFieldError("batch") ? "border-[var(--red)]" : "border-[var(--line)]"
-                } ${selectedPlanIds.length === 0 ? "text-[var(--muted-2)]" : "text-[var(--ink)]"}`}
+                className={`w-full flex items-center justify-between gap-2 rounded-lg border bg-white py-2 px-3.5 text-[12.5px] font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${getFieldError("batch") ? "border-[var(--red)]" : "border-[var(--line)]"
+                  } ${selectedPlanIds.length === 0 ? "text-[var(--muted-2)]" : "text-[var(--ink)]"}`}
               >
                 <span className="flex flex-wrap items-center gap-1.5 text-left min-w-0">
                   {selectedPlanIds.length === 0
                     ? "Select batches..."
                     : plans
-                        .filter((p) => selectedPlanIds.includes(p.plan_id))
-                        .map((p) => (
-                          <span
-                            key={p.plan_id}
-                            className="inline-flex items-center rounded bg-[var(--brand-light)] text-[var(--brand)] px-1.5 py-0.5 text-[11px] font-bold border border-[var(--brand)]/15"
-                          >
-                            {p.name}
-                          </span>
-                        ))}
+                      .filter((p) => selectedPlanIds.includes(p.plan_id))
+                      .map((p) => (
+                        <span
+                          key={p.plan_id}
+                          className="inline-flex items-center rounded bg-[var(--brand-light)] text-[var(--brand)] px-1.5 py-0.5 text-[11px] font-bold border border-[var(--brand)]/15"
+                        >
+                          {p.name}
+                        </span>
+                      ))}
                 </span>
                 <Icon
                   className="text-[var(--muted-2)] pointer-events-none h-3 w-3 shrink-0"
@@ -988,11 +975,10 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                         }}
                       >
                         <span
-                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
-                            checked
+                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${checked
                               ? "bg-[var(--brand)] border-[var(--brand)] text-white"
                               : "border-[var(--line)] bg-white"
-                          }`}
+                            }`}
                         >
                           {checked && <Icon name="check" className="h-3 w-3" />}
                         </span>
@@ -1022,23 +1008,16 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                     ₹
                   </span>
                   <input
-                    className={`w-full rounded-lg border bg-white py-2 pl-6 pr-8 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
-                      getFieldError("entry") ? "border-[var(--red)]" : "border-[var(--line)]"
-                    } ${isFetchingPrice ? "animate-pulse bg-[var(--surface)]" : ""} ${isEntryLocked ? "bg-[var(--surface)] text-[var(--muted-2)] cursor-not-allowed border-dashed" : ""}`}
-                    onChange={(e) => {
-                      if (!isEntryLocked) {
-                        setEntryPrice(e.target.value);
-                        markTouched("entry");
-                      }
-                    }}
+                    className={`w-full rounded-lg border bg-[var(--surface)] text-[var(--muted-2)] cursor-not-allowed border-dashed py-2 pl-6 pr-8 text-[13px] font-medium transition-colors focus:outline-none ${getFieldError("entry") ? "border-[var(--red)]" : "border-[var(--line)]"
+                      } ${isFetchingPrice ? "animate-pulse" : ""}`}
                     onBlur={() => markTouched("entry")}
                     placeholder={isFetchingPrice ? "Fetching…" : "Select instrument"}
                     type="number"
                     step="0.05"
                     value={entryPrice}
                     disabled={isFetchingPrice}
-                    readOnly={isEntryLocked}
-                    title={isEntryLocked ? "Entry price is fetched live from the market — it cannot be edited" : ""}
+                    readOnly={true}
+                    title="Entry price is fetched live from the market — it cannot be edited"
                   />
                   {isFetchingPrice ? (
                     <Icon
@@ -1052,24 +1031,14 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                         aria-label="Refresh live price"
                         title="Refresh live price"
                         onClick={() => fetchLivePrice(symbolQuery)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[var(--muted-2)] hover:text-[var(--brand)] transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[var(--muted-2)] hover:text-[var(--brand)] transition-colors"
                       >
                         <Icon className="h-3.5 w-3.5" name="refresh" />
                       </button>
                     )
                   )}
-                  {isEntryLocked && !isFetchingPrice && (
-                    <button
-                      type="button"
-                      onClick={() => setIsEntryLocked(false)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--brand)] hover:text-[var(--brand-dark)] transition-colors"
-                      title="Unlock entry price"
-                    >
-                      <Icon name="lock" className="h-3.5 w-3.5" />
-                    </button>
-                  )}
                 </div>
-                {isEntryLocked && !getFieldError("entry") && (
+                {entryPrice && !getFieldError("entry") && (
                   <div className="text-[10.5px] text-[var(--muted-2)] mt-1 font-medium italic">
                     Fetched from market
                   </div>
@@ -1105,7 +1074,7 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                     {getFieldError("targets")}
                   </div>
                 )}
-                
+
                 {targets.map((t, idx) => (
                   <div key={idx} className="flex items-start gap-2">
                     <div className="flex-1">
@@ -1114,15 +1083,15 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                           ₹
                         </span>
                         <input
-                          className={`w-full rounded-lg border bg-white py-2 pl-6 pr-3.5 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
-                            getFieldError(`target_${idx}_price`) ? "border-[var(--red)]" : "border-[var(--line)]"
-                          }`}
+                          className={`w-full rounded-lg border bg-white py-2 pl-6 pr-3.5 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${getFieldError(`target_${idx}_price`) ? "border-[var(--red)]" : "border-[var(--line)]"
+                            }`}
                           onChange={(e) => {
                             const newTargets = [...targets];
                             newTargets[idx].price = e.target.value;
                             setTargets(newTargets);
                             markTouched(`target_${idx}_price`);
                           }}
+                          onFocus={(e) => e.target.select()}
                           onBlur={() => markTouched(`target_${idx}_price`)}
                           placeholder={`Target ${idx + 1}`}
                           type="number"
@@ -1136,13 +1105,12 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                         </div>
                       )}
                     </div>
-                    
+
                     <div className="w-[100px]">
                       <div className="relative">
                         <input
-                          className={`w-full rounded-lg border bg-white py-2 pl-3 pr-6 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
-                            getFieldError(`target_${idx}_percent`) ? "border-[var(--red)]" : "border-[var(--line)]"
-                          }`}
+                          className={`w-full rounded-lg border bg-white py-2 pl-3 pr-6 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${getFieldError(`target_${idx}_percent`) ? "border-[var(--red)]" : "border-[var(--line)]"
+                            }`}
                           onChange={(e) => {
                             const newTargets = [...targets];
                             newTargets[idx].percent = e.target.value;
@@ -1150,6 +1118,7 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                             markTouched(`target_${idx}_percent`);
                             markTouched("targets");
                           }}
+                          onFocus={(e) => e.target.select()}
                           onBlur={() => {
                             markTouched(`target_${idx}_percent`);
                             markTouched("targets");
@@ -1214,13 +1183,13 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                     ₹
                   </span>
                   <input
-                    className={`w-full rounded-lg border bg-white py-2 pl-6 pr-3.5 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
-                      getFieldError("stopLoss") ? "border-[var(--red)]" : "border-[var(--line)]"
-                    }`}
+                    className={`w-full rounded-lg border bg-white py-2 pl-6 pr-3.5 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${getFieldError("stopLoss") ? "border-[var(--red)]" : "border-[var(--line)]"
+                      }`}
                     onChange={(e) => {
                       setStopLoss(e.target.value);
                       markTouched("stopLoss");
                     }}
+                    onFocus={(e) => e.target.select()}
                     onBlur={() => markTouched("stopLoss")}
                     placeholder="0.00"
                     type="number"
@@ -1328,34 +1297,34 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
             {errors.submit && (
               <div className="flex items-start gap-2.5 rounded-lg border border-[var(--red)]/25 bg-[var(--red)]/8 px-3.5 py-2.5 text-[12px] text-[var(--red)] font-medium leading-snug">
                 <svg className="mt-[1px] h-3.5 w-3.5 shrink-0 fill-current" viewBox="0 0 16 16">
-                  <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm-.75 4a.75.75 0 0 1 1.5 0v3.5a.75.75 0 0 1-1.5 0V5Zm.75 7a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/>
+                  <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm-.75 4a.75.75 0 0 1 1.5 0v3.5a.75.75 0 0 1-1.5 0V5Zm.75 7a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z" />
                 </svg>
                 <span>{errors.submit}</span>
               </div>
             )}
             <div className="flex items-center justify-end gap-3">
-            <button
-              className="rounded-lg border border-[var(--line)] bg-white px-5 py-2 text-[12.5px] font-bold text-[var(--muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--ink)]"
-              onClick={onClose}
-              type="button"
-              disabled={isSubmitting}
-            >
-              Cancel
-            </button>
-            <button
-              className="rounded-lg bg-[var(--brand)] px-5 py-2 text-[12.5px] font-bold text-white transition-all hover:bg-[var(--brand-dark)] hover:shadow-md active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
-              type="submit"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Icon className="animate-spin h-3.5 w-3.5" name="timer" />
-                  Creating...
-                </>
-              ) : (
-                "Create Trade"
-              )}
-            </button>
+              <button
+                className="rounded-lg border border-[var(--line)] bg-white px-5 py-2 text-[12.5px] font-bold text-[var(--muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--ink)]"
+                onClick={onClose}
+                type="button"
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                className="rounded-lg bg-[var(--brand)] px-5 py-2 text-[12.5px] font-bold text-white transition-all hover:bg-[var(--brand-dark)] hover:shadow-md active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Icon className="animate-spin h-3.5 w-3.5" name="timer" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Trade"
+                )}
+              </button>
             </div>
           </div>
         </form>

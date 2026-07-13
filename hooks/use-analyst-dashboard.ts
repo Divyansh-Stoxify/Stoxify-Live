@@ -188,35 +188,6 @@ export function useActiveTrades(limit: number = 5) {
   return { trades, isLoading, isError, refetch: fetchTrades, removeTradeLocally };
 }
 
-export function usePendingTrades() {
-  const [trades, setTrades] = useState<Trade[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchTrades = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch("/api/analyst/trades?status=PENDING&limit=50", {
-        credentials: "same-origin",
-        cache: "no-store",
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const tradeList = json.trades ?? json.data ?? json;
-      setTrades(Array.isArray(tradeList) ? tradeList : []);
-    } catch {
-      setTrades([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    /* eslint-disable-next-line react-hooks/set-state-in-effect */
-    void fetchTrades();
-  }, [fetchTrades]);
-
-  return { trades, isLoading, refetch: fetchTrades };
-}
 
 export function useClosedTrades() {
   const [trades, setTrades] = useState<Trade[]>([]);

@@ -4,7 +4,7 @@ import React, { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { useDashboard } from "@/components/dashboard/dashboard-context";
 import { Icon } from "@/components/stoxify-icon";
-import type { PlanStatus, PlanBatch, PlanBillingCycle, SubscriptionPlan } from "@/lib/types/analyst";
+import type { PlanStatus, PlanBatch, PlanBillingCycle } from "@/lib/types/analyst";
 import { nanoid } from "nanoid";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -51,12 +51,10 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/analyst/plans`, { credentials: "same-origin" })
+    fetch(`/api/analyst/plans/${plan_id}`, { credentials: "same-origin" })
       .then(res => res.json())
-      .then(data => {
-        const list: SubscriptionPlan[] = Array.isArray(data.plans) ? data.plans : Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
-        const planToEdit = list.find(p => p.plan_id === plan_id);
-        if (planToEdit) {
+      .then(planToEdit => {
+        if (planToEdit && planToEdit.plan_id) {
           setName(planToEdit.name);
           setDescription(planToEdit.description ?? "");
           setStatus(planToEdit.status ?? (planToEdit.is_active ? "ACTIVE" : "INACTIVE"));
@@ -214,7 +212,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
     if (!name.trim()) newErrors.name = "Batch name is required";
     if (segments.length === 0) newErrors.segments = "Select at least one segment";
     if (horizons.length === 0) newErrors.horizons = "Select at least one horizon";
-    if (pricingTiers.length === 0) newErrors.form = "At least one pricing tier is mandatory while updating a batch.";
+    // if (pricingTiers.length === 0) newErrors.form = "At least one pricing tier is mandatory while updating a batch.";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -551,7 +549,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
                         <label className="text-[13px] font-bold text-[var(--ink)]">Risk Level</label>
                         <div className="flex flex-col gap-2">
                           {RISK_LEVELS.map(risk => (
-                            <label key={risk} className={`flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${riskLevel === risk ? "border-orange-400 bg-orange-50/50" : "border-[var(--line)] hover:bg-slate-50"}`}>
+                            <label key={risk} onClick={() => setRiskLevel(risk)} className={`flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${riskLevel === risk ? "border-orange-400 bg-orange-50/50" : "border-[var(--line)] hover:bg-slate-50"}`}>
                               <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${riskLevel === risk ? "border-orange-500" : "border-[var(--muted-2)]"}`}>
                                 {riskLevel === risk && <div className="h-2 w-2 rounded-full bg-orange-500" />}
                               </div>

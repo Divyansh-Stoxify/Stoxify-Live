@@ -507,7 +507,7 @@ export default function BatchDetailPage() {
               </h1>
               <div className="mt-1 flex flex-wrap items-center gap-2 text-[13px] font-semibold text-[var(--muted)]">
                 <span>by {batch.analyst_name}</span>
-                {analyst?.sebi_license_number && (
+                {analyst?.state === "ACTIVE" && analyst?.sebi_license_number && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700 border border-emerald-100">
                     <Icon name="shieldCheck" className="h-3 w-3 text-emerald-600" />
                     SEBI
@@ -761,7 +761,7 @@ export default function BatchDetailPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="text-[15px] font-bold text-[var(--ink)]">{analyst?.name || batch.analyst_name}</h3>
-                    {analyst?.sebi_license_number && (
+                    {analyst?.state === "ACTIVE" && analyst?.sebi_license_number && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700 border border-emerald-100">
                         <Icon name="shieldCheck" className="h-3 w-3 text-emerald-600" />
                         SEBI Verified

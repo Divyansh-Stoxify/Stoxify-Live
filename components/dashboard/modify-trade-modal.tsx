@@ -221,6 +221,7 @@ export function ModifyTradeModal({ trade, onClose, onSuccess, livePrices }: Modi
                     step="0.05"
                     value={stopLoss}
                     onChange={(e) => setStopLoss(e.target.value)}
+                    onFocus={(e) => e.target.select()}
                     className="w-full rounded-xl border border-slate-200/80 bg-white py-2.5 pl-8 pr-4 text-[14px] font-semibold text-slate-700 shadow-sm outline-none transition-all placeholder:text-slate-300 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/50"
                     placeholder="0.00"
                   />
@@ -272,6 +273,7 @@ export function ModifyTradeModal({ trade, onClose, onSuccess, livePrices }: Modi
                             newTargets[index].price = e.target.value;
                             setTargets(newTargets);
                           }}
+                          onFocus={(e) => e.target.select()}
                         />
                       </div>
 
@@ -289,6 +291,7 @@ export function ModifyTradeModal({ trade, onClose, onSuccess, livePrices }: Modi
                             newTargets[index].percent = e.target.value;
                             setTargets(newTargets);
                           }}
+                          onFocus={(e) => e.target.select()}
                         />
                         <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[12px] font-bold text-slate-400 transition-colors group-focus-within:text-blue-500">%</span>
                       </div>

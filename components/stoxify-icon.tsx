@@ -66,7 +66,7 @@ export type IconName =
   | "loader";
 
 const icons: Record<IconName, string> = {
-  activity: "fa-solid fa-wave-pulse",
+  activity: "fa-solid fa-wave-square",
   arrowLeft: "fa-solid fa-arrow-left",
   arrowRight: "fa-solid fa-arrow-right",
   ban: "fa-solid fa-ban",

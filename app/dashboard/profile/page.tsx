@@ -582,6 +582,55 @@ export default function ProfilePage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [username, setUsername] = useState("");
+
+  // SEBI Document Upload State
+  const [sebiDocFile, setSebiDocFile] = useState<File | null>(null);
+  const [isDraggingDoc, setIsDraggingDoc] = useState(false);
+  const sebiDocInputRef = useRef<HTMLInputElement>(null);
+  const [removedExistingDoc, setRemovedExistingDoc] = useState(false);
+
+  // Check if existing document is a mock/placeholder
+  const hasExistingDoc = React.useMemo(() => {
+    const docUrl = profile?.sebi_license_doc_url;
+    if (!docUrl) return false;
+    return !docUrl.includes("placeholder-doc.pdf") && !docUrl.includes("example.com");
+  }, [profile?.sebi_license_doc_url]);
+
+  const handleSebiDocChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        showSuccessToast("File Too Large", "Please upload a document smaller than 10MB.");
+        return;
+      }
+      setSebiDocFile(file);
+      showSuccessToast("Document Added", "Your SEBI document has been selected successfully.");
+    }
+  };
+
+  const handleDragOverDoc = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingDoc(true);
+  };
+
+  const handleDragLeaveDoc = () => {
+    setIsDraggingDoc(false);
+  };
+
+  const handleDropDoc = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingDoc(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        showSuccessToast("File Too Large", "Please upload a document smaller than 10MB.");
+        return;
+      }
+      setSebiDocFile(file);
+      showSuccessToast("Document Added", "Your SEBI document has been selected successfully.");
+    }
+  };
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const isUsernameSet = Boolean(profile?.username);
 
@@ -1197,7 +1246,52 @@ export default function ProfilePage() {
                   Copies of your official registration certificates on file.
                 </p>
 
-                {profile?.sebi_license_doc_url ? (
+                {sebiDocFile ? (
+                  <div className="border border-slate-100 rounded-lg p-4 bg-[#f8fafc] flex items-center justify-between mt-3 animate-fade-in">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">
+                        <Icon className="h-5 w-5" name="fileText" />
+                      </div>
+                      <div>
+                        <div className="text-[13.5px] font-bold text-slate-800 leading-tight truncate max-w-[200px] sm:max-w-[320px]">
+                          {sebiDocFile.name}
+                        </div>
+                        <div className="text-[11.5px] text-slate-400 mt-0.5">
+                          {(sebiDocFile.size / 1024).toFixed(1)} KB • Selected to upload
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          const url = URL.createObjectURL(sebiDocFile);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = sebiDocFile.name;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 rounded-lg text-[12.5px] font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+                        type="button"
+                      >
+                        <Icon className="h-3.5 w-3.5" name="download" />
+                        Download
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSebiDocFile(null);
+                          showSuccessToast("File Removed", "Selected document has been removed.");
+                        }}
+                        className="flex items-center justify-center w-8 h-8 border border-red-100 rounded-lg text-red-500 bg-white hover:bg-red-50 hover:border-red-200 transition-colors shadow-sm cursor-pointer"
+                        type="button"
+                        title="Remove file"
+                      >
+                        <Icon className="h-4 w-4" name="trash" />
+                      </button>
+                    </div>
+                  </div>
+                ) : hasExistingDoc && !removedExistingDoc && profile?.sebi_license_doc_url ? (
                   <div className="border border-slate-100 rounded-lg p-4 bg-[#f8fafc] flex items-center justify-between mt-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">
@@ -1215,20 +1309,57 @@ export default function ProfilePage() {
                       </div>
                     </div>
 
-                    <a
-                      href={profile.sebi_license_doc_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 rounded-lg text-[12.5px] font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
-                    >
-                      <Icon className="h-3.5 w-3.5" name="download" />
-                      View / Download
-                    </a>
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={profile.sebi_license_doc_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 rounded-lg text-[12.5px] font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+                      >
+                        <Icon className="h-3.5 w-3.5" name="download" />
+                        View / Download
+                      </a>
+                      <button
+                        onClick={() => {
+                          setRemovedExistingDoc(true);
+                          showSuccessToast("File Removed", "Existing document removed.");
+                        }}
+                        className="flex items-center justify-center w-8 h-8 border border-red-100 rounded-lg text-red-500 bg-white hover:bg-red-50 hover:border-red-200 transition-colors shadow-sm cursor-pointer"
+                        type="button"
+                        title="Remove file"
+                      >
+                        <Icon className="h-4 w-4" name="trash" />
+                      </button>
+                    </div>
                   </div>
                 ) : (
-                  <div className="border border-slate-100 rounded-lg p-4 bg-[#f8fafc] flex items-center gap-3 mt-3 text-[13px] text-slate-400">
-                    <Icon className="h-4 w-4 shrink-0" name="fileText" />
-                    No document uploaded yet.
+                  <div
+                    onDragOver={handleDragOverDoc}
+                    onDragLeave={handleDragLeaveDoc}
+                    onDrop={handleDropDoc}
+                    onClick={() => sebiDocInputRef.current?.click()}
+                    className={`border-2 border-dashed rounded-xl p-8 mt-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 ${
+                      isDraggingDoc
+                        ? "border-[var(--brand)] bg-[var(--brand)]/5 scale-[0.99]"
+                        : "border-slate-200 hover:border-slate-300 hover:bg-slate-50/50 bg-[#f8fafc]"
+                    }`}
+                  >
+                    <input
+                      ref={sebiDocInputRef}
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={handleSebiDocChange}
+                      className="hidden"
+                    />
+                    <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-3 transition-transform duration-200">
+                      <Icon className="h-6 w-6 text-slate-400" name="plus" />
+                    </div>
+                    <div className="text-[13.5px] font-bold text-slate-700 text-center">
+                      Drag & drop your SEBI document here, or <span className="text-[var(--brand)] hover:underline">browse</span>
+                    </div>
+                    <div className="text-[11.5px] text-slate-400 mt-1 text-center">
+                      Supports PDF, JPEG, or PNG (Max 10MB)
+                    </div>
                   </div>
                 )}
               </div>

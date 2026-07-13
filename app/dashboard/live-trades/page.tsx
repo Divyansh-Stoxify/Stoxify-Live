@@ -5,7 +5,6 @@ import { Topbar } from "@/components/dashboard/topbar";
 import { Icon } from "@/components/stoxify-icon";
 import {
   useActiveTrades,
-  usePendingTrades,
   useClosedTrades,
 } from "@/hooks/use-analyst-dashboard";
 import { useLiveTradesStats } from "@/hooks/use-analyst-dashboard";
@@ -17,7 +16,7 @@ import { TradeDetailsModal } from "@/components/trade-details-modal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type TabId = "active" | "pending" | "closed";
+type TabId = "active" | "closed";
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -1051,21 +1050,19 @@ export default function LiveTradesPage() {
     removeTradeLocally,
   } = useActiveTrades(20);
   const activeTotal = activeTrades.length;
-  const { trades: pendingTrades, isLoading: pendingLoading, refetch: refetchPending } = usePendingTrades();
-  const pendingTotal = pendingTrades.length;
   const { trades: closedTrades, isLoading: closedLoading, refetch: refetchClosed } = useClosedTrades();
 
   // Register callbacks so manual close/modify/create from modals trigger a refetch
   useEffect(() => {
     setOnTradeClosedCallback(() => { void refetchActive(); void refetchClosed(); });
-    setOnTradeModifiedCallback(() => { void refetchActive(); void refetchPending(); });
-    setOnTradeCreatedCallback(() => { void refetchActive(); void refetchPending(); });
+    setOnTradeModifiedCallback(() => { void refetchActive(); });
+    setOnTradeCreatedCallback(() => { void refetchActive(); });
     return () => {
       setOnTradeClosedCallback(null);
       setOnTradeModifiedCallback(null);
       setOnTradeCreatedCallback(null);
     };
-  }, [setOnTradeClosedCallback, setOnTradeModifiedCallback, setOnTradeCreatedCallback, refetchActive, refetchClosed, refetchPending]);
+  }, [setOnTradeClosedCallback, setOnTradeModifiedCallback, setOnTradeCreatedCallback, refetchActive, refetchClosed]);
 
   // WS-driven refetch (backend-triggered closures)
   useEffect(() => {
@@ -1078,13 +1075,11 @@ export default function LiveTradesPage() {
   useEffect(() => {
     if (tradeModifiedEvent) {
       void refetchActive();
-      void refetchPending();
     }
-  }, [tradeModifiedEvent, refetchActive, refetchPending]);
+  }, [tradeModifiedEvent, refetchActive]);
 
   const TAB_OPTIONS: { id: TabId; label: string; count?: number }[] = [
     { id: "active", label: "Active", count: activeTotal },
-    { id: "pending", label: "Pending", count: pendingTotal },
     { id: "closed", label: "Closed Trades" },
   ];
 
@@ -1217,25 +1212,7 @@ export default function LiveTradesPage() {
           </div>
         )}
 
-        {/* PENDING TAB */}
-        {activeTab === "pending" && (
-          <div className="space-y-4">
-            {pendingLoading ? (
-              <TradeCardSkeleton />
-            ) : pendingTrades.length === 0 ? (
-              <div className="rounded-xl border border-[var(--line)] bg-white p-12 text-center">
-                <div className="text-[14px] font-semibold text-[var(--ink)]">No pending trades</div>
-                <p className="mt-1 text-[12.5px] text-[var(--muted-2)]">
-                  Draft trades awaiting publication will appear here.
-                </p>
-              </div>
-            ) : (
-              pendingTrades.map((trade) => (
-                <TradeCard key={trade.trade_id} trade={trade} onBroadcast={setBroadcastTrade} liveLtpProp={livePrices[trade.symbol]} />
-              ))
-            )}
-          </div>
-        )}
+
 
         {/* CLOSED TRADES TAB */}
         {activeTab === "closed" && (

@@ -46,17 +46,49 @@ export function Topbar({
         .toUpperCase()
     : "?";
 
+  // Badge driven by the analyst's actual verification state (AnalystState in the
+  // DB): only ACTIVE analysts have passed SEBI review. States like BLOCKED /
+  // SUSPENDED intentionally map to null — no badge.
+  const verificationBadge =
+    profile?.state === "ACTIVE"
+      ? {
+          label: "SEBI Verified",
+          icon: "circleCheck" as const,
+          className: "border-[var(--green)]/20 bg-[var(--green-light)] text-[var(--green)]",
+        }
+      : profile?.state === "VERIFICATION_PENDING" || profile?.state === "VERIFICATION_ONGOING"
+        ? {
+            label: "Verification Pending",
+            icon: "timer" as const,
+            className: "border-[var(--orange)]/20 bg-[var(--orange-light)] text-[var(--orange)]",
+          }
+        : profile?.state === "VERIFICATION_REJECTED"
+          ? {
+              label: "Verification Rejected",
+              icon: "x" as const,
+              className: "border-[var(--red)]/20 bg-[var(--red-light)] text-[var(--red)]",
+            }
+          : profile?.state === "UNVERIFIED"
+            ? {
+                label: "Unverified",
+                icon: "timer" as const,
+                className: "border-[var(--line)] bg-[var(--surface)] text-[var(--muted)]",
+              }
+            : null;
+
   return (
     <header className="sticky top-0 z-[90] flex h-[60px] items-center border-b border-[var(--line)] bg-white/95 px-7 backdrop-blur-md">
       {/* ── Left: Title + Badge ── */}
       <div className="flex items-center gap-3">
         <h1 className="text-[20px] font-bold tracking-[-0.3px] text-[var(--ink)]">{title}</h1>
 
-        {/* SEBI Verified badge — only show if requested AND analyst actually has a SEBI registration in DB */}
-        {showSebiVerified && !!(profile?.sebi_license_number || profile?.sebi_registration_number) && (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--green)]/20 bg-[var(--green-light)] px-2.5 py-0.5 text-[11px] font-bold text-[var(--green)]">
-            <Icon className="h-[10px] w-[10px]" name="circleCheck" />
-            SEBI Verified
+        {/* Verification badge — reflects the analyst's live verification state */}
+        {showSebiVerified && verificationBadge && (
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${verificationBadge.className}`}
+          >
+            <Icon className="h-[10px] w-[10px]" name={verificationBadge.icon} />
+            {verificationBadge.label}
           </span>
         )}
       </div>
@@ -131,7 +163,9 @@ export function Topbar({
                 {profile?.name ?? "Loading…"}
               </div>
               <div className="text-[11px] text-[var(--muted-2)] leading-tight">
-                SEBI Reg. Analyst
+                {profile?.state === "ACTIVE"
+                  ? "SEBI Reg. Analyst"
+                  : (verificationBadge?.label ?? "Analyst")}
               </div>
             </div>
           </div>
