@@ -10,6 +10,11 @@ import { useState, useEffect, useRef, useCallback } from "react";
  * const { prices, isConnected, error } = useWebSocket();
  * // prices = { "RELIANCE": 2850.50, "SBIN": 580.25, … }
  * ```
+ *
+ * Ticks only arrive while the market is open. Pass the symbols a screen cares
+ * about to seed the map with each one's last traded price, so an LTP is shown
+ * off-hours (and before the first tick lands) instead of an empty cell. Seeded
+ * values never overwrite a price already received over the WebSocket.
  */
 
 interface PriceMap {
@@ -39,7 +44,7 @@ interface UseWebSocketReturn {
 const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_INTERVAL_MS = 3000;
 
-export function useWebSocket(): UseWebSocketReturn {
+export function useWebSocket(seedSymbols: string[] = []): UseWebSocketReturn {
   const [prices, setPrices] = useState<PriceMap>({});
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +56,7 @@ export function useWebSocket(): UseWebSocketReturn {
   const reconnectAttemptsRef = useRef(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
+  const seededRef = useRef<Set<string>>(new Set());
 
   const connect = useCallback(async function connectImpl() {
     // Skip if already connected
@@ -169,6 +175,50 @@ export function useWebSocket(): UseWebSocketReturn {
       }
     };
   }, [connect]);
+
+  // Seed the last traded price for any symbol we have not looked up yet. The
+  // join is the effect key so a re-rendered array of the same symbols is a no-op.
+  const seedKey = seedSymbols.join(",");
+
+  useEffect(() => {
+    const pending = seedKey.split(",").filter((s) => s && !seededRef.current.has(s));
+    if (pending.length === 0) return;
+    pending.forEach((s) => seededRef.current.add(s));
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/market-data/prices?symbols=${encodeURIComponent(pending.join(","))}`,
+          { credentials: "same-origin", cache: "no-store" }
+        );
+        if (!res.ok) throw new Error(`Price seed failed: ${res.status}`);
+
+        const { prices: snapshot } = await res.json();
+        if (cancelled || !isMountedRef.current || !snapshot) return;
+
+        setPrices((prev) => {
+          const next = { ...prev };
+          for (const [symbol, price] of Object.entries(snapshot)) {
+            // A tick that already landed is fresher than the snapshot — keep it.
+            if (next[symbol] === undefined && typeof price === "number") {
+              next[symbol] = price;
+            }
+          }
+          return next;
+        });
+      } catch {
+        // Non-fatal — the cell shows "—" until a tick arrives. Un-mark so the
+        // next symbol-set change retries these.
+        pending.forEach((s) => seededRef.current.delete(s));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [seedKey]);
 
   const sendMessage = useCallback((msg: Record<string, unknown>) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {

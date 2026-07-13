@@ -1039,7 +1039,6 @@ export default function LiveTradesPage() {
   const [activeTab, setActiveTab] = useState<TabId>("active");
   const [broadcastTrade, setBroadcastTrade] = useState<Trade | null>(null);
   const { openCreateTrade, showSuccessToast, setOnTradeClosedCallback, setOnTradeModifiedCallback, setOnTradeCreatedCallback } = useDashboard();
-  const { prices: livePrices, tradeClosedEvent, tradeModifiedEvent } = useWebSocket();
 
   const { stats, isLoading: statsLoading } = useLiveTradesStats();
   const {
@@ -1051,6 +1050,10 @@ export default function LiveTradesPage() {
   } = useActiveTrades(20);
   const activeTotal = activeTrades.length;
   const { trades: closedTrades, isLoading: closedLoading, refetch: refetchClosed } = useClosedTrades();
+
+  const { prices: livePrices, tradeClosedEvent, tradeModifiedEvent } = useWebSocket(
+    activeTrades.map((t) => t.symbol)
+  );
 
   // Register callbacks so manual close/modify/create from modals trigger a refetch
   useEffect(() => {

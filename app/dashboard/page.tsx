@@ -282,7 +282,9 @@ export default function DashboardPage() {
   const { metrics, isLoading: metricsLoading, isError: metricsError, refetch: refetchMetrics } = useDashboardMetrics();
   const { trades, isLoading: tradesLoading, isError: tradesError, refetch: refetchTrades, removeTradeLocally } = useActiveTrades(5);
   const { subscribers, isLoading: subsLoading } = useRecentSubscribers(5);
-  const { prices: livePrices, tradeClosedEvent, tradeModifiedEvent } = useWebSocket();
+  const { prices: livePrices, tradeClosedEvent, tradeModifiedEvent } = useWebSocket(
+    trades.map((t) => t.symbol)
+  );
   const { openCreateTrade, setOnTradeCreatedCallback } = useDashboard();
   const [showReactivationAlert, setShowReactivationAlert] = useState(false);
   const [selectedTradeForDetails, setSelectedTradeForDetails] = useState<Trade | null>(null);
