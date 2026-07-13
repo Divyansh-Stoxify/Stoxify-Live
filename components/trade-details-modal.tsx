@@ -61,10 +61,18 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
 
   const pnlPositive = pnlPercent >= 0;
 
-  // Risk Reward Ratio
+  // Planned Risk Reward Ratio — from the setup alone, so it never moves with price.
   const risk = slVal ? Math.abs(entry - slVal) : 0;
   const reward = targetVal ? Math.abs(targetVal - entry) : 0;
   const rrRatio = risk > 0 ? `${(reward / risk).toFixed(2)}x` : "—";
+
+  // Live R-multiple: how far price has travelled from entry, as a multiple of the
+  // per-unit risk. 0x at entry, -1.0x at the stop, `rrRatio` once the target lands.
+  const liveRMultiple = risk > 0 ? pnlPerUnit / risk : null;
+  const liveRr =
+    liveRMultiple === null
+      ? "—"
+      : `${liveRMultiple >= 0 ? "+" : ""}${liveRMultiple.toFixed(2)}x`;
 
   // Estimated stats
   const estimatedGains = targetVal && entry > 0 ? (Math.abs(targetVal - entry) / entry) * 100 : 0;
@@ -219,7 +227,7 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
                       <div className="flex justify-between items-center text-[12.5px] py-0.5 last:border-0">
                         <span className="text-[var(--muted)] font-semibold">Live R/R</span>
                         <span className={`font-extrabold text-[13.5px] ${pnlPositive ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
-                          {rrRatio}
+                          {liveRr}
                         </span>
                       </div>
                     </>

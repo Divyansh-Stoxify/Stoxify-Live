@@ -443,8 +443,11 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
     return () => clearInterval(interval);
   }, [isSymbolSelected, symbolQuery, fetchLivePrice, sendMessage]);
 
-  // Tick the entry price from the shared WebSocket as live prices stream in
-  const liveTick = isSymbolSelected ? livePrices?.[symbolQuery] : undefined;
+  // Tick the entry price from the shared WebSocket as live prices stream in.
+  // Ticks are keyed by the canonical (upper-case) symbol, which is also the form
+  // the trade is created with — a symbol restored from `recentSearches` may still
+  // carry the scrip master's original casing (e.g. "Nifty 50").
+  const liveTick = isSymbolSelected ? livePrices?.[symbolQuery.toUpperCase()] : undefined;
   useEffect(() => {
     if (liveTick !== undefined && liveTick > 0) {
       setEntryPrice(String(liveTick));
