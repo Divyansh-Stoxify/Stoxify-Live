@@ -70,6 +70,8 @@ function getBillingLabel(cycle: string): string {
   }
 }
 
+type StatusTab = "ACTIVE" | "CANCELLED" | "EXPIRED";
+
 export default function SubscribersPage() {
   // Subscribers lists states
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
@@ -79,7 +81,7 @@ export default function SubscribersPage() {
   // Filters and search states
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlan, setSelectedPlan] = useState("ALL");
-  const [selectedStatus, setSelectedStatus] = useState("ALL");
+  const [activeTab, setActiveTab] = useState<StatusTab>("ACTIVE");
 
   // Fetch plan names from plan-service using active hook
   const { plans, isLoading: isPlansLoading } = useSubscriptionPlans();
@@ -114,6 +116,8 @@ export default function SubscribersPage() {
   const stats = useMemo(() => {
     const total = subscribers.length;
     const active = subscribers.filter((s) => s.status === "ACTIVE").length;
+    const cancelled = subscribers.filter((s) => s.status === "CANCELLED").length;
+    const expired = subscribers.filter((s) => s.status === "EXPIRED").length;
 
     // Estimate MRR (normalizing active plan cycles to monthly)
     const mrr = subscribers
@@ -131,7 +135,7 @@ export default function SubscribersPage() {
         return sum + monthlyEquivalent;
       }, 0);
 
-    return { total, active, mrr: Math.round(mrr) };
+    return { total, active, cancelled, expired, mrr: Math.round(mrr) };
   }, [subscribers]);
 
   // Compute remaining days and formatted days left text
@@ -171,12 +175,12 @@ export default function SubscribersPage() {
       // 2. Plan filter mapping
       const matchPlan = selectedPlan === "ALL" || sub.plan_name === selectedPlan;
 
-      // 3. Status filter mapping
-      const matchStatus = selectedStatus === "ALL" || sub.status === selectedStatus;
+      // 3. Active tab mapping (bifurcates active vs cancelled vs expired)
+      const matchTab = sub.status === activeTab;
 
-      return matchSearch && matchPlan && matchStatus;
+      return matchSearch && matchPlan && matchTab;
     });
-  }, [subscribers, searchQuery, selectedPlan, selectedStatus]);
+  }, [subscribers, searchQuery, selectedPlan, activeTab]);
 
   // Plan colors helper
   const getPlanColor = (planName: string) => {
@@ -187,18 +191,6 @@ export default function SubscribersPage() {
         return "bg-blue-100 text-blue-700 border border-blue-200";
       default:
         return "bg-gray-100 text-gray-700 border border-gray-200";
-    }
-  };
-
-  // Status colors helper
-  const getStatusBadge = (status?: string) => {
-    switch (status) {
-      case "ACTIVE":
-        return "bg-[var(--green-light)] text-[var(--green)]";
-      case "CANCELLED":
-        return "bg-[var(--orange-light)] text-[var(--orange)]";
-      default:
-        return "bg-[var(--red-light)] text-[var(--red)]";
     }
   };
 
@@ -279,22 +271,40 @@ export default function SubscribersPage() {
                 ))}
               </select>
             </div>
-
-            {/* Status filter */}
-            <div className="flex items-center gap-2">
-              <span className="text-[12.5px] font-bold text-[var(--muted)]">Status:</span>
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="bg-[var(--line-2)] hover:bg-[var(--surface)] text-[12.5px] font-bold text-[var(--ink)] border border-[var(--line)] rounded-lg px-3 py-2 outline-none cursor-pointer transition-colors"
-              >
-                <option value="ALL">All Statuses</option>
-                <option value="ACTIVE">Active</option>
-                <option value="CANCELLED">Cancelled</option>
-                <option value="EXPIRED">Expired</option>
-              </select>
-            </div>
           </div>
+        </div>
+
+        {/* ─── Status Tabs: bifurcates active vs cancelled vs expired ─── */}
+        <div className="flex gap-0 border-b border-[var(--line)]">
+          {(
+            [
+              { id: "ACTIVE", label: "Active", count: stats.active },
+              { id: "CANCELLED", label: "Cancelled", count: stats.cancelled },
+              { id: "EXPIRED", label: "Expired", count: stats.expired },
+            ] as { id: StatusTab; label: string; count: number }[]
+          ).map((tab) => (
+            <button
+              className={`flex items-center gap-1.5 border-b-2 px-4 pb-3 pt-0.5 text-[13.5px] font-semibold transition-colors ${
+                activeTab === tab.id
+                  ? "border-[var(--brand)] text-[var(--brand)]"
+                  : "border-transparent text-[var(--muted)] hover:text-[var(--ink)]"
+              }`}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              type="button"
+            >
+              {tab.label}
+              <span
+                className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                  activeTab === tab.id
+                    ? "bg-[var(--brand-light)] text-[var(--brand)]"
+                    : "bg-[var(--line)] text-[var(--muted)]"
+                }`}
+              >
+                {tab.count}
+              </span>
+            </button>
+          ))}
         </div>
 
         {/* ─── Subscribers Table ─── */}
@@ -318,11 +328,8 @@ export default function SubscribersPage() {
                   <th className="py-4.5 px-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]">
                     Valid Till
                   </th>
-                  <th className="py-4.5 px-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]">
+                  <th className="py-4.5 pl-4 pr-6 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]">
                     Remaining Time
-                  </th>
-                  <th className="py-4.5 pl-4 pr-6 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)] text-center">
-                    Status
                   </th>
                 </tr>
               </thead>
@@ -352,17 +359,14 @@ export default function SubscribersPage() {
                       <td className="py-5 px-4">
                         <div className="h-4 w-20 animate-pulse rounded bg-[var(--line)]" />
                       </td>
-                      <td className="py-5 px-4">
+                      <td className="py-5 pl-4 pr-6">
                         <div className="h-4 w-20 animate-pulse rounded bg-[var(--line)]" />
-                      </td>
-                      <td className="py-5 pl-4 pr-6 text-center">
-                        <div className="mx-auto h-5 w-16 animate-pulse rounded-full bg-[var(--line)]" />
                       </td>
                     </tr>
                   ))
                 ) : isError ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center">
+                    <td colSpan={6} className="py-12 text-center">
                       <div className="flex flex-col items-center gap-2 text-[var(--red)]">
                         <Icon className="h-8 w-8" name="x" />
                         <span className="text-[13px] font-bold">Failed to load subscribers. Check if subscription service is active.</span>
@@ -377,14 +381,16 @@ export default function SubscribersPage() {
                   </tr>
                 ) : filteredSubscribers.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-16 text-center">
+                    <td colSpan={6} className="py-16 text-center">
                       <div className="flex flex-col items-center gap-2 text-[var(--muted-2)]">
                         <Icon className="h-10 w-10 text-[var(--line)] mb-1" name="users" />
-                        <span className="text-[13.5px] font-bold text-[var(--ink)]">No subscribers found</span>
+                        <span className="text-[13.5px] font-bold text-[var(--ink)]">
+                          No {activeTab.charAt(0) + activeTab.slice(1).toLowerCase()} subscribers found
+                        </span>
                         <span className="text-[12px] text-[var(--muted-2)]">
                           {subscribers.length === 0
                             ? "You do not have any subscription records yet."
-                            : "No matching records found for active filters."}
+                            : "No matching records found for the current search or plan filter."}
                         </span>
                       </div>
                     </td>
@@ -453,19 +459,8 @@ export default function SubscribersPage() {
                         </td>
 
                         {/* Validity remaining days */}
-                        <td className="py-4 px-4 text-[12.5px]">
+                        <td className="py-4 pl-4 pr-6 text-[12.5px]">
                           <span className={validity.className}>{validity.text}</span>
-                        </td>
-
-                        {/* Status Badge */}
-                        <td className="py-4 pl-4 pr-6 text-center">
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-[0.03em] ${getStatusBadge(
-                              sub.status
-                            )}`}
-                          >
-                            {sub.status || "UNKNOWN"}
-                          </span>
                         </td>
                       </tr>
                     );

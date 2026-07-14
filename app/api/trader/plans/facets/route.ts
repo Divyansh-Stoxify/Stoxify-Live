@@ -21,6 +21,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     horizons: searchParams.get("horizons") ?? undefined,
     search: searchParams.get("search") ?? undefined,
     is_active: searchParams.get("is_active") ?? "true",
+    require_active_tier: "true",
   };
 
   try {

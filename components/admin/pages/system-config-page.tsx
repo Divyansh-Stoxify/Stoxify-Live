@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { PencilIcon, PlusIcon, RefreshCwIcon, Trash2Icon } from "lucide-react";
 
 import {
@@ -16,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Gated } from "@/components/admin/admin-permissions-provider";
 import { SetSystemConfigDialog } from "@/components/admin/dialogs/set-system-config-dialog";
 import { DeleteSystemConfigDialog } from "@/components/admin/dialogs/delete-system-config-dialog";
+import { MarketHoursToggle } from "@/components/admin/market-hours-toggle";
 
 const FILTERS: FilterDef[] = [
   {
@@ -81,67 +83,75 @@ function ConfigRowActions({ item, refresh }: { item: ApiRecord; refresh: () => v
 }
 
 export function SystemConfigPage() {
+  // The toggle writes the same config key the table lists, so remount the table
+  // after a flip to keep the row in sync with the switch.
+  const [tableKey, setTableKey] = useState(0);
+
   return (
-    <ApiAdminPage
-      action="Refresh"
-      actionIcon={<RefreshCwIcon />}
-      collectionKeys={["config"]}
-      columns={["Key", "Category", "Value", "Description", "Updated"]}
-      description="Runtime configuration keys from user-service admin config APIs."
-      emptyMessage="No system config keys returned by the backend."
-      endpoint="/api/admin/system-config"
-      eyebrow="System config"
-      filters={FILTERS}
-      insights={(data, rows) => [
-        {
-          label: "Config keys",
-          value: formatNumber(data.total ?? rows.length),
-          detail: "Backend reported total",
-        },
-        {
-          label: "Categories",
-          value: formatNumber(new Set(rows.map((row) => row.Category)).size),
-          detail: "Loaded categories",
-        },
-        {
-          label: "Uncategorized",
-          value: formatNumber(countRows(rows, "Category", /^-$/)),
-          detail: "Keys without category",
-        },
-      ]}
-      mapRow={mapConfig}
-      metrics={(data, rows) => [
-        {
-          label: "Config keys",
-          value: formatNumber(data.total ?? rows.length),
-          detail: "Backend reported total",
-        },
-        { label: "Loaded", value: formatNumber(rows.length), detail: "Visible keys" },
-        {
-          label: "Categories",
-          value: formatNumber(new Set(rows.map((row) => row.Category)).size),
-          detail: "Loaded categories",
-        },
-        { label: "Mode", value: "Live", detail: "Backend keys only" },
-      ]}
-      primaryAction={(refresh) => (
-        <Gated power="PWR_ADMIN_SYSTEM_CONFIG">
-          <SetSystemConfigDialog
-            mode="create"
-            refresh={refresh}
-            trigger={
-              <Button>
-                <PlusIcon />
-                Add key
-              </Button>
-            }
-          />
-        </Gated>
-      )}
-      rowActions={(item, refresh) => <ConfigRowActions item={item} refresh={refresh} />}
-      searchable
-      title="System Config"
-      variant="settings"
-    />
+    <div className="flex flex-col gap-6">
+      <MarketHoursToggle onChanged={() => setTableKey((n) => n + 1)} />
+      <ApiAdminPage
+        key={tableKey}
+        action="Refresh"
+        actionIcon={<RefreshCwIcon />}
+        collectionKeys={["config"]}
+        columns={["Key", "Category", "Value", "Description", "Updated"]}
+        description="Runtime configuration keys from user-service admin config APIs."
+        emptyMessage="No system config keys returned by the backend."
+        endpoint="/api/admin/system-config"
+        eyebrow="System config"
+        filters={FILTERS}
+        insights={(data, rows) => [
+          {
+            label: "Config keys",
+            value: formatNumber(data.total ?? rows.length),
+            detail: "Backend reported total",
+          },
+          {
+            label: "Categories",
+            value: formatNumber(new Set(rows.map((row) => row.Category)).size),
+            detail: "Loaded categories",
+          },
+          {
+            label: "Uncategorized",
+            value: formatNumber(countRows(rows, "Category", /^-$/)),
+            detail: "Keys without category",
+          },
+        ]}
+        mapRow={mapConfig}
+        metrics={(data, rows) => [
+          {
+            label: "Config keys",
+            value: formatNumber(data.total ?? rows.length),
+            detail: "Backend reported total",
+          },
+          { label: "Loaded", value: formatNumber(rows.length), detail: "Visible keys" },
+          {
+            label: "Categories",
+            value: formatNumber(new Set(rows.map((row) => row.Category)).size),
+            detail: "Loaded categories",
+          },
+          { label: "Mode", value: "Live", detail: "Backend keys only" },
+        ]}
+        primaryAction={(refresh) => (
+          <Gated power="PWR_ADMIN_SYSTEM_CONFIG">
+            <SetSystemConfigDialog
+              mode="create"
+              refresh={refresh}
+              trigger={
+                <Button>
+                  <PlusIcon />
+                  Add key
+                </Button>
+              }
+            />
+          </Gated>
+        )}
+        rowActions={(item, refresh) => <ConfigRowActions item={item} refresh={refresh} />}
+        searchable
+        title="System Config"
+        variant="settings"
+      />
+    </div>
   );
 }

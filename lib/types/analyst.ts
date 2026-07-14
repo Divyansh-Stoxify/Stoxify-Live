@@ -115,6 +115,7 @@ export interface AnalystProfile {
   linkedin_url?: string;
   website?: string;
   email?: string;
+  phone?: string;
   // SEBI / analyst-specific fields returned by the user-service
   state?: string;
   sebi_registration_number?: string; // legacy field name (kept for compat)

@@ -89,6 +89,12 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
+// A batch with no active pricing tier has nothing a trader can actually
+// subscribe to — hide it rather than falling back to a stale root price.
+function hasSellableTier(plan: Plan): boolean {
+  return (plan.batches ?? []).some((b) => b.is_active !== false);
+}
+
 export default function AnalystDetailPage() {
   const params = useParams();
   const analystId = params.id as string;
@@ -336,12 +342,14 @@ export default function AnalystDetailPage() {
     fetchData();
   }, [fetchData]);
 
-  // Compute performance stats from trades
-  const closedTrades = trades.filter((t) => t.status !== "LIVE" && t.pnl_percent !== undefined);
-  const totalClosed = closedTrades.length;
-  const winningTrades = closedTrades.filter((t) => (t.pnl_percent ?? 0) > 0).length;
+  // Performance stats come from the analyst's all-time aggregate record
+  // (backend `performance` sub-document), not the paginated `trades` list
+  // above, which is capped at the 10 most recent trades.
+  const perf = analyst?.performance ?? {};
+  const totalClosed = perf.total_trades ?? 0;
+  const winningTrades = perf.winning_trades ?? 0;
   const winRate = totalClosed > 0 ? Math.round((winningTrades / totalClosed) * 100) : 0;
-  const avgPnl = totalClosed > 0 ? closedTrades.reduce((sum, t) => sum + (t.pnl_percent ?? 0), 0) / totalClosed : 0;
+  const avgPnl = perf.average_pnl_percent ?? 0;
 
   const getRiskStyles = (risk: string) => {
     if (risk === "HIGH") return "text-red-700 bg-red-50 border-red-200";
@@ -461,13 +469,13 @@ export default function AnalystDetailPage() {
               </div>
             )}
 
-            {plans.length === 0 ? (
+            {plans.filter(hasSellableTier).length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-slate-500 font-medium">
                 No active batches available from this analyst at the moment.
               </div>
             ) : (
               <div className="flex flex-col gap-6">
-                {plans.map((plan) => {
+                {plans.filter(hasSellableTier).map((plan) => {
                   const displaySegments = plan.segments && plan.segments.length > 0 ? plan.segments : (plan.segment ? [plan.segment] : []);
                   
                   return (

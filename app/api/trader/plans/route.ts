@@ -26,6 +26,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     page: searchParams.get("page") ?? undefined,
     is_active: searchParams.get("is_active") ?? "true",
     limit: searchParams.get("limit") ?? "50",
+    require_active_tier: "true",
   };
 
   try {

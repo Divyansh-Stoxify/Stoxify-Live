@@ -446,7 +446,11 @@ export default function BatchDetailPage() {
     );
   }
 
-  if (notFound || !batch) {
+  // A batch with no active pricing tier has nothing left to subscribe to —
+  // treat it the same as not-found rather than falling back to a stale price.
+  const hasActiveTier = !!batch && (batch.batches ?? []).some((b) => b.is_active !== false);
+
+  if (notFound || !batch || !hasActiveTier) {
     return (
       <div className="min-h-screen bg-[#fafafa]">
         <div className="px-6 py-20 max-w-[1100px] mx-auto text-center">

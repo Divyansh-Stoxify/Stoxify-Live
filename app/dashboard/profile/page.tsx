@@ -20,6 +20,17 @@ const TABS = [
 const ACCEPTED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_AVATAR_BYTES = 3 * 1024 * 1024;
 
+/** Formats a raw phone string as "+91 98765 08888"; falls back to the raw value. */
+function formatPhone(phone?: string): string {
+  if (!phone) return "";
+  const digits = phone.replace(/\D/g, "");
+  const ten = digits.length >= 10 ? digits.slice(-10) : digits;
+  if (ten.length === 10) {
+    return `+91 ${ten.slice(0, 5)} ${ten.slice(5)}`;
+  }
+  return phone;
+}
+
 /** Read a File as a base64 string (without the data: URL prefix). */
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -1003,6 +1014,26 @@ export default function ProfilePage() {
                   />
                   <span className="text-[11px] text-slate-400 mt-1 block">
                     Email cannot be changed. Contact support for assistance.
+                  </span>
+                </div>
+
+                {/* Phone Number */}
+                <div>
+                  <label
+                    htmlFor="phone"
+                    className="text-[12.5px] font-bold text-slate-700 mb-1.5 block"
+                  >
+                    Phone Number
+                  </label>
+                  <input
+                    id="phone"
+                    type="text"
+                    value={formatPhone(profile?.phone)}
+                    disabled
+                    className="w-full px-3 py-2 border border-slate-100 bg-[#f8fafc] rounded-lg text-[13.5px] text-slate-400 cursor-not-allowed focus:outline-none"
+                  />
+                  <span className="text-[11px] text-slate-400 mt-1 block">
+                    Your phone number is your login and cannot be changed here.
                   </span>
                 </div>
 

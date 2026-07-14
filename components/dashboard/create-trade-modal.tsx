@@ -457,6 +457,9 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Guard against a second click landing before the disabled prop re-renders —
+    // without this, a fast double-click can fire two full create requests.
+    if (isSubmitting) return;
     setIsSubmittedOnce(true);
     if (Object.keys(validationErrors).length > 0) return;
 

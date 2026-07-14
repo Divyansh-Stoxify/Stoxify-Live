@@ -243,11 +243,19 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
         return;
       }
 
-      await fetch(`/api/analyst/plans/${plan_id}/status`, {
+      const statusRes = await fetch(`/api/analyst/plans/${plan_id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_active: status === "ACTIVE" }),
       });
+
+      if (!statusRes.ok) {
+        const data = await statusRes.json().catch(() => ({}));
+        setErrors({
+          form: data.error ?? "Batch details were saved, but the status change failed.",
+        });
+        return;
+      }
 
       showSuccessToast(
         "Batch Updated",
