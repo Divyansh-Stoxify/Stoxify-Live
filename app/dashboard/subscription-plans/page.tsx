@@ -92,7 +92,7 @@ export default function SubscriptionPlansPage() {
                 changeLabel="this month"
                 changePct={undefined} // Real stats don't have mock changes
                 icon="rupee"
-                label="Monthly Recurring Revenue"
+                label="Revenue Collected"
                 value={formatCurrency(stats.monthly_recurring_revenue)}
               />
               <MetricCard
@@ -231,11 +231,10 @@ export default function SubscriptionPlansPage() {
 
                     <div className="flex flex-col items-center justify-center">
                       <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">
-                        Est. Revenue
+                        Revenue Collected
                       </span>
                       <span className="text-[18px] font-extrabold text-emerald-600 tracking-tight mt-1">
                         {formatCurrency(estMonthlyRevenue)}
-                        <span className="text-[10px] font-normal text-slate-400">/mo</span>
                       </span>
                     </div>
                   </div>

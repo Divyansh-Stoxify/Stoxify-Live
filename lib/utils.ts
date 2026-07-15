@@ -5,6 +5,13 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** A trade's `batch` field is a name string, or a list of names when published
+ * to several batches at once — normalise to one display string. */
+export function formatBatch(batch: string | string[] | undefined | null): string {
+  if (Array.isArray(batch)) return batch.filter(Boolean).join(" · ");
+  return batch ?? "";
+}
+
 export function cleanErrorMessage(data: any, defaultMsg: string = 'An unexpected error occurred. Please try again.'): string {
   if (!data) return defaultMsg;
 

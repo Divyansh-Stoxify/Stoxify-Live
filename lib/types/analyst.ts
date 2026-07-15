@@ -37,7 +37,8 @@ export interface Trade {
   segment_label?: string;
   trade_type?: "SIMPLE" | "PAIR";
   trade_subtype?: "INTRADAY" | "SWING" | "POSITIONAL" | "SHORT_TERM" | "MEDIUM_TERM" | "LONG_TERM";
-  batch?: string;
+  // A trade published to several batches at once carries all their names here.
+  batch?: string | string[];
   plan_id?: string;
   analyst_name?: string;
   expiry?: string;

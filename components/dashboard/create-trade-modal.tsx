@@ -498,50 +498,35 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
       option_type: optionType || undefined,
     };
 
-    // Each trade doc belongs to exactly one plan (subscriber access is keyed off
-    // plan_id), so publishing to multiple batches fans out one create per plan.
+    // One trade doc can be published to several batches at once — batch and
+    // plan_id are sent as parallel arrays so the backend stores a single
+    // document visible to every selected batch's subscribers, instead of a
+    // separate duplicate trade per batch.
     const selectedPlans = plans.filter((p) => selectedPlanIds.includes(p.plan_id));
 
     try {
-      const results = await Promise.allSettled(
-        selectedPlans.map(async (plan) => {
-          const res = await fetch("/api/analyst/trades", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "same-origin",
-            body: JSON.stringify({ ...basePayload, batch: plan.name, plan_id: plan.plan_id }),
-          });
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok) throw { planName: plan.name, data };
-          return data;
-        })
-      );
+      const res = await fetch("/api/analyst/trades", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          ...basePayload,
+          batch: selectedPlans.map((p) => p.name),
+          plan_id: selectedPlans.map((p) => p.plan_id),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
 
-      const failures = results.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
-      const successCount = results.length - failures.length;
-
-      if (successCount > 0) {
-        // Mutate SWR keys to revalidate and update UI
-        mutate((key: string) => typeof key === "string" && key.startsWith("/trades/"));
-        mutate((key: string) => typeof key === "string" && key.startsWith("/analytics/"));
-      }
-
-      if (failures.length > 0) {
-        const { field, message } = resolveTradeError(failures[0].reason?.data ?? {});
-        if (successCount === 0) {
-          setErrors({ [field]: message });
-        } else {
-          const failedNames = failures
-            .map((f) => f.reason?.planName)
-            .filter(Boolean)
-            .join(", ");
-          setErrors({
-            submit: `Trade created for ${successCount} batch${successCount > 1 ? "es" : ""}, but failed for ${failedNames}: ${message}`,
-          });
-        }
+      if (!res.ok) {
+        const { field, message } = resolveTradeError(data ?? {});
+        setErrors({ [field]: message });
         setIsSubmitting(false);
         return;
       }
+
+      // Mutate SWR keys to revalidate and update UI
+      mutate((key: string) => typeof key === "string" && key.startsWith("/trades/"));
+      mutate((key: string) => typeof key === "string" && key.startsWith("/analytics/"));
 
       // Trigger success confirmation toast notification
       const dirText = position === "LONG" ? "LONG" : "SHORT";

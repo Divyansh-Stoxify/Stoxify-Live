@@ -13,6 +13,7 @@ import { BroadcastModal } from "@/components/dashboard/broadcast-modal";
 import { useWebSocket } from "@/hooks/use-websocket";
 import type { Trade } from "@/lib/types/analyst";
 import { TradeDetailsModal } from "@/components/trade-details-modal";
+import { formatBatch } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -116,7 +117,7 @@ function CompactClosedCard({ trade, onClick }: { trade: Trade; onClick: () => vo
                 <span>{trade.segment_label ?? trade.segment}</span>
                 {trade.batch && (
                   <span className="inline-flex items-center rounded bg-slate-50 px-1.5 py-0.5 text-[9px] font-bold uppercase text-slate-500 border border-slate-200">
-                    {trade.batch}
+                    {formatBatch(trade.batch)}
                   </span>
                 )}
               </div>
@@ -807,7 +808,7 @@ function TradeCard({ trade, onBroadcast, hideActions, liveLtpProp, onAutoClose, 
                 <span>{trade.segment_label ?? trade.segment}</span>
                 {trade.batch && (
                   <span className="inline-flex items-center rounded bg-slate-50 px-1.5 py-0.5 text-[9px] font-bold uppercase text-slate-500 border border-slate-200">
-                    {trade.batch}
+                    {formatBatch(trade.batch)}
                   </span>
                 )}
               </div>

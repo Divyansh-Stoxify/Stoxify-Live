@@ -99,16 +99,12 @@ export function useDashboardMetrics() {
       // Derive total subscriber count from plan subscriber counts
       const totalSubscribers = planList.reduce((sum, p) => sum + (p.subscribers_count ?? 0), 0);
 
-      // Derive MRR: sum of active plans' actual subscription revenue
-      const mrr = activeSubscriptions.reduce((sum: number, sub: any) => {
+      // Derive revenue: sum of actual amounts paid by active subscribers on active plans
+      const collectedRevenue = activeSubscriptions.reduce((sum: number, sub: any) => {
         const plan = planList.find((p) => p.plan_id === sub.plan_id);
         if (plan && plan.status !== "ACTIVE") return sum;
-        
-        let monthlyAmount = sub.amount || 0;
-        if (sub.billing_cycle === "YEAR") monthlyAmount /= 12;
-        else if (sub.billing_cycle === "QUARTER") monthlyAmount /= 3;
-        else if (sub.billing_cycle === "WEEK") monthlyAmount *= 4;
-        return sum + monthlyAmount;
+
+        return sum + (sub.amount || 0);
       }, 0);
 
       // Win rate: fraction of CLOSED trades that hit target (pnl_pct > 0)
@@ -134,7 +130,7 @@ export function useDashboardMetrics() {
         active_trades: { value: tradeList.length, change_pct: 0, new_today: 0 },
         total_subscribers: { value: totalSubscribers, change_pct: 0 },
         total_batches: { value: planList.length, change_pct: 0 },
-        monthly_revenue: { value: Math.round(mrr), change_pct: 0 },
+        monthly_revenue: { value: Math.round(collectedRevenue), change_pct: 0 },
       });
       setIsError(false);
     } catch {
@@ -450,20 +446,17 @@ export function useSubscriptionPlans() {
               : []
       ).map((p: any) => {
         const planSubscribers = activeSubscriptions.filter((s: any) => s.plan_id === p.plan_id);
-        
-        const estRevenue = planSubscribers.reduce((sum: number, sub: any) => {
-          let monthlyAmount = sub.amount || 0;
-          if (sub.billing_cycle === "YEAR") monthlyAmount /= 12;
-          else if (sub.billing_cycle === "QUARTER") monthlyAmount /= 3;
-          else if (sub.billing_cycle === "WEEK") monthlyAmount *= 4;
-          return sum + monthlyAmount;
-        }, 0);
+
+        const collectedRevenue = planSubscribers.reduce(
+          (sum: number, sub: any) => sum + (sub.amount || 0),
+          0
+        );
 
         return {
           ...p,
           status: p.status || (p.is_active ? "ACTIVE" : "INACTIVE"),
           subscribers_count: planSubscribers.length,
-          est_monthly_revenue: Math.round(estRevenue),
+          est_monthly_revenue: Math.round(collectedRevenue),
         };
       });
 
@@ -542,21 +535,17 @@ export function useSubscriptionPlansStats() {
 
       const totalSubscribers = list.reduce((sum, p) => sum + (p.subscribers_count ?? 0), 0);
 
-      const mrr = activeSubscriptions.reduce((sum: number, sub: any) => {
-        // Only count MRR for subscriptions belonging to ACTIVE plans (optional depending on business logic, but kept consistent with original)
+      const collectedRevenue = activeSubscriptions.reduce((sum: number, sub: any) => {
+        // Only count revenue from subscriptions belonging to ACTIVE plans (kept consistent with original)
         const plan = list.find(p => p.plan_id === sub.plan_id);
         if (plan && plan.status !== "ACTIVE") return sum;
 
-        let monthlyAmount = sub.amount || 0;
-        if (sub.billing_cycle === "YEAR") monthlyAmount /= 12;
-        else if (sub.billing_cycle === "QUARTER") monthlyAmount /= 3;
-        else if (sub.billing_cycle === "WEEK") monthlyAmount *= 4;
-        return sum + monthlyAmount;
+        return sum + (sub.amount || 0);
       }, 0);
 
       setStats({
         total_subscribers: totalSubscribers,
-        monthly_recurring_revenue: Math.round(mrr),
+        monthly_recurring_revenue: Math.round(collectedRevenue),
         total_plans_count: list.length,
         active_plans_count: list.filter((p) => p.status === "ACTIVE").length,
       });

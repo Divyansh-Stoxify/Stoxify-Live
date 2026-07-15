@@ -119,21 +119,10 @@ export default function SubscribersPage() {
     const cancelled = subscribers.filter((s) => s.status === "CANCELLED").length;
     const expired = subscribers.filter((s) => s.status === "EXPIRED").length;
 
-    // Estimate MRR (normalizing active plan cycles to monthly)
+    // Revenue collected: sum of actual amounts paid by active subscribers
     const mrr = subscribers
       .filter((s) => s.status === "ACTIVE")
-      .reduce((sum, s) => {
-        const amt = s.amount ?? 0;
-        let monthlyEquivalent = amt;
-        if (s.billing_cycle === "WEEK") {
-          monthlyEquivalent = amt * 4.33;
-        } else if (s.billing_cycle === "QUARTER") {
-          monthlyEquivalent = amt / 3;
-        } else if (s.billing_cycle === "YEAR") {
-          monthlyEquivalent = amt / 12;
-        }
-        return sum + monthlyEquivalent;
-      }, 0);
+      .reduce((sum, s) => sum + (s.amount ?? 0), 0);
 
     return { total, active, cancelled, expired, mrr: Math.round(mrr) };
   }, [subscribers]);
@@ -223,9 +212,9 @@ export default function SubscribersPage() {
               />
               <MetricCard
                 icon="rupee"
-                label="Monthly Revenue"
+                label="Revenue Collected"
                 value={formatCurrency(stats.mrr)}
-                changeLabel="estimated monthly recurring"
+                changeLabel="from active subscribers"
               />
             </>
           )}

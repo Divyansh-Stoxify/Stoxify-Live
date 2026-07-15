@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Icon } from "@/components/stoxify-icon";
 import type { Trade } from "@/lib/types/analyst";
+import { formatBatch } from "@/lib/utils";
 
 interface TradeDetailsModalProps {
   trade: Trade | null;
@@ -179,7 +180,7 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
               <div className="flex items-center gap-1.5 justify-end mt-3 flex-wrap">
                 {trade.batch && (
                   <span className="inline-flex rounded-md px-2.5 py-1 text-[10px] font-bold bg-teal-50 border border-teal-200/60 text-teal-600 shadow-xs uppercase tracking-[0.05em] select-none">
-                    {trade.batch}
+                    {formatBatch(trade.batch)}
                   </span>
                 )}
                 <span
@@ -192,7 +193,9 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
                   {trade.direction}
                 </span>
               </div>
-              <div className="text-[9.5px] text-[var(--muted-2)] mt-1 font-semibold">Category: {trade.trade_subtype ?? "—"}</div>
+              {trade.trade_subtype && (
+                <div className="text-[9.5px] text-[var(--muted-2)] mt-1 font-semibold">Category: {trade.trade_subtype}</div>
+              )}
             </div>
           </div>
 
@@ -314,7 +317,7 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
                     <div className="flex justify-between items-center text-[12.5px] py-1 border-b border-[var(--line)] last:border-0 last:pb-0">
                       <span className="text-[var(--muted)] font-semibold">Associated Batch</span>
                       <span className="font-bold text-[var(--muted)] bg-[var(--surface)] px-2 py-0.5 rounded border border-[var(--line)] text-[10px]">
-                        {trade.batch}
+                        {formatBatch(trade.batch)}
                       </span>
                     </div>
                   )}

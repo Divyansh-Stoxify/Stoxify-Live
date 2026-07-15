@@ -375,7 +375,7 @@ export default function DashboardPage() {
                 changePct={metrics.monthly_revenue.change_pct}
                 changeLabel="from last month"
                 icon="wallet"
-                label="Monthly Revenue"
+                label="Revenue Collected"
                 value={formatRevenue(metrics.monthly_revenue.value)}
               />
             </>

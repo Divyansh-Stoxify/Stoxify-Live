@@ -122,7 +122,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       
       const batch = plan?.batches?.find((b: any) => b.batch_id === sub.batch_id);
       const days = batch ? batch.days : (plan?.days || 30);
-      const baseAmount = batch ? (batch.discounted_price || batch.price) : (plan?.price || 0);
+      const baseAmount = batch ? (batch.discounted_price ?? batch.price) : (plan?.price || 0);
 
       let billingCycle: "WEEK" | "MONTH" | "QUARTER" | "YEAR" = "MONTH";
       if (days === 7) billingCycle = "WEEK";
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         subscribed_at: sub.start_date || sub.created_at,
         end_date: sub.end_date,
         status: sub.status,
-        amount: sub.payment?.amount || baseAmount,
+        amount: sub.payment?.amount ?? baseAmount,
       };
     });
 
