@@ -81,6 +81,7 @@ export function TraderSupport({ user }: { user: SupportUser }) {
 
   // Form states
   const [category, setCategory] = useState("general");
+  const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -99,10 +100,14 @@ export function TraderSupport({ user }: { user: SupportUser }) {
     return matchesSearch && matchesCategory;
   });
 
-  // Submit Support Form (Mock call with dynamic states)
+  // Submit Support Form
   const handleSubmitTicket = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
     if (!subject.trim()) {
       toast.error("Please enter a subject.");
       return;
@@ -114,17 +119,41 @@ export function TraderSupport({ user }: { user: SupportUser }) {
 
     setSubmitting(true);
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    try {
+      const res = await fetch("/api/help-support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          user_id: user?.user_id,
+          name: user?.name || "Trader",
+          email: email.trim(),
+          phone: user?.phone || "",
+          category,
+          subject: subject.trim(),
+          message: description.trim(),
+        }),
+      });
 
-    setSubmitting(false);
-    toast.success(
-      "Support ticket raised successfully! Ticket ID: STX-" +
-        Math.floor(100000 + Math.random() * 900000)
-    );
-    setSubject("");
-    setDescription("");
-    setCategory("general");
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        toast.error(data.error || "Something went wrong. Please try again.");
+        return;
+      }
+
+      toast.success(
+        `Support ticket raised successfully! Ticket ID: ${data.ticket_id}`
+      );
+      setEmail("");
+      setSubject("");
+      setDescription("");
+      setCategory("general");
+    } catch {
+      toast.error("Network error. Please check your connection and try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -163,7 +192,7 @@ export function TraderSupport({ user }: { user: SupportUser }) {
                   className={[
                     "rounded-md px-3 py-1.5 text-[11.5px] font-bold transition-all whitespace-nowrap",
                     selectedCategory === cat
-                      ? "bg-white text-emerald-800 shadow-sm"
+                      ? "bg-white text-[var(--brand)] shadow-sm"
                       : "text-[var(--muted)] hover:text-[var(--ink)]",
                   ].join(" ")}
                 >
@@ -187,7 +216,7 @@ export function TraderSupport({ user }: { user: SupportUser }) {
                 setSearchQuery(e.target.value);
                 setExpandedFaq(null);
               }}
-              className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-[13.5px] font-medium text-[var(--ink)] placeholder:text-slate-400 outline-none focus:border-emerald-500 transition-colors"
+              className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-[13.5px] font-medium text-[var(--ink)] placeholder:text-slate-400 outline-none focus:border-[var(--brand)] transition-colors"
             />
           </div>
 
@@ -215,21 +244,21 @@ export function TraderSupport({ user }: { user: SupportUser }) {
                     className={[
                       "rounded-xl border bg-white transition-all duration-200 overflow-hidden",
                       isExpanded
-                        ? "border-emerald-500/30 shadow-[0_4px_16px_rgba(16,185,129,0.04)]"
+                        ? "border-[var(--brand)]/30 shadow-[0_4px_16px_rgba(31,122,224,0.04)]"
                         : "border-slate-200 hover:border-slate-300",
                     ].join(" ")}
                   >
                     <button
                       type="button"
                       onClick={() => toggleFaq(faq.id)}
-                      className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left font-bold text-[14px] text-[var(--ink)] select-none hover:text-emerald-700 transition-colors"
+                      className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left font-bold text-[14px] text-[var(--ink)] select-none hover:text-[var(--brand)] transition-colors"
                     >
                       <span>{faq.question}</span>
                       <Icon
                         name="chevronDown"
                         className={[
                           "h-3.5 w-3.5 text-slate-400 transition-transform duration-250 shrink-0",
-                          isExpanded ? "rotate-180 text-emerald-600" : "",
+                          isExpanded ? "rotate-180 text-[var(--brand)]" : "",
                         ].join(" ")}
                       />
                     </button>
@@ -246,7 +275,7 @@ export function TraderSupport({ user }: { user: SupportUser }) {
 
           {/* Quick Help Tip */}
           <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4">
-            <Icon name="sparkle" className="h-4.5 w-4.5 text-emerald-600 shrink-0 mt-0.5" />
+            <Icon name="sparkle" className="h-4.5 w-4.5 text-[var(--brand)] shrink-0 mt-0.5" />
             <div className="text-[12px] leading-relaxed text-[var(--muted)]">
               <span className="font-bold text-[var(--ink)]">Tip:</span> If you are facing
               verification issues, verify that the Aadhaar details you enter match your billing or
@@ -266,9 +295,9 @@ export function TraderSupport({ user }: { user: SupportUser }) {
               {/* Email Card */}
               <a
                 href="mailto:support@stoxify.com"
-                className="flex items-center gap-4 rounded-xl border border-slate-100 bg-slate-50/50 p-3.5 hover:border-emerald-300/40 hover:bg-emerald-50/20 transition-all group"
+                className="flex items-center gap-4 rounded-xl border border-slate-100 bg-slate-50/50 p-3.5 hover:border-[var(--brand)]/20 hover:bg-[var(--brand)]/5 transition-all group"
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 group-hover:bg-emerald-500/20 transition-all">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--brand)]/10 text-[var(--brand)] group-hover:bg-[var(--brand)]/20 transition-all">
                   <Icon name="mail" className="h-4.5 w-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -281,16 +310,16 @@ export function TraderSupport({ user }: { user: SupportUser }) {
                 </div>
                 <Icon
                   name="arrowRight"
-                  className="h-3.5 w-3.5 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all"
+                  className="h-3.5 w-3.5 text-slate-300 group-hover:text-[var(--brand)] group-hover:translate-x-0.5 transition-all"
                 />
               </a>
 
               {/* Phone Card */}
               <a
                 href="tel:+919999999999"
-                className="flex items-center gap-4 rounded-xl border border-slate-100 bg-slate-50/50 p-3.5 hover:border-emerald-300/40 hover:bg-emerald-50/20 transition-all group"
+                className="flex items-center gap-4 rounded-xl border border-slate-100 bg-slate-50/50 p-3.5 hover:border-[var(--brand)]/20 hover:bg-[var(--brand)]/5 transition-all group"
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 group-hover:bg-emerald-500/20 transition-all">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--brand)]/10 text-[var(--brand)] group-hover:bg-[var(--brand)]/20 transition-all">
                   <Icon name="phone" className="h-4.5 w-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -303,7 +332,7 @@ export function TraderSupport({ user }: { user: SupportUser }) {
                 </div>
                 <Icon
                   name="arrowRight"
-                  className="h-3.5 w-3.5 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all"
+                  className="h-3.5 w-3.5 text-slate-300 group-hover:text-[var(--brand)] group-hover:translate-x-0.5 transition-all"
                 />
               </a>
             </div>
@@ -342,6 +371,21 @@ export function TraderSupport({ user }: { user: SupportUser }) {
                 </div>
               </div>
 
+              {/* Email Address */}
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 select-none">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  placeholder="Enter your email for ticket updates..."
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={submitting}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[13px] font-semibold text-[var(--ink)] placeholder:text-slate-300 outline-none focus:border-[var(--brand)] transition-colors"
+                />
+              </div>
+
               {/* Inquiry Category */}
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 select-none">
@@ -350,7 +394,7 @@ export function TraderSupport({ user }: { user: SupportUser }) {
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[13px] font-semibold text-[var(--ink)] outline-none focus:border-emerald-500 transition-colors"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[13px] font-semibold text-[var(--ink)] outline-none focus:border-[var(--brand)] transition-colors"
                 >
                   <option value="general">General Support</option>
                   <option value="kyc">KYC Verification Issue</option>
@@ -371,7 +415,7 @@ export function TraderSupport({ user }: { user: SupportUser }) {
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   disabled={submitting}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[13px] font-semibold text-[var(--ink)] placeholder:text-slate-300 outline-none focus:border-emerald-500 transition-colors"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[13px] font-semibold text-[var(--ink)] placeholder:text-slate-300 outline-none focus:border-[var(--brand)] transition-colors"
                 />
               </div>
 
@@ -386,7 +430,7 @@ export function TraderSupport({ user }: { user: SupportUser }) {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   disabled={submitting}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[13px] font-semibold text-[var(--ink)] placeholder:text-slate-300 outline-none focus:border-emerald-500 transition-colors resize-none"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[13px] font-semibold text-[var(--ink)] placeholder:text-slate-300 outline-none focus:border-[var(--brand)] transition-colors resize-none"
                 />
               </div>
 
@@ -394,7 +438,7 @@ export function TraderSupport({ user }: { user: SupportUser }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-bold text-[13px] py-3 shadow-sm active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
+                className="w-full rounded-xl bg-[var(--brand)] hover:bg-[var(--brand-dark)] disabled:opacity-50 text-white font-bold text-[13px] py-3 shadow-sm active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
               >
                 {submitting ? (
                   <>
