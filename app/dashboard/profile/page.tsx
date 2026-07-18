@@ -593,6 +593,7 @@ export default function ProfilePage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [username, setUsername] = useState("");
+  const [telegramChannelId, setTelegramChannelId] = useState("");
 
   // SEBI Document Upload State
   const [sebiDocFile, setSebiDocFile] = useState<File | null>(null);
@@ -657,9 +658,12 @@ export default function ProfilePage() {
     return () => clearTimeout(timer);
   }, [username, profile?.username]);
 
-  // Sync state with SWR mock profile when fetched
+  // Sync state from server data — runs once on initial load and again after
+  // mutate() resolves following a successful save.
+  const hasInitialized = useRef(false);
   useEffect(() => {
-    if (profile) {
+    if (profile && !hasInitialized.current) {
+      hasInitialized.current = true;
       const parts = profile.name.split(" ");
       /* eslint-disable react-hooks/set-state-in-effect */
       setFirstName(parts[0] || "");
@@ -670,6 +674,7 @@ export default function ProfilePage() {
       setAvatarUrl(profile.profile_pic_url || "");
       setUsername(profile.username || "");
       setUsernameStatus("idle");
+      setTelegramChannelId(profile.telegram_channel_id || "");
       /* eslint-enable react-hooks/set-state-in-effect */
     }
   }, [profile]);
@@ -686,6 +691,7 @@ export default function ProfilePage() {
       setAvatarUrl(profile.profile_pic_url || "");
       setUsername(profile.username || "");
       setUsernameStatus("idle");
+      setTelegramChannelId(profile.telegram_channel_id || "");
     }
   };
 
@@ -722,6 +728,17 @@ export default function ProfilePage() {
     }
 
     const updatedName = `${firstName.trim()} ${lastName.trim()}`.trim();
+    let parsedTelegramId = telegramChannelId.trim();
+    if (parsedTelegramId) {
+      // If it's a t.me link, extract the username and prepend @
+      const tMeMatch = parsedTelegramId.match(/(?:https?:\/\/)?(?:www\.)?t\.me\/(?!joinchat)(?!c\/)(?![\+])([a-zA-Z0-9_]+)/i);
+      if (tMeMatch) {
+        parsedTelegramId = "@" + tMeMatch[1];
+      } else if (!parsedTelegramId.startsWith('@') && !/^-?\d+$/.test(parsedTelegramId)) {
+        // Automatically add @ if the user just typed the username
+        parsedTelegramId = "@" + parsedTelegramId;
+      }
+    }
 
     try {
       const res = await fetch("/api/analyst/profile", {
@@ -735,15 +752,18 @@ export default function ProfilePage() {
           twitter_url: twitterUrl.trim(),
           linkedin_url: linkedinUrl.trim(),
           profile_pic_url: avatarUrl || undefined,
+          telegram_channel_id: parsedTelegramId === "" ? null : parsedTelegramId,
         }),
       });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        showSuccessToast("Save Failed", err.error ?? "Unable to save profile changes.");
+        showSuccessToast("Save Failed", err.error ?? err.message ?? "Unable to save profile changes.");
         return;
       }
 
+      // Allow the useEffect to re-sync with the freshly-fetched server data
+      hasInitialized.current = false;
       // Refresh cached profile so sidebar/topbar update instantly
       await mutate();
 
@@ -751,8 +771,9 @@ export default function ProfilePage() {
         "Profile Updated",
         "Your professional profile details have been saved successfully."
       );
-    } catch {
-      showSuccessToast("Network Error", "Unable to reach the server. Please try again.");
+    } catch (err) {
+      console.error("Profile save error:", err);
+      showSuccessToast("Network Error", String(err));
     }
   };
 
@@ -1133,6 +1154,40 @@ export default function ProfilePage() {
                   <span className="text-[11px] text-slate-400 mt-1 block">
                     Share this unique link with potential subscribers to showcase your profile and plans.
                   </span>
+                </div>
+
+                {/* Telegram Integration */}
+                <div className="mt-2 rounded-xl border border-slate-100 bg-slate-50/60 p-5">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#229ED9]/10">
+                      <svg className="h-4 w-4 text-[#229ED9]" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.32 13.617l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.828.942z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="text-[13.5px] font-bold text-slate-800">Telegram Integration</div>
+                      <div className="text-[11.5px] text-slate-400">Broadcast trades to your Telegram channel</div>
+                    </div>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="telegramChannelId"
+                      className="text-[12.5px] font-bold text-slate-700 mb-1.5 block"
+                    >
+                      Telegram Channel Link or ID
+                    </label>
+                    <input
+                      id="telegramChannelId"
+                      type="text"
+                      value={telegramChannelId}
+                      onChange={(e) => setTelegramChannelId(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-[13.5px] text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#229ED9] transition-colors shadow-sm bg-white"
+                      placeholder="e.g. https://t.me/MyChannel, @MyChannel, or -100..."
+                    />
+                    <span className="text-[11px] text-slate-400 mt-1 block">
+                      @<b>StoXifyTradebot</b>&nbsp;must be added as an admin to this channel. Trades published with the &ldquo;Publish to Telegram&rdquo; option will be broadcasted here.
+                    </span>
+                  </div>
                 </div>
 
                 <hr className="border-slate-100 mt-2" />

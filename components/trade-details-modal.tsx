@@ -47,7 +47,8 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
 
   // Closed vs Live PNL
   const isClosed =
-    trade.status === "CLOSED" || trade.status === "TARGET_HIT" || trade.status === "SL_HIT";
+    trade.status === "CLOSED" || trade.status === "TARGET_HIT" || trade.status === "SL_HIT" ||
+    trade.status === "CLOSED_BY_SL" || trade.status === "CLOSED_BY_TARGET" || trade.status === "MANUALLY_CLOSED";
   const pnlPercent = isClosed
     ? trade.pnl_percent ?? trade.pnl_pct ?? 0
     : entry > 0
@@ -78,6 +79,7 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
   // Estimated stats
   const estimatedGains = targetVal && entry > 0 ? (Math.abs(targetVal - entry) / entry) * 100 : 0;
   const estimatedRisk = slVal && entry > 0 ? (Math.abs(entry - slVal) / entry) * 100 : 0;
+  const isProfit = trade.pnl_percent !== undefined && trade.pnl_percent >= 0;
 
   // Formatting dates
   const formatDate = (dateStr?: string) => {
@@ -348,6 +350,44 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
                   )}
                 </div>
               </div>
+
+              {/* Modification History */}
+              {isClosed && (
+                <div className="space-y-3">
+                  <h3 className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider">Actions / Modification History</h3>
+                  <div className="space-y-5">
+                    {/* Action 1: Entry */}
+                    <div className="flex justify-between">
+                      <div>
+                        <div className="text-[13px] text-gray-700">Action</div>
+                        <div className="text-[14px] font-bold text-gray-900 mt-1">Trade published</div>
+                        <div className="text-[11px] text-gray-500 mt-2">Updated at</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[13px] text-gray-700">Price</div>
+                        <div className="text-[14px] font-bold text-gray-900 mt-1">₹{trade.entry_price.toFixed(2)}</div>
+                        <div className="text-[11px] text-gray-500 mt-2">{createdDate}</div>
+                      </div>
+                    </div>
+                    
+                    {/* Action 2: Exit */}
+                    {trade.exit_timestamp && (
+                      <div className="flex justify-between">
+                        <div>
+                          <div className="text-[13px] text-gray-700">Action</div>
+                          <div className="text-[14px] font-bold text-gray-900 mt-1">{isProfit ? 'Target hit' : 'Stop loss hit'}</div>
+                          <div className="text-[11px] text-gray-500 mt-2">Updated at</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[13px] text-gray-700">Price</div>
+                          <div className="text-[14px] font-bold text-gray-900 mt-1">₹{trade.exit_price?.toFixed(2) ?? '—'}</div>
+                          <div className="text-[11px] text-gray-500 mt-2">{exitDate}</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Trade Rationale / Notes */}
               {trade.note && (
