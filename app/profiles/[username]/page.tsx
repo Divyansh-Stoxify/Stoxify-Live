@@ -4,6 +4,7 @@ import Link from "next/link";
 import { BadgeCheck, Globe, Box, Star, TrendingUp, Users, Target, Activity } from "lucide-react";
 import { BatchListClient } from "@/components/public/BatchListClient";
 import { ThemeToggle } from "@/components/public/ThemeToggle";
+import { RAEvaluationDashboard } from "@/components/public/RAEvaluationDashboard";
 
 interface PageProps {
   params: Promise<{
@@ -174,6 +175,14 @@ export default async function AnalystLandingPage({ params }: PageProps) {
               <span className="text-2xl font-bold text-[var(--brand)]">{stats.subscriberCount}+</span>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Evaluation Dashboard Section */}
+      <div className="bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 py-16 transition-colors duration-300">
+        <div className="max-w-5xl mx-auto px-6 animate-reveal">
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-8 text-center">Analyst Evaluation</h2>
+          <RAEvaluationDashboard username={resolvedParams.username} />
         </div>
       </div>
 
