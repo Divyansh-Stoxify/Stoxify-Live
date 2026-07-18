@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useSWRConfig } from "swr";
 import { Icon } from "@/components/stoxify-icon";
 import type { TradeDirection } from "@/lib/types/analyst";
-import { useSubscriptionPlans } from "@/hooks/use-analyst-dashboard";
+import { useSubscriptionPlans, useAnalystProfile } from "@/hooks/use-analyst-dashboard";
 import { cleanErrorMessage } from "@/lib/utils";
 
 // ─── Backend Error Mapping ────────────────────────────────────────────────────
@@ -113,6 +113,8 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
   const [strikePrice, setStrikePrice] = useState("");
   const [optionType, setOptionType] = useState<"CE" | "PE" | "">("");
   const { plans } = useSubscriptionPlans();
+  const { profile } = useAnalystProfile();
+  const [publishToTelegram, setPublishToTelegram] = useState(false);
 
   // Auto-detect FNO details from symbol string
   useEffect(() => {
@@ -263,8 +265,14 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
       }
     }
 
+    // Telegram: if publish is checked but channel ID is missing, block
+    if (publishToTelegram && !(profile as any)?.telegram_channel_id) {
+      nextErrors.telegram =
+        "Telegram Channel ID is required. Please set it in your Profile settings first.";
+    }
+
     return nextErrors;
-  }, [symbolQuery, entryPrice, targets, stopLoss, selectedPlanIds, expiry, segment, position]);
+  }, [symbolQuery, entryPrice, targets, stopLoss, selectedPlanIds, expiry, segment, position, publishToTelegram, profile]);
 
   const getFieldError = useCallback((field: string) => {
     if (touched[field] || isSubmittedOnce) {
@@ -512,7 +520,8 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
         body: JSON.stringify({
           ...basePayload,
           batch: selectedPlans.map((p) => p.name),
-          plan_id: selectedPlans.map((p) => p.plan_id),
+          plan_id: selectedPlans[0]?.plan_id,
+          publish_to_telegram: publishToTelegram,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -1281,6 +1290,74 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
               />
             </div>
           </div>
+
+          {/* Telegram Publish Toggle */}
+          {(() => {
+            const hasTelegramId = Boolean((profile as any)?.telegram_channel_id);
+            return (
+              <div
+                className={`mx-6 mb-4 flex items-start gap-3 rounded-xl border p-3.5 transition-colors ${
+                  publishToTelegram
+                    ? "border-[#229ED9]/30 bg-[#229ED9]/5"
+                    : "border-[var(--line)] bg-[var(--surface)]/40"
+                }`}
+              >
+                <button
+                  type="button"
+                  id="publishToTelegramToggle"
+                  role="checkbox"
+                  aria-checked={publishToTelegram}
+                  onClick={() => {
+                    if (!hasTelegramId && !publishToTelegram) {
+                      setErrors((prev) => ({
+                        ...prev,
+                        telegram:
+                          "No Telegram Channel ID found. Please add one in Profile Settings first.",
+                      }));
+                      return;
+                    }
+                    setPublishToTelegram((v) => !v);
+                    setErrors((prev) => ({ ...prev, telegram: "" }));
+                  }}
+                  className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-all ${
+                    publishToTelegram
+                      ? "border-[#229ED9] bg-[#229ED9] text-white"
+                      : "border-[var(--line)] bg-white"
+                  }`}
+                >
+                  {publishToTelegram && <Icon name="check" className="h-3 w-3" />}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <svg className="h-3.5 w-3.5 text-[#229ED9] shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.32 13.617l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.828.942z" />
+                    </svg>
+                    <span className="text-[12.5px] font-bold text-[var(--ink)]">
+                      Publish to Telegram
+                    </span>
+                    {!hasTelegramId && (
+                      <span className="text-[10px] font-semibold text-amber-500 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
+                        Channel ID not set
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-[var(--muted)] mt-0.5">
+                    {hasTelegramId
+                      ? `Broadcast this trade signal to your channel: ${(profile as any).telegram_channel_id}`
+                      : "Go to Profile → Telegram Integration to configure your channel ID."}
+                  </p>
+                  {(errors.telegram || getFieldError("telegram")) && (
+                    <div className="mt-1.5 text-[10.5px] text-amber-600 font-semibold flex items-start gap-1">
+                      <svg className="mt-[1px] h-3 w-3 shrink-0 fill-current" viewBox="0 0 16 16">
+                        <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm-.75 4a.75.75 0 0 1 1.5 0v3.5a.75.75 0 0 1-1.5 0V5Zm.75 7a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z" />
+                      </svg>
+                      {errors.telegram || getFieldError("telegram")}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Footer Actions */}
           <div className="px-6 py-4 bg-[var(--surface)] flex flex-col gap-3 border-t border-dashed border-[#1f7ae0]/25">

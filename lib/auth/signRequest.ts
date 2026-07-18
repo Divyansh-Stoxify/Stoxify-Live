@@ -39,7 +39,7 @@ export function buildSignedHeaders({
   const timestamp = Date.now().toString();
   const nonce = randomBytes(16).toString("hex");
   const message = `${method.toUpperCase()}|${path}|${body}|${timestamp}|${nonce}|${deviceId}`;
-  console.log("[DEBUG SIGNATURE] Frontend message:", message);
+  //console.log("[DEBUG SIGNATURE] Frontend message:", message);
   const signer = createSign("SHA256");
 
   signer.update(message);

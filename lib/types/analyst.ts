@@ -129,4 +129,5 @@ export interface AnalystProfile {
     rejection_reason?: string;
     documents?: Array<{ type?: string; url?: string; uploaded_at?: string }>;
   };
+  telegram_channel_id?: string | null;
 }
