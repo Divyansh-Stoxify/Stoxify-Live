@@ -388,15 +388,15 @@ function AnalystOnboardingForm() {
   if (!token || !phone) return null;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--surface)] font-sans">
+    <div className="flex min-h-screen lg:h-screen lg:overflow-hidden bg-[var(--surface)] font-sans">
       {/* ─── Desktop Sidebar ─── */}
       <OnboardingSidebar formStep={formStep} />
 
       {/* ─── Main Content Area ─── */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col lg:overflow-hidden lg:min-h-0">
         <MobileTopBar formStep={formStep} />
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 lg:overflow-y-auto">
           <div className="mx-auto w-full max-w-[580px] px-5 py-8 md:py-12">
             {/* Page Header */}
             <div className="mb-8 animate-[fadeUp_0.4s_ease_both]">
