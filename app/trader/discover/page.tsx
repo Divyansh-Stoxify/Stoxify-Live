@@ -119,9 +119,7 @@ function BatchRow({ batch }: { batch: Batch }) {
       : batch.segment
         ? [batch.segment]
         : [];
-  const risk = batch.risk_level
-    ? RISK_META[batch.risk_level.toUpperCase()]
-    : undefined;
+  const risk = batch.risk_level ? RISK_META[batch.risk_level.toUpperCase()] : undefined;
   const horizon = batch.horizons && batch.horizons.length > 0 ? batch.horizons[0] : null;
 
   return (
@@ -143,7 +141,9 @@ function BatchRow({ batch }: { batch: Batch }) {
               {batch.name}
             </h3>
             {risk && (
-              <span className={`hidden sm:inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider ${risk.text}`}>
+              <span
+                className={`hidden sm:inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider ${risk.text}`}
+              >
                 <span className={`h-1.5 w-1.5 rounded-full ${risk.dot}`} />
                 {risk.label} Risk
               </span>
@@ -192,7 +192,9 @@ function BatchRow({ batch }: { batch: Batch }) {
             Risk
           </span>
           {risk ? (
-            <span className={`mt-0.5 inline-flex items-center gap-1 text-[13px] font-bold ${risk.text}`}>
+            <span
+              className={`mt-0.5 inline-flex items-center gap-1 text-[13px] font-bold ${risk.text}`}
+            >
               <span className={`h-2 w-2 rounded-full ${risk.dot}`} />
               {risk.label}
             </span>
@@ -304,10 +306,7 @@ export default function DiscoverPage() {
 
   // Available horizons come from the facets endpoint so options don't vanish
   // once the result set is narrowed.
-  const availableHorizons = useMemo(
-    () => facets.horizons.map((h) => h.value),
-    [facets.horizons]
-  );
+  const availableHorizons = useMemo(() => facets.horizons.map((h) => h.value), [facets.horizons]);
   const riskCounts = useMemo(() => {
     const map = new Map<string, number>();
     facets.risk_levels.forEach((r) => map.set(r.value, r.count));
@@ -352,9 +351,8 @@ export default function DiscoverPage() {
             Discover Batches
           </h1>
           <p className="text-[14px] text-[var(--muted)] font-medium leading-relaxed">
-            Browse advisory batches from top SEBI-registered Research Analysts. Filter by
-            risk and horizon, compare pricing, and subscribe to batches that fit your trading
-            style.
+            Browse advisory batches from top SEBI-registered Research Analysts. Filter by risk and
+            horizon, compare pricing, and subscribe to batches that fit your trading style.
           </p>
         </div>
 
@@ -535,9 +533,7 @@ export default function DiscoverPage() {
                   <Icon name="search" className="h-6 w-6" />
                 </div>
                 <h3 className="text-[16px] font-bold text-[var(--ink)] mb-1.5">
-                  {search || activeFilterCount > 0
-                    ? "No matching batches"
-                    : "No batches available"}
+                  {search || activeFilterCount > 0 ? "No matching batches" : "No batches available"}
                 </h3>
                 <p className="text-[13.5px] text-[var(--muted)] font-medium max-w-[320px]">
                   {search || activeFilterCount > 0

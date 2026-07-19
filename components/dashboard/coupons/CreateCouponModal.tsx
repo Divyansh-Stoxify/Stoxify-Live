@@ -11,7 +11,9 @@ export function CreateCouponModal({ onClose, onSelectType }: CreateCouponModalPr
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
       <div className="w-full max-w-[500px] overflow-hidden rounded-2xl bg-white shadow-2xl animate-[scaleIn_0.2s_ease-out]">
         <div className="flex items-center justify-between border-b border-[var(--line)] px-6 py-4">
-          <h2 className="text-[16px] font-extrabold text-[var(--ink)] tracking-tight">Choose coupon type</h2>
+          <h2 className="text-[16px] font-extrabold text-[var(--ink)] tracking-tight">
+            Choose coupon type
+          </h2>
           <button
             onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--muted-2)] hover:bg-slate-100 hover:text-[var(--ink)] transition-colors cursor-pointer"

@@ -22,7 +22,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   };
   console.log("NEXTJS RECEIVED READ:", searchParams.get("read"));
 
-
   try {
     const backendResponse = await signedBackendFetch({
       baseUrl: backendUrls.notification,

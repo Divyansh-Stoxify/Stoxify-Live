@@ -142,7 +142,10 @@ export default function DiscountsPage() {
               </h3>
               <p className="text-[13px] text-[var(--muted-2)] font-medium mt-1 max-w-sm">
                 You can create and manage all your coupons on this page. Learn more about coupons{" "}
-                <a href="#" className="underline text-[var(--brand)]">here</a>.
+                <a href="#" className="underline text-[var(--brand)]">
+                  here
+                </a>
+                .
               </p>
             </div>
           </div>
@@ -193,7 +196,9 @@ export default function DiscountsPage() {
                               ))}
                             </div>
                           ) : (
-                            <span className="text-[11px] text-[var(--muted)] font-medium italic">All</span>
+                            <span className="text-[11px] text-[var(--muted)] font-medium italic">
+                              All
+                            </span>
                           )}
                         </td>
                         <td className="px-6 py-4">
@@ -209,16 +214,21 @@ export default function DiscountsPage() {
                               ))}
                             </div>
                           ) : (
-                            <span className="text-[11px] text-[var(--muted)] font-medium italic">All</span>
+                            <span className="text-[11px] text-[var(--muted)] font-medium italic">
+                              All
+                            </span>
                           )}
                         </td>
                         <td className="px-6 py-4">
-                          {coupon.quantity_used} / {coupon.quantity_total === null ? "∞" : coupon.quantity_total}
+                          {coupon.quantity_used} /{" "}
+                          {coupon.quantity_total === null ? "∞" : coupon.quantity_total}
                         </td>
                         <td className="px-6 py-4">
                           <button
                             type="button"
-                            onClick={() => handleToggleStatus(coupon.coupon_id, coupon.is_active, coupon.code)}
+                            onClick={() =>
+                              handleToggleStatus(coupon.coupon_id, coupon.is_active, coupon.code)
+                            }
                             className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide uppercase cursor-pointer hover:opacity-85 transition-opacity ${
                               coupon.is_active
                                 ? "bg-[var(--green-light)] text-[var(--green)] border border-[var(--green)]/15"

@@ -342,7 +342,8 @@ export function DashboardOnboarding({ user }: { user: OnboardingUser }) {
               </div>
             </div>
             <div className="text-[13.5px] text-[var(--ink)] leading-relaxed mb-6">
-              You deleted your account and it was under deactivation phase for 30 days. After login, you need to delete again in order to go under deactivation phase of 30 days.
+              You deleted your account and it was under deactivation phase for 30 days. After login,
+              you need to delete again in order to go under deactivation phase of 30 days.
             </div>
             <button
               type="button"

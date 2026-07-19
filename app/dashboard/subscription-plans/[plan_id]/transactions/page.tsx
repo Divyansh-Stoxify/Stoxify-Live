@@ -50,9 +50,13 @@ function avatarGradient(name?: string) {
   return AVATAR_GRADIENTS[idx];
 }
 
-export default function BatchTransactionsPage({ params }: { params: Promise<{ plan_id: string }> }) {
+export default function BatchTransactionsPage({
+  params,
+}: {
+  params: Promise<{ plan_id: string }>;
+}) {
   const { plan_id } = use(params);
-  
+
   const [transactions, setTransactions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
@@ -68,7 +72,7 @@ export default function BatchTransactionsPage({ params }: { params: Promise<{ pl
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       const list = json.subscriptions ?? json.data ?? json ?? [];
-      
+
       // Filter out those without payment info, although most should have it
       setTransactions(Array.isArray(list) ? list : []);
       setIsError(false);
@@ -103,12 +107,17 @@ export default function BatchTransactionsPage({ params }: { params: Promise<{ pl
     <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
       <div className="flex flex-col gap-1">
         <h1 className="text-[22px] font-black tracking-tight text-[var(--ink)]">Transactions</h1>
-        <p className="text-[13px] text-[var(--muted-2)] font-medium">View payments made by subscribers for this batch.</p>
+        <p className="text-[13px] text-[var(--muted-2)] font-medium">
+          View payments made by subscribers for this batch.
+        </p>
       </div>
 
       <div className="flex flex-wrap gap-4 items-center justify-between bg-white p-4 rounded-xl border border-[var(--line)] shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
         <div className="relative min-w-[320px] max-[640px]:w-full">
-          <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-2)] h-4 w-4" name="search" />
+          <Icon
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-2)] h-4 w-4"
+            name="search"
+          />
           <input
             type="text"
             placeholder="Search by name, email or ID..."
@@ -124,48 +133,94 @@ export default function BatchTransactionsPage({ params }: { params: Promise<{ pl
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-[var(--line)] bg-[var(--line-2)]">
-                <th className="py-4 pl-6 pr-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]">Subscriber</th>
-                <th className="py-4 px-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]">Transaction Details</th>
-                <th className="py-4 px-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)] text-right">Amount</th>
-                <th className="py-4 px-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]">Date & Time</th>
-                <th className="py-4 pl-4 pr-6 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)] text-center">Status</th>
+                <th className="py-4 pl-6 pr-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]">
+                  Subscriber
+                </th>
+                <th className="py-4 px-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]">
+                  Transaction Details
+                </th>
+                <th className="py-4 px-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)] text-right">
+                  Amount
+                </th>
+                <th className="py-4 px-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]">
+                  Date & Time
+                </th>
+                <th className="py-4 pl-4 pr-6 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)] text-center">
+                  Status
+                </th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 Array.from({ length: 3 }).map((_, idx) => (
                   <tr key={idx} className="border-b border-[var(--line)]">
-                    <td className="py-5 pl-6 pr-4"><div className="h-9 w-32 animate-pulse rounded bg-[var(--line)]" /></td>
-                    <td className="py-5 px-4"><div className="h-4 w-32 animate-pulse rounded bg-[var(--line)]" /></td>
-                    <td className="py-5 px-4 text-right"><div className="h-4 w-12 animate-pulse rounded bg-[var(--line)] ml-auto" /></td>
-                    <td className="py-5 px-4"><div className="h-4 w-24 animate-pulse rounded bg-[var(--line)]" /></td>
-                    <td className="py-5 pl-4 pr-6 text-center"><div className="mx-auto h-5 w-16 animate-pulse rounded-full bg-[var(--line)]" /></td>
+                    <td className="py-5 pl-6 pr-4">
+                      <div className="h-9 w-32 animate-pulse rounded bg-[var(--line)]" />
+                    </td>
+                    <td className="py-5 px-4">
+                      <div className="h-4 w-32 animate-pulse rounded bg-[var(--line)]" />
+                    </td>
+                    <td className="py-5 px-4 text-right">
+                      <div className="h-4 w-12 animate-pulse rounded bg-[var(--line)] ml-auto" />
+                    </td>
+                    <td className="py-5 px-4">
+                      <div className="h-4 w-24 animate-pulse rounded bg-[var(--line)]" />
+                    </td>
+                    <td className="py-5 pl-4 pr-6 text-center">
+                      <div className="mx-auto h-5 w-16 animate-pulse rounded-full bg-[var(--line)]" />
+                    </td>
                   </tr>
                 ))
               ) : isError ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-[var(--red)] text-[13px] font-bold">Failed to load transactions.</td>
+                  <td
+                    colSpan={5}
+                    className="py-12 text-center text-[var(--red)] text-[13px] font-bold"
+                  >
+                    Failed to load transactions.
+                  </td>
                 </tr>
               ) : filteredTransactions.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-16 text-center text-[13px] font-bold text-[var(--muted-2)]">No transactions found for this batch.</td>
+                  <td
+                    colSpan={5}
+                    className="py-16 text-center text-[13px] font-bold text-[var(--muted-2)]"
+                  >
+                    No transactions found for this batch.
+                  </td>
                 </tr>
               ) : (
                 filteredTransactions.map((t) => {
                   return (
-                    <tr key={t.subscription_id} className="border-b border-[var(--line)] hover:bg-[var(--surface)] transition-colors">
+                    <tr
+                      key={t.subscription_id}
+                      className="border-b border-[var(--line)] hover:bg-[var(--surface)] transition-colors"
+                    >
                       <td className="py-4 pl-6 pr-4">
                         <div className="flex items-center gap-3">
                           {t.user_avatar ? (
-                            <Image alt={t.user_name} className="h-9 w-9 shrink-0 rounded-full object-cover border border-[var(--line)]" src={t.user_avatar} width={36} height={36} />
+                            <Image
+                              alt={t.user_name}
+                              className="h-9 w-9 shrink-0 rounded-full object-cover border border-[var(--line)]"
+                              src={t.user_avatar}
+                              width={36}
+                              height={36}
+                            />
                           ) : (
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11.5px] font-extrabold text-white" style={{ background: avatarGradient(t.user_name) }}>
+                            <div
+                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11.5px] font-extrabold text-white"
+                              style={{ background: avatarGradient(t.user_name) }}
+                            >
                               {getInitials(t.user_name)}
                             </div>
                           )}
                           <div className="min-w-0">
-                            <div className="text-[13px] font-bold text-[var(--ink)] truncate">{t.user_name}</div>
-                            <div className="text-[11.5px] text-[var(--muted-2)] truncate mt-0.5">{t.user_email || "No email"}</div>
+                            <div className="text-[13px] font-bold text-[var(--ink)] truncate">
+                              {t.user_name}
+                            </div>
+                            <div className="text-[11.5px] text-[var(--muted-2)] truncate mt-0.5">
+                              {t.user_email || "No email"}
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -178,7 +233,9 @@ export default function BatchTransactionsPage({ params }: { params: Promise<{ pl
                         </div>
                       </td>
                       <td className="py-4 px-4 text-right">
-                        <span className="text-[14px] font-black text-emerald-600">{formatCurrency(t.amount ?? 0)}</span>
+                        <span className="text-[14px] font-black text-emerald-600">
+                          {formatCurrency(t.amount ?? 0)}
+                        </span>
                       </td>
                       <td className="py-4 px-4 text-[12.5px] text-[var(--ink)] font-medium">
                         {formatDateAndTime(t.subscribed_at)}

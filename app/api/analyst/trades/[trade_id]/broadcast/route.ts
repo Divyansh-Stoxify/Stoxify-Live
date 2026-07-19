@@ -6,10 +6,10 @@ export async function POST(
 ): Promise<NextResponse> {
   const { trade_id } = await params;
   const body = await request.json().catch(() => ({}));
-  
+
   // Simulate network delay
   await new Promise((resolve) => setTimeout(resolve, 600));
-  
+
   return NextResponse.json({
     success: true,
     message: "Broadcast sent successfully!",

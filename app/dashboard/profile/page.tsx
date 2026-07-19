@@ -402,7 +402,9 @@ function DeleteAccountTab() {
             <Icon name="x" className="h-5 w-5" />
           </div>
           <div>
-            <h4 className="text-[13.5px] font-bold text-red-800 mb-1.5">What happens when you delete your account?</h4>
+            <h4 className="text-[13.5px] font-bold text-red-800 mb-1.5">
+              What happens when you delete your account?
+            </h4>
             <ul className="text-[12.5px] text-red-700 space-y-1.5 list-disc ml-4 leading-relaxed">
               <li>All your subscription plans will be deactivated</li>
               <li>Active subscriber access to your trades will be revoked</li>
@@ -643,7 +645,9 @@ export default function ProfilePage() {
       showSuccessToast("Document Added", "Your SEBI document has been selected successfully.");
     }
   };
-  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">(
+    "idle"
+  );
   const isUsernameSet = Boolean(profile?.username);
 
   // Debounce username checking
@@ -980,12 +984,20 @@ export default function ProfilePage() {
                     className="text-[12.5px] font-bold text-slate-700 mb-1.5 flex items-center justify-between"
                   >
                     <span>Unique Username</span>
-                    {usernameStatus === "checking" && <span className="text-slate-400 font-normal">Checking...</span>}
-                    {usernameStatus === "available" && <span className="text-green-500 font-normal">Available</span>}
-                    {usernameStatus === "taken" && <span className="text-red-500 font-normal">Taken</span>}
+                    {usernameStatus === "checking" && (
+                      <span className="text-slate-400 font-normal">Checking...</span>
+                    )}
+                    {usernameStatus === "available" && (
+                      <span className="text-green-500 font-normal">Available</span>
+                    )}
+                    {usernameStatus === "taken" && (
+                      <span className="text-red-500 font-normal">Taken</span>
+                    )}
                   </label>
                   <div className="relative flex items-center">
-                    <span className="absolute left-3 text-slate-400 text-[13.5px]">stoxify.in/profiles/</span>
+                    <span className="absolute left-3 text-slate-400 text-[13.5px]">
+                      stoxify.in/profiles/
+                    </span>
                     <input
                       id="username"
                       type="text"
@@ -999,10 +1011,10 @@ export default function ProfilePage() {
                         isUsernameSet
                           ? "bg-slate-50 text-slate-500 cursor-not-allowed"
                           : usernameStatus === "taken"
-                          ? "border-red-300 focus:border-red-500 text-red-600 bg-red-50"
-                          : usernameStatus === "available"
-                          ? "border-green-300 focus:border-green-500 text-green-700 bg-green-50"
-                          : "border-slate-200 focus:border-[var(--brand)]"
+                            ? "border-red-300 focus:border-red-500 text-red-600 bg-red-50"
+                            : usernameStatus === "available"
+                              ? "border-green-300 focus:border-green-500 text-green-700 bg-green-50"
+                              : "border-slate-200 focus:border-[var(--brand)]"
                       }`}
                       placeholder="username"
                     />
@@ -1122,7 +1134,11 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
-                      value={username ? `stoxify.in/profiles/${username}` : "Set a username above to claim your link"}
+                      value={
+                        username
+                          ? `stoxify.in/profiles/${username}`
+                          : "Set a username above to claim your link"
+                      }
                       readOnly
                       className="w-full px-3 py-2 border border-slate-200 bg-[#f8fafc] rounded-lg text-[13.5px] text-slate-500 focus:outline-none"
                     />
@@ -1131,7 +1147,10 @@ export default function ProfilePage() {
                         const savedUsername = profile?.username;
                         if (savedUsername) {
                           navigator.clipboard.writeText(`stoxify.in/profiles/${savedUsername}`);
-                          showSuccessToast("Link Copied", "Your landing page link has been copied to clipboard.");
+                          showSuccessToast(
+                            "Link Copied",
+                            "Your landing page link has been copied to clipboard."
+                          );
                         } else {
                           showSuccessToast("Error", "Please set and save a unique username first.");
                         }
@@ -1152,7 +1171,8 @@ export default function ProfilePage() {
                     )}
                   </div>
                   <span className="text-[11px] text-slate-400 mt-1 block">
-                    Share this unique link with potential subscribers to showcase your profile and plans.
+                    Share this unique link with potential subscribers to showcase your profile and
+                    plans.
                   </span>
                 </div>
 
@@ -1441,7 +1461,8 @@ export default function ProfilePage() {
                       <Icon className="h-6 w-6 text-slate-400" name="plus" />
                     </div>
                     <div className="text-[13.5px] font-bold text-slate-700 text-center">
-                      Drag & drop your SEBI document here, or <span className="text-[var(--brand)] hover:underline">browse</span>
+                      Drag & drop your SEBI document here, or{" "}
+                      <span className="text-[var(--brand)] hover:underline">browse</span>
                     </div>
                     <div className="text-[11.5px] text-slate-400 mt-1 text-center">
                       Supports PDF, JPEG, or PNG (Max 10MB)

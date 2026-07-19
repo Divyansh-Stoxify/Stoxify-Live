@@ -48,7 +48,7 @@ function getInitials(name: string): string {
 export function TraderShell({ user, children }: { user: TraderUser; children: React.ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  
+
   const { latestNotification } = useWebSocket();
 
   const { data: unreadData, mutate: mutateUnread } = useSWR(

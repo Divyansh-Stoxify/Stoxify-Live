@@ -268,7 +268,11 @@ export function StoxifyNav({
           )}
         </div>
       </div>
-      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} intent={active === "analysts" ? "ANALYST" : undefined} />
+      <LoginModal
+        open={loginOpen}
+        onClose={() => setLoginOpen(false)}
+        intent={active === "analysts" ? "ANALYST" : undefined}
+      />
     </nav>
   );
 }

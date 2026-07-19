@@ -119,10 +119,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const enrichedSubscriptions = subList.map((sub: any) => {
       const plan = plans.find((p: any) => p.plan_id === sub.plan_id);
       const user = userMap.get(sub.user_id);
-      
+
       const batch = plan?.batches?.find((b: any) => b.batch_id === sub.batch_id);
-      const days = batch ? batch.days : (plan?.days || 30);
-      const baseAmount = batch ? (batch.discounted_price ?? batch.price) : (plan?.price || 0);
+      const days = batch ? batch.days : plan?.days || 30;
+      const baseAmount = batch ? (batch.discounted_price ?? batch.price) : plan?.price || 0;
 
       let billingCycle: "WEEK" | "MONTH" | "QUARTER" | "YEAR" = "MONTH";
       if (days === 7) billingCycle = "WEEK";
@@ -158,4 +158,3 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "Unable to reach subscription service" }, { status: 503 });
   }
 }
-

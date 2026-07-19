@@ -22,10 +22,12 @@ fetch("http://localhost/auth/analyst/request-otp", {
     "X-Device-ID": deviceId,
     "X-Nonce": nonce,
     "X-Signature": signature,
-    "X-Key-Version": "v1.0"
+    "X-Key-Version": "v1.0",
   },
-  body
-}).then(async r => {
-  console.log("Status:", r.status);
-  console.log("Response:", await r.text());
-}).catch(console.error);
+  body,
+})
+  .then(async (r) => {
+    console.log("Status:", r.status);
+    console.log("Response:", await r.text());
+  })
+  .catch(console.error);

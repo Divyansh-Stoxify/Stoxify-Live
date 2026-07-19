@@ -24,7 +24,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const body = await request.json().catch(() => ({}));
   const symbol = typeof body?.symbol === "string" ? body.symbol.trim() : "";
   if (!symbol) {
-    return NextResponse.json({ error: "Bad Request", message: "symbol is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Bad Request", message: "symbol is required" },
+      { status: 400 }
+    );
   }
 
   try {

@@ -1,12 +1,28 @@
-'use client';
+"use client";
 
-import React from 'react';
+import React from "react";
 
 export default function SettlementHistoryTable() {
   // Mock data
   const settlements = [
-    { id: '1', date: '2026-06-27', batch: 'Morning Batch', plan: 'Monthly', daysSettled: 7, rate: 100, amount: 700 },
-    { id: '2', date: '2026-06-27', batch: 'VIP Batch', plan: 'Yearly', daysSettled: 7, rate: 50, amount: 350 },
+    {
+      id: "1",
+      date: "2026-06-27",
+      batch: "Morning Batch",
+      plan: "Monthly",
+      daysSettled: 7,
+      rate: 100,
+      amount: 700,
+    },
+    {
+      id: "2",
+      date: "2026-06-27",
+      batch: "VIP Batch",
+      plan: "Yearly",
+      daysSettled: 7,
+      rate: 50,
+      amount: 350,
+    },
   ];
 
   return (
@@ -31,8 +47,11 @@ export default function SettlementHistoryTable() {
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
             {settlements.map((s) => (
-              <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                <td className="px-6 py-4">{new Date(s.date).toLocaleDateString('en-IN')}</td>
+              <tr
+                key={s.id}
+                className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+              >
+                <td className="px-6 py-4">{new Date(s.date).toLocaleDateString("en-IN")}</td>
                 <td className="px-6 py-4">{s.batch}</td>
                 <td className="px-6 py-4">{s.plan}</td>
                 <td className="px-6 py-4 text-right">{s.daysSettled}</td>

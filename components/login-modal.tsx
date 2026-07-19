@@ -333,11 +333,13 @@ export function LoginModal({
                 >
                   Phone number
                 </label>
-                <div className={`flex w-full rounded-lg border transition-all ${
+                <div
+                  className={`flex w-full rounded-lg border transition-all ${
                     fieldErrors.identifier
                       ? "border-[var(--red)] bg-[var(--red-light)]/10"
                       : "border-[var(--line)] focus-within:border-[var(--brand)] focus-within:bg-white"
-                  }`}>
+                  }`}
+                >
                   <span className="flex items-center px-3 text-[13px] text-[var(--muted)] border-r border-inherit select-none">
                     +91
                   </span>
@@ -346,7 +348,7 @@ export function LoginModal({
                     id="login-modal-identifier"
                     name="identifier"
                     onChange={(e) => {
-                      let val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                      const val = e.target.value.replace(/\D/g, "").slice(0, 10);
                       setIdentifier(val);
                       if (fieldErrors.identifier) setFieldErrors({});
                     }}

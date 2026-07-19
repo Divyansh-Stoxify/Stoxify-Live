@@ -20,10 +20,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const session = await readUserSessionFromCookies();
   if (!session.authenticated) {
-    return NextResponse.json(
-      { error: "Not authenticated", code: "NO_SESSION" },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "Not authenticated", code: "NO_SESSION" }, { status: 401 });
   }
 
   const store = await cookies();
@@ -92,12 +89,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return response;
   } catch (err) {
-    const errorMessage =
-      err instanceof Error ? err.message : "Unable to reach the user service";
+    const errorMessage = err instanceof Error ? err.message : "Unable to reach the user service";
     console.error("Account deactivation failed:", err);
-    return NextResponse.json(
-      { error: errorMessage, code: "SERVICE_UNAVAILABLE" },
-      { status: 503 }
-    );
+    return NextResponse.json({ error: errorMessage, code: "SERVICE_UNAVAILABLE" }, { status: 503 });
   }
 }

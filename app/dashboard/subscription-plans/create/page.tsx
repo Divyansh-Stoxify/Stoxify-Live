@@ -20,7 +20,7 @@ const SEGMENT_ICONS: Record<string, IconName> = {
   EQUITY: "lineChart",
   FNO: "zap",
   COMMODITY: "scale",
-  CURRENCY: "banknote"
+  CURRENCY: "banknote",
 };
 
 const HORIZON_ICONS: Record<string, IconName> = {
@@ -28,39 +28,50 @@ const HORIZON_ICONS: Record<string, IconName> = {
   SWING: "activity",
   SHORT: "barChart",
   MEDIUM: "target",
-  "LONG TERM": "shieldCheck"
+  "LONG TERM": "shieldCheck",
 };
 
 const RISK_DATA: Record<
   string,
-  { label: string; desc: string; icon: IconName; activeClass: string; checkDot: string; textClass: string; pillClass: string }
+  {
+    label: string;
+    desc: string;
+    icon: IconName;
+    activeClass: string;
+    checkDot: string;
+    textClass: string;
+    pillClass: string;
+  }
 > = {
   LOW: {
     label: "Low Risk",
     desc: "Stable returns, low volatility targets",
     icon: "shieldCheck",
-    activeClass: "border-emerald-500 bg-emerald-50/40 shadow-[0_4px_14px_rgba(16,185,129,0.06)] scale-[1.01]",
+    activeClass:
+      "border-emerald-500 bg-emerald-50/40 shadow-[0_4px_14px_rgba(16,185,129,0.06)] scale-[1.01]",
     checkDot: "bg-emerald-500 border-emerald-500",
     textClass: "text-emerald-950",
-    pillClass: "bg-emerald-50 border-emerald-200 text-emerald-700"
+    pillClass: "bg-emerald-50 border-emerald-200 text-emerald-700",
   },
   MEDIUM: {
     label: "Medium Risk",
     desc: "Balanced mix of equity & derivatives",
     icon: "scale",
-    activeClass: "border-orange-400 bg-orange-50/30 shadow-[0_4px_14px_rgba(249,115,22,0.06)] scale-[1.01]",
+    activeClass:
+      "border-orange-400 bg-orange-50/30 shadow-[0_4px_14px_rgba(249,115,22,0.06)] scale-[1.01]",
     checkDot: "bg-orange-500 border-orange-500",
     textClass: "text-orange-950",
-    pillClass: "bg-orange-50 border-orange-200 text-orange-700"
+    pillClass: "bg-orange-50 border-orange-200 text-orange-700",
   },
   HIGH: {
     label: "High Risk",
     desc: "Aggressive momentum, high volatility",
     icon: "flame",
-    activeClass: "border-rose-500 bg-rose-50/30 shadow-[0_4px_14px_rgba(244,63,94,0.06)] scale-[1.01]",
+    activeClass:
+      "border-rose-500 bg-rose-50/30 shadow-[0_4px_14px_rgba(244,63,94,0.06)] scale-[1.01]",
     checkDot: "bg-rose-500 border-rose-500",
     textClass: "text-rose-950",
-    pillClass: "bg-rose-50 border-rose-200 text-rose-700"
+    pillClass: "bg-rose-50 border-rose-200 text-rose-700",
   },
 };
 
@@ -82,7 +93,7 @@ export default function CreatePlanPage() {
   const [pricingTiers, setPricingTiers] = useState<PlanBatch[]>([]);
   const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
   const [editingTierId, setEditingTierId] = useState<string | null>(null);
-  
+
   // Slide-over state
   const [soName, setSoName] = useState("");
   const [soPlanType, setSoPlanType] = useState<"SUBSCRIPTION" | "LIFETIME">("SUBSCRIPTION");
@@ -98,7 +109,11 @@ export default function CreatePlanPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const toggleSelection = (item: string, current: string[], setter: React.Dispatch<React.SetStateAction<string[]>>) => {
+  const toggleSelection = (
+    item: string,
+    current: string[],
+    setter: React.Dispatch<React.SetStateAction<string[]>>
+  ) => {
     if (current.includes(item)) {
       if (current.length > 1) {
         setter(current.filter((i) => i !== item));
@@ -186,7 +201,8 @@ export default function CreatePlanPage() {
       newErrors.duration = "Valid duration is required";
     }
 
-    const discountedNum = soHasDiscount && soDiscountedPrice ? Number(soDiscountedPrice) : undefined;
+    const discountedNum =
+      soHasDiscount && soDiscountedPrice ? Number(soDiscountedPrice) : undefined;
 
     if (discountedNum !== undefined && discountedNum >= priceNum) {
       setSoDiscountError("Discounted price cannot be more than the plan price");
@@ -198,15 +214,17 @@ export default function CreatePlanPage() {
       setSoDiscountError("");
     }
 
-    const newDays = soPlanType === "LIFETIME" ? 36500 : getDaysFromCycle(durationVal, soDurationUnit);
+    const newDays =
+      soPlanType === "LIFETIME" ? 36500 : getDaysFromCycle(durationVal, soDurationUnit);
 
     // Each plan in a batch must have a unique duration — block duplicates here
     // so the user never reaches a save that the backend would reject.
     const hasDuplicateDuration = pricingTiers.some(
-      t => t.batch_id !== editingTierId && t.days === newDays
+      (t) => t.batch_id !== editingTierId && t.days === newDays
     );
     if (hasDuplicateDuration) {
-      newErrors.duration = "Another plan already uses this duration. Each plan must have a unique duration.";
+      newErrors.duration =
+        "Another plan already uses this duration. Each plan must have a unique duration.";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -227,9 +245,9 @@ export default function CreatePlanPage() {
     };
 
     if (editingTierId) {
-      setPricingTiers(prev => prev.map(t => t.batch_id === editingTierId ? newTier : t));
+      setPricingTiers((prev) => prev.map((t) => (t.batch_id === editingTierId ? newTier : t)));
     } else {
-      setPricingTiers(prev => [...prev, newTier]);
+      setPricingTiers((prev) => [...prev, newTier]);
     }
     setIsSlideOverOpen(false);
   };
@@ -279,7 +297,7 @@ export default function CreatePlanPage() {
         "Batch Created Successfully",
         `New batch "${name.trim()}" has been created.`
       );
-      
+
       router.push("/dashboard/subscription-plans");
     } catch {
       setErrors({ form: "Unable to reach the server. Please try again." });
@@ -301,41 +319,57 @@ export default function CreatePlanPage() {
     if (tier.billing_cycle === "MONTH") val = tier.days / 30;
     if (tier.billing_cycle === "QUARTER") val = tier.days / 90;
     if (tier.billing_cycle === "YEAR") val = tier.days / 365;
-    return `${val} ${tier.billing_cycle.charAt(0) + tier.billing_cycle.slice(1).toLowerCase()}${val > 1 ? 's' : ''}`;
+    return `${val} ${tier.billing_cycle.charAt(0) + tier.billing_cycle.slice(1).toLowerCase()}${val > 1 ? "s" : ""}`;
   };
 
   const getDynamicSummaryText = () => {
     const priceNum = Number(soPrice) || 0;
     const discNum = soHasDiscount && soDiscountedPrice ? Number(soDiscountedPrice) : undefined;
-    
+
     if (soPlanType === "LIFETIME") {
       if (discNum !== undefined && discNum < priceNum) {
         return (
           <span>
-            Subscribers will pay a discounted, one-time fee of <strong className="text-[var(--ink)]">₹{discNum.toLocaleString("en-IN")}</strong> (saving <strong className="text-emerald-600 font-bold">{calculateDiscountPct(priceNum, discNum)}%</strong> off the standard ₹{priceNum.toLocaleString("en-IN")} price) for lifetime access.
+            Subscribers will pay a discounted, one-time fee of{" "}
+            <strong className="text-[var(--ink)]">₹{discNum.toLocaleString("en-IN")}</strong>{" "}
+            (saving{" "}
+            <strong className="text-emerald-600 font-bold">
+              {calculateDiscountPct(priceNum, discNum)}%
+            </strong>{" "}
+            off the standard ₹{priceNum.toLocaleString("en-IN")} price) for lifetime access.
           </span>
         );
       }
       return (
         <span>
-          Subscribers will pay a one-time fee of <strong className="text-[var(--ink)]">₹{priceNum.toLocaleString("en-IN")}</strong> for lifetime access.
+          Subscribers will pay a one-time fee of{" "}
+          <strong className="text-[var(--ink)]">₹{priceNum.toLocaleString("en-IN")}</strong> for
+          lifetime access.
         </span>
       );
     } else {
       const cycle = soDurationUnit.toLowerCase();
       const val = parseInt(soDurationValue) || 1;
       const cycleText = `${val} ${cycle}${val > 1 ? "s" : ""}`;
-      
+
       if (discNum !== undefined && discNum < priceNum) {
         return (
           <span>
-            Subscribers will pay a discounted fee of <strong className="text-[var(--ink)]">₹{discNum.toLocaleString("en-IN")}</strong> every <strong className="text-[var(--ink)]">{cycleText}</strong> (saving <strong className="text-emerald-600 font-bold">{calculateDiscountPct(priceNum, discNum)}%</strong> off the standard ₹{priceNum.toLocaleString("en-IN")} / {cycleText}).
+            Subscribers will pay a discounted fee of{" "}
+            <strong className="text-[var(--ink)]">₹{discNum.toLocaleString("en-IN")}</strong> every{" "}
+            <strong className="text-[var(--ink)]">{cycleText}</strong> (saving{" "}
+            <strong className="text-emerald-600 font-bold">
+              {calculateDiscountPct(priceNum, discNum)}%
+            </strong>{" "}
+            off the standard ₹{priceNum.toLocaleString("en-IN")} / {cycleText}).
           </span>
         );
       }
       return (
         <span>
-          Subscribers will be billed <strong className="text-[var(--ink)]">₹{priceNum.toLocaleString("en-IN")}</strong> every <strong className="text-[var(--ink)]">{cycleText}</strong>.
+          Subscribers will be billed{" "}
+          <strong className="text-[var(--ink)]">₹{priceNum.toLocaleString("en-IN")}</strong> every{" "}
+          <strong className="text-[var(--ink)]">{cycleText}</strong>.
         </span>
       );
     }
@@ -347,7 +381,6 @@ export default function CreatePlanPage() {
 
       <div className="flex-1 p-6 md:p-8 flex flex-col gap-8 overflow-y-auto bg-[#fafafa] relative">
         <div className="w-full max-w-5xl mx-auto mt-4">
-          
           <div className="flex items-center gap-4 mb-8">
             <button
               onClick={() => router.back()}
@@ -360,13 +393,13 @@ export default function CreatePlanPage() {
                 Create New Batch
               </h1>
               <p className="text-[14px] text-[var(--muted-2)] font-medium mt-1.5">
-                Configure the foundational details, risk parameters, and pricing tiers for your new advisory batch.
+                Configure the foundational details, risk parameters, and pricing tiers for your new
+                advisory batch.
               </p>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-            
             {errors.form && (
               <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50/50 p-4 text-[14px] font-medium text-red-800 shadow-sm backdrop-blur-md">
                 <div className="mt-0.5 rounded-full bg-red-100 p-1">
@@ -377,7 +410,6 @@ export default function CreatePlanPage() {
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
-              
               <div className="flex flex-col gap-6">
                 {/* General Information */}
                 <div className="rounded-3xl border border-[var(--line)] bg-white p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow duration-300">
@@ -388,8 +420,12 @@ export default function CreatePlanPage() {
                   <div className="flex flex-col gap-5">
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-[13px] font-bold text-[var(--ink)]">Batch Name</label>
-                        <span className={`text-[11px] font-bold ${name.length > 45 ? "text-amber-500 animate-pulse" : "text-[var(--muted-2)]"}`}>
+                        <label className="text-[13px] font-bold text-[var(--ink)]">
+                          Batch Name
+                        </label>
+                        <span
+                          className={`text-[11px] font-bold ${name.length > 45 ? "text-amber-500 animate-pulse" : "text-[var(--muted-2)]"}`}
+                        >
                           {name.length}/50
                         </span>
                       </div>
@@ -399,14 +435,25 @@ export default function CreatePlanPage() {
                         type="text"
                         maxLength={50}
                         value={name}
-                        onChange={(e) => { setName(e.target.value); if (errors.name) setErrors((prev) => ({ ...prev, name: "" })); }}
+                        onChange={(e) => {
+                          setName(e.target.value);
+                          if (errors.name) setErrors((prev) => ({ ...prev, name: "" }));
+                        }}
                       />
-                      {errors.name && <span className="text-[12px] font-bold text-[var(--red)] px-1">{errors.name}</span>}
+                      {errors.name && (
+                        <span className="text-[12px] font-bold text-[var(--red)] px-1">
+                          {errors.name}
+                        </span>
+                      )}
                     </div>
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-[13px] font-bold text-[var(--ink)]">Description (Optional)</label>
-                        <span className={`text-[11px] font-bold ${description.length > 270 ? "text-amber-500 animate-pulse" : "text-[var(--muted-2)]"}`}>
+                        <label className="text-[13px] font-bold text-[var(--ink)]">
+                          Description (Optional)
+                        </label>
+                        <span
+                          className={`text-[11px] font-bold ${description.length > 270 ? "text-amber-500 animate-pulse" : "text-[var(--muted-2)]"}`}
+                        >
                           {description.length}/300
                         </span>
                       </div>
@@ -429,9 +476,11 @@ export default function CreatePlanPage() {
                   </h2>
                   <div className="flex flex-col gap-8">
                     <div className="flex flex-col gap-3">
-                      <label className="text-[13px] font-bold text-[var(--ink)]">Allowed Segments</label>
+                      <label className="text-[13px] font-bold text-[var(--ink)]">
+                        Allowed Segments
+                      </label>
                       <div className="flex flex-wrap gap-2.5">
-                        {SEGMENTS.map(seg => {
+                        {SEGMENTS.map((seg) => {
                           const isSelected = segments.includes(seg);
                           return (
                             <button
@@ -444,7 +493,10 @@ export default function CreatePlanPage() {
                                   : "bg-white border-[var(--line)] text-[var(--muted)] hover:border-violet-300 hover:text-[var(--ink)] hover:bg-slate-50"
                               }`}
                             >
-                              <Icon name={SEGMENT_ICONS[seg]} className={`h-4 w-4 ${isSelected ? "text-violet-600" : "text-[var(--muted-2)]"}`} />
+                              <Icon
+                                name={SEGMENT_ICONS[seg]}
+                                className={`h-4 w-4 ${isSelected ? "text-violet-600" : "text-[var(--muted-2)]"}`}
+                              />
                               <span>{seg}</span>
                               {isSelected && (
                                 <span className="ml-1 h-1.5 w-1.5 rounded-full bg-violet-600 animate-pulse" />
@@ -453,13 +505,19 @@ export default function CreatePlanPage() {
                           );
                         })}
                       </div>
-                      {errors.segments && <span className="text-[12px] font-bold text-[var(--red)] px-1">{errors.segments}</span>}
+                      {errors.segments && (
+                        <span className="text-[12px] font-bold text-[var(--red)] px-1">
+                          {errors.segments}
+                        </span>
+                      )}
                     </div>
-                    
+
                     <div className="flex flex-col gap-3">
-                      <label className="text-[13px] font-bold text-[var(--ink)]">Trading Horizons</label>
+                      <label className="text-[13px] font-bold text-[var(--ink)]">
+                        Trading Horizons
+                      </label>
                       <div className="flex flex-wrap gap-2.5">
-                        {HORIZONS.map(hz => {
+                        {HORIZONS.map((hz) => {
                           const isSelected = horizons.includes(hz);
                           return (
                             <button
@@ -472,7 +530,10 @@ export default function CreatePlanPage() {
                                   : "bg-white border-[var(--line)] text-[var(--muted)] hover:border-blue-300 hover:text-[var(--ink)] hover:bg-slate-50"
                               }`}
                             >
-                              <Icon name={HORIZON_ICONS[hz]} className={`h-4 w-4 ${isSelected ? "text-blue-600" : "text-[var(--muted-2)]"}`} />
+                              <Icon
+                                name={HORIZON_ICONS[hz]}
+                                className={`h-4 w-4 ${isSelected ? "text-blue-600" : "text-[var(--muted-2)]"}`}
+                              />
                               <span>{hz}</span>
                               {isSelected && (
                                 <span className="ml-1 h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse" />
@@ -481,7 +542,11 @@ export default function CreatePlanPage() {
                           );
                         })}
                       </div>
-                      {errors.horizons && <span className="text-[12px] font-bold text-[var(--red)] px-1">{errors.horizons}</span>}
+                      {errors.horizons && (
+                        <span className="text-[12px] font-bold text-[var(--red)] px-1">
+                          {errors.horizons}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -504,7 +569,12 @@ export default function CreatePlanPage() {
                         maxLength={120}
                         value={newFeature}
                         onChange={(e) => setNewFeature(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addFeature(); } }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addFeature();
+                          }
+                        }}
                       />
                       <button
                         type="button"
@@ -518,10 +588,15 @@ export default function CreatePlanPage() {
                     {features.length > 0 ? (
                       <div className="flex flex-col gap-2">
                         {features.map((feature, index) => (
-                          <div key={`${feature}-${index}`} className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-slate-50 px-4 py-3">
+                          <div
+                            key={`${feature}-${index}`}
+                            className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-slate-50 px-4 py-3"
+                          >
                             <div className="flex items-center gap-2.5 min-w-0">
                               <Icon name="check" className="h-4 w-4 text-emerald-500 shrink-0" />
-                              <span className="text-[13.5px] font-semibold text-[var(--ink)] truncate">{feature}</span>
+                              <span className="text-[13.5px] font-semibold text-[var(--ink)] truncate">
+                                {feature}
+                              </span>
                             </div>
                             <button
                               type="button"
@@ -550,11 +625,12 @@ export default function CreatePlanPage() {
                     </h2>
                     {pricingTiers.length > 0 && (
                       <span className="text-[12px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
-                        {pricingTiers.length} {pricingTiers.length === 1 ? "Plan" : "Plans"} configured
+                        {pricingTiers.length} {pricingTiers.length === 1 ? "Plan" : "Plans"}{" "}
+                        configured
                       </span>
                     )}
                   </div>
-                  
+
                   <div className="flex flex-col gap-4">
                     {pricingTiers.length === 0 ? (
                       <div className="flex flex-col items-center justify-center p-8 rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 text-center gap-3">
@@ -562,9 +638,12 @@ export default function CreatePlanPage() {
                           <Icon name="ticket" className="h-6 w-6" />
                         </div>
                         <div>
-                          <span className="block text-[14.5px] font-bold text-[var(--ink)]">No pricing plans added yet</span>
+                          <span className="block text-[14.5px] font-bold text-[var(--ink)]">
+                            No pricing plans added yet
+                          </span>
                           <span className="block text-[12px] font-medium text-[var(--muted-2)] mt-1 max-w-[320px] mx-auto leading-relaxed">
-                            Create at least one pricing tier (e.g. Monthly or Lifetime) to allow traders to subscribe to this batch.
+                            Create at least one pricing tier (e.g. Monthly or Lifetime) to allow
+                            traders to subscribe to this batch.
                           </span>
                         </div>
                       </div>
@@ -585,12 +664,16 @@ export default function CreatePlanPage() {
                               }`}
                             >
                               <div className="flex items-center gap-4">
-                                <div className={`h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 ${tier.is_active ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400"}`}>
+                                <div
+                                  className={`h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 ${tier.is_active ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400"}`}
+                                >
                                   <Icon name="ticket" className="h-5 w-5" />
                                 </div>
                                 <div className="flex flex-col gap-1">
                                   <div className="flex items-center gap-2">
-                                    <span className="text-[15px] font-bold text-[var(--ink)] leading-none">{tier.name}</span>
+                                    <span className="text-[15px] font-bold text-[var(--ink)] leading-none">
+                                      {tier.name}
+                                    </span>
                                     {tier.plan_type === "LIFETIME" && (
                                       <span className="text-[9.5px] font-extrabold uppercase px-2 py-0.5 rounded bg-violet-100 text-violet-700 tracking-wider">
                                         Lifetime
@@ -598,14 +681,24 @@ export default function CreatePlanPage() {
                                     )}
                                   </div>
                                   <div className="flex items-center gap-2 text-[13px] text-[var(--muted)] font-medium">
-                                    <span className="font-semibold text-emerald-600">₹{(tier.discounted_price || tier.price).toLocaleString("en-IN")}</span>
-                                    <span className="text-[11.5px] text-[var(--muted-2)]">/ {formatDurationText(tier)}</span>
+                                    <span className="font-semibold text-emerald-600">
+                                      ₹
+                                      {(tier.discounted_price || tier.price).toLocaleString(
+                                        "en-IN"
+                                      )}
+                                    </span>
+                                    <span className="text-[11.5px] text-[var(--muted-2)]">
+                                      / {formatDurationText(tier)}
+                                    </span>
                                     {tier.discounted_price && (
-                                      <span className="line-through text-slate-400 text-[12px]">₹{tier.price.toLocaleString("en-IN")}</span>
+                                      <span className="line-through text-slate-400 text-[12px]">
+                                        ₹{tier.price.toLocaleString("en-IN")}
+                                      </span>
                                     )}
                                     {tier.discounted_price && (
                                       <span className="text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded text-[10.5px]">
-                                        {calculateDiscountPct(tier.price, tier.discounted_price)}% off
+                                        {calculateDiscountPct(tier.price, tier.discounted_price)}%
+                                        off
                                       </span>
                                     )}
                                   </div>
@@ -622,11 +715,19 @@ export default function CreatePlanPage() {
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    setPricingTiers(prev => prev.map(t => t.batch_id === tier.batch_id ? { ...t, is_active: !t.is_active } : t));
+                                    setPricingTiers((prev) =>
+                                      prev.map((t) =>
+                                        t.batch_id === tier.batch_id
+                                          ? { ...t, is_active: !t.is_active }
+                                          : t
+                                      )
+                                    );
                                   }}
-                                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${tier.is_active ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${tier.is_active ? "bg-emerald-500" : "bg-slate-300"}`}
                                 >
-                                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${tier.is_active ? 'translate-x-6' : 'translate-x-1'}`} />
+                                  <span
+                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${tier.is_active ? "translate-x-6" : "translate-x-1"}`}
+                                  />
                                 </button>
                               </div>
                             </motion.div>
@@ -634,7 +735,7 @@ export default function CreatePlanPage() {
                         </AnimatePresence>
                       </div>
                     )}
-                    
+
                     <button
                       type="button"
                       onClick={() => openSlideOver()}
@@ -645,25 +746,23 @@ export default function CreatePlanPage() {
                     </button>
                   </div>
                 </div>
-
               </div>
 
               {/* Right Column: Sticky Live Preview & Action Configuration */}
               <div className="flex flex-col gap-6">
-                
                 {/* Live Card Preview */}
                 <div className="rounded-3xl border border-[var(--line)] bg-white p-6 shadow-sm flex flex-col gap-4 sticky top-6">
                   <h3 className="text-[11.5px] font-black text-[var(--muted-2)] uppercase tracking-wider flex items-center gap-1.5">
                     <Icon name="eye" className="h-4 w-4" />
                     Interactive Card Preview
                   </h3>
-                  
+
                   {/* Visitor View Card */}
                   <div className="group relative flex flex-col rounded-2xl border border-[var(--line)] bg-white/95 backdrop-blur-md p-5 shadow-[0_4px_16px_rgba(0,0,0,0.02)] overflow-hidden transition-all duration-300">
                     {status === "ACTIVE" && (
                       <div className="absolute top-0 left-0 right-0 h-[5px] bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-500 animate-[fadeIn_0.3s_ease]" />
                     )}
-                    
+
                     {/* Title & Status Badge */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
@@ -694,7 +793,8 @@ export default function CreatePlanPage() {
 
                     {/* Description in Preview */}
                     <p className="text-[12.5px] text-[var(--muted)] font-medium mt-3.5 line-clamp-3 leading-relaxed break-words min-h-[42px]">
-                      {description.trim() || "Add a descriptive overview of this advisory batch to showcase its target returns, setup strategy, and focus area."}
+                      {description.trim() ||
+                        "Add a descriptive overview of this advisory batch to showcase its target returns, setup strategy, and focus area."}
                     </p>
 
                     {/* Segment and Horizons */}
@@ -731,11 +831,19 @@ export default function CreatePlanPage() {
                     {/* Features in Preview */}
                     {features.length > 0 && (
                       <div className="mt-4 flex flex-col gap-1.5 border-t border-dashed border-[var(--line)] pt-3.5">
-                        <span className="text-[10px] font-bold text-[var(--muted-2)] uppercase tracking-wider mb-0.5 block">Features</span>
+                        <span className="text-[10px] font-bold text-[var(--muted-2)] uppercase tracking-wider mb-0.5 block">
+                          Features
+                        </span>
                         <ul className="flex flex-col gap-1.5">
                           {features.map((feature, index) => (
-                            <li key={`${feature}-${index}`} className="flex items-start gap-1.5 text-[11.5px] font-semibold text-[var(--muted)]">
-                              <Icon name="check" className="h-3 w-3 text-emerald-500 shrink-0 mt-0.5" />
+                            <li
+                              key={`${feature}-${index}`}
+                              className="flex items-start gap-1.5 text-[11.5px] font-semibold text-[var(--muted)]"
+                            >
+                              <Icon
+                                name="check"
+                                className="h-3 w-3 text-emerald-500 shrink-0 mt-0.5"
+                              />
                               <span className="leading-snug">{feature}</span>
                             </li>
                           ))}
@@ -745,7 +853,9 @@ export default function CreatePlanPage() {
 
                     {/* Risk Rating Pill */}
                     <div className="mt-4 flex items-center justify-between border-t border-dashed border-[var(--line)] pt-3.5">
-                      <span className="text-[10px] font-bold text-[var(--muted-2)] uppercase tracking-wider">Risk Level</span>
+                      <span className="text-[10px] font-bold text-[var(--muted-2)] uppercase tracking-wider">
+                        Risk Level
+                      </span>
                       <span
                         className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-wider ${RISK_DATA[riskLevel].pillClass}`}
                       >
@@ -756,7 +866,9 @@ export default function CreatePlanPage() {
 
                     {/* Pricing Tiers list in Preview */}
                     <div className="mt-4 flex flex-col gap-1 border-t border-dashed border-[var(--line)] pt-3.5">
-                      <span className="text-[10px] font-bold text-[var(--muted-2)] uppercase tracking-wider mb-1 block">Pricing plans</span>
+                      <span className="text-[10px] font-bold text-[var(--muted-2)] uppercase tracking-wider mb-1 block">
+                        Pricing plans
+                      </span>
                       {pricingTiers.length === 0 ? (
                         <span className="text-[11.5px] italic text-[var(--muted-2)] text-center py-2 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 block">
                           No plans added yet
@@ -772,7 +884,9 @@ export default function CreatePlanPage() {
                                   : "bg-slate-100 border border-slate-200 text-slate-400"
                               }`}
                             >
-                              <span className={`w-1.5 h-1.5 rounded-full ${tier.is_active ? "bg-[var(--brand)] animate-pulse" : "bg-slate-300"}`} />
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full ${tier.is_active ? "bg-[var(--brand)] animate-pulse" : "bg-slate-300"}`}
+                              />
                               <span>{tier.name}</span>
                               <span className="opacity-75 font-semibold text-[10.5px]">
                                 (₹{tier.discounted_price || tier.price})
@@ -791,7 +905,7 @@ export default function CreatePlanPage() {
                     <div className="flex flex-col gap-3">
                       <label className="text-[13px] font-bold text-[var(--ink)]">Risk Level</label>
                       <div className="flex flex-col gap-2.5">
-                        {RISK_LEVELS.map(risk => {
+                        {RISK_LEVELS.map((risk) => {
                           const isSelected = riskLevel === risk;
                           const data = RISK_DATA[risk];
                           return (
@@ -799,22 +913,37 @@ export default function CreatePlanPage() {
                               key={risk}
                               onClick={() => setRiskLevel(risk)}
                               className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all active:scale-[0.99] select-none ${
-                                isSelected ? data.activeClass : "border-[var(--line)] bg-white hover:bg-slate-50 hover:border-slate-300"
+                                isSelected
+                                  ? data.activeClass
+                                  : "border-[var(--line)] bg-white hover:bg-slate-50 hover:border-slate-300"
                               }`}
                             >
                               <div className="mt-1 flex-shrink-0">
-                                <div className={`h-4.5 w-4.5 rounded-full border-2 flex items-center justify-center transition-all ${
-                                  isSelected ? `border-transparent ${data.checkDot}` : "border-[var(--muted-2)] bg-transparent"
-                                }`}>
-                                  {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                                <div
+                                  className={`h-4.5 w-4.5 rounded-full border-2 flex items-center justify-center transition-all ${
+                                    isSelected
+                                      ? `border-transparent ${data.checkDot}`
+                                      : "border-[var(--muted-2)] bg-transparent"
+                                  }`}
+                                >
+                                  {isSelected && (
+                                    <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                                  )}
                                 </div>
                               </div>
                               <div className="flex-1 flex flex-col gap-0.5">
-                                <span className={`text-[13px] font-extrabold flex items-center gap-1.5 ${isSelected ? data.textClass : "text-[var(--ink)]"}`}>
-                                  <Icon name={data.icon} className={`h-3.5 w-3.5 ${isSelected ? "opacity-100" : "opacity-60"}`} />
+                                <span
+                                  className={`text-[13px] font-extrabold flex items-center gap-1.5 ${isSelected ? data.textClass : "text-[var(--ink)]"}`}
+                                >
+                                  <Icon
+                                    name={data.icon}
+                                    className={`h-3.5 w-3.5 ${isSelected ? "opacity-100" : "opacity-60"}`}
+                                  />
                                   {data.label}
                                 </span>
-                                <span className={`text-[11px] font-medium leading-snug ${isSelected ? "text-slate-600" : "text-[var(--muted)]"}`}>
+                                <span
+                                  className={`text-[11px] font-medium leading-snug ${isSelected ? "text-slate-600" : "text-[var(--muted)]"}`}
+                                >
                                   {data.desc}
                                 </span>
                               </div>
@@ -823,34 +952,51 @@ export default function CreatePlanPage() {
                         })}
                       </div>
                     </div>
-                    
+
                     <hr className="border-[var(--line)]" />
-                    
+
                     <div className="flex flex-col gap-2">
-                      <label className="text-[13px] font-bold text-[var(--ink)]">Initial Status</label>
+                      <label className="text-[13px] font-bold text-[var(--ink)]">
+                        Initial Status
+                      </label>
                       <div className="relative">
-                        <select className="w-full appearance-none rounded-2xl border border-[var(--line)] bg-[#fafafa] px-5 py-3.5 text-[14px] font-bold text-[var(--ink)] outline-none focus:border-[var(--brand)] focus:bg-white focus:ring-4 focus:ring-[var(--brand)]/10 transition-all cursor-pointer" value={status} onChange={(e) => setStatus(e.target.value as PlanStatus)}>
+                        <select
+                          className="w-full appearance-none rounded-2xl border border-[var(--line)] bg-[#fafafa] px-5 py-3.5 text-[14px] font-bold text-[var(--ink)] outline-none focus:border-[var(--brand)] focus:bg-white focus:ring-4 focus:ring-[var(--brand)]/10 transition-all cursor-pointer"
+                          value={status}
+                          onChange={(e) => setStatus(e.target.value as PlanStatus)}
+                        >
                           <option value="ACTIVE">Active (Visible)</option>
                           <option value="INACTIVE">Inactive (Hidden)</option>
                         </select>
                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5 text-[var(--muted)]">
-                          <Icon className="h-4 w-4" name="arrowRight" style={{ transform: "rotate(90deg)" }} />
+                          <Icon
+                            className="h-4 w-4"
+                            name="arrowRight"
+                            style={{ transform: "rotate(90deg)" }}
+                          />
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="pt-2">
                       <button
                         className="w-full flex items-center justify-center gap-2 rounded-2xl bg-black px-6 py-4 text-[14px] font-bold text-white hover:opacity-90 transition-all shadow-[0_4px_14px_0_rgba(0,0,0,0.25)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 cursor-pointer"
-                        disabled={isSubmitting} type="submit"
+                        disabled={isSubmitting}
+                        type="submit"
                       >
-                        {isSubmitting ? <><Icon className="h-5 w-5 animate-spin" name="loader" /><span>Creating Batch...</span></> : <span>Publish Batch</span>}
+                        {isSubmitting ? (
+                          <>
+                            <Icon className="h-5 w-5 animate-spin" name="loader" />
+                            <span>Creating Batch...</span>
+                          </>
+                        ) : (
+                          <span>Publish Batch</span>
+                        )}
                       </button>
                     </div>
                   </div>
                 </div>
               </div>
-
             </div>
           </form>
         </div>
@@ -875,25 +1021,39 @@ export default function CreatePlanPage() {
               className="relative z-10 w-full max-w-[420px] h-full bg-white shadow-2xl flex flex-col"
             >
               <div className="flex items-center gap-3 p-6 border-b border-[var(--line)]">
-                <button onClick={() => setIsSlideOverOpen(false)} className="p-2 -ml-2 rounded-full hover:bg-slate-100 text-[var(--muted)] transition-colors cursor-pointer">
+                <button
+                  onClick={() => setIsSlideOverOpen(false)}
+                  className="p-2 -ml-2 rounded-full hover:bg-slate-100 text-[var(--muted)] transition-colors cursor-pointer"
+                >
                   <Icon name="x" className="h-5 w-5" />
                 </button>
-                <h2 className="text-[18px] font-black text-[var(--ink)] leading-none">{editingTierId ? "Edit Plan Option" : "New Plan Option"}</h2>
+                <h2 className="text-[18px] font-black text-[var(--ink)] leading-none">
+                  {editingTierId ? "Edit Plan Option" : "New Plan Option"}
+                </h2>
               </div>
-              
+
               <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
                 {/* Plan Name */}
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <label className="text-[13px] font-bold text-[var(--ink)]">Plan Name</label>
-                    <span className="text-[11px] font-bold text-[var(--muted-2)]">{soName.length}/75</span>
+                    <span className="text-[11px] font-bold text-[var(--muted-2)]">
+                      {soName.length}/75
+                    </span>
                   </div>
                   <input
-                    type="text" maxLength={75} value={soName} onChange={e => setSoName(e.target.value)}
+                    type="text"
+                    maxLength={75}
+                    value={soName}
+                    onChange={(e) => setSoName(e.target.value)}
                     placeholder="e.g. Quarterly Advisory, Lifetime Special"
                     className="w-full rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-[14px] font-medium text-[var(--ink)] outline-none transition-all placeholder:text-[var(--muted-2)] focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/10"
                   />
-                  {soErrors.name && <span className="text-[11px] text-[var(--red)] font-bold px-1">{soErrors.name}</span>}
+                  {soErrors.name && (
+                    <span className="text-[11px] text-[var(--red)] font-bold px-1">
+                      {soErrors.name}
+                    </span>
+                  )}
                 </div>
 
                 {/* Plan Type */}
@@ -928,15 +1088,21 @@ export default function CreatePlanPage() {
                 {/* Duration (Only for Subscription) */}
                 {soPlanType === "SUBSCRIPTION" && (
                   <div className="flex flex-col gap-2">
-                    <label className="text-[13px] font-bold text-[var(--ink)]">Billing Period / Duration</label>
+                    <label className="text-[13px] font-bold text-[var(--ink)]">
+                      Billing Period / Duration
+                    </label>
                     <div className="flex gap-3">
                       <input
-                        type="number" min="1" value={soDurationValue} onChange={e => setSoDurationValue(e.target.value)}
+                        type="number"
+                        min="1"
+                        value={soDurationValue}
+                        onChange={(e) => setSoDurationValue(e.target.value)}
                         className="w-24 rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-[14px] font-bold text-[var(--ink)] outline-none transition-all text-center focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/10"
                       />
                       <div className="relative flex-1">
                         <select
-                          value={soDurationUnit} onChange={e => setSoDurationUnit(e.target.value as PlanBillingCycle)}
+                          value={soDurationUnit}
+                          onChange={(e) => setSoDurationUnit(e.target.value as PlanBillingCycle)}
                           className="w-full appearance-none rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-[14px] font-semibold text-[var(--ink)] outline-none focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/10 transition-all cursor-pointer"
                         >
                           <option value="DAY">Days</option>
@@ -946,46 +1112,69 @@ export default function CreatePlanPage() {
                           <option value="YEAR">Years</option>
                         </select>
                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-[var(--muted)]">
-                          <Icon className="h-4 w-4" name="arrowRight" style={{ transform: "rotate(90deg)" }} />
+                          <Icon
+                            className="h-4 w-4"
+                            name="arrowRight"
+                            style={{ transform: "rotate(90deg)" }}
+                          />
                         </div>
                       </div>
                     </div>
-                    {soErrors.duration && <span className="text-[11px] text-[var(--red)] font-bold px-1">{soErrors.duration}</span>}
+                    {soErrors.duration && (
+                      <span className="text-[11px] text-[var(--red)] font-bold px-1">
+                        {soErrors.duration}
+                      </span>
+                    )}
                   </div>
                 )}
 
                 {/* Plan Price */}
                 <div className="flex flex-col gap-2">
-                  <label className="text-[13px] font-bold text-[var(--ink)]">Plan Standard Price</label>
+                  <label className="text-[13px] font-bold text-[var(--ink)]">
+                    Plan Standard Price
+                  </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <span className="text-[14px] font-bold text-[var(--muted-2)]">₹</span>
                     </div>
                     <input
-                      type="number" min="0" value={soPrice} onChange={e => setSoPrice(e.target.value)}
+                      type="number"
+                      min="0"
+                      value={soPrice}
+                      onChange={(e) => setSoPrice(e.target.value)}
                       placeholder="0"
                       className="w-full rounded-xl border border-[var(--line)] bg-white pl-8 pr-4 py-3 text-[14px] font-semibold text-[var(--ink)] outline-none transition-all focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/10"
                     />
                   </div>
-                  {soErrors.price && <span className="text-[11px] text-[var(--red)] font-bold px-1">{soErrors.price}</span>}
+                  {soErrors.price && (
+                    <span className="text-[11px] text-[var(--red)] font-bold px-1">
+                      {soErrors.price}
+                    </span>
+                  )}
                 </div>
 
                 {/* Discount Switch & Price Input */}
                 <div className="flex flex-col gap-4 bg-slate-50 border border-[var(--line)] p-4 rounded-2xl transition-all">
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-[13px] font-bold text-[var(--ink)]">Special Discount Price</span>
-                      <span className="text-[11px] font-medium text-[var(--muted-2)]">Offer a promotional rate for this plan</span>
+                      <span className="text-[13px] font-bold text-[var(--ink)]">
+                        Special Discount Price
+                      </span>
+                      <span className="text-[11px] font-medium text-[var(--muted-2)]">
+                        Offer a promotional rate for this plan
+                      </span>
                     </div>
                     <button
                       type="button"
                       onClick={() => setSoHasDiscount(!soHasDiscount)}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${soHasDiscount ? "bg-emerald-500" : "bg-slate-300"}`}
                     >
-                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${soHasDiscount ? "translate-x-6" : "translate-x-1"}`} />
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${soHasDiscount ? "translate-x-6" : "translate-x-1"}`}
+                      />
                     </button>
                   </div>
-                  
+
                   {soHasDiscount && (
                     <div className="flex flex-col gap-1.5 animate-[fadeIn_0.2s_ease-out]">
                       <div className="relative">
@@ -993,19 +1182,29 @@ export default function CreatePlanPage() {
                           <span className="text-[14px] font-bold text-emerald-600">₹</span>
                         </div>
                         <input
-                          type="number" min="0" value={soDiscountedPrice}
-                          onChange={e => { setSoDiscountedPrice(e.target.value); if (soDiscountError) setSoDiscountError(""); }}
+                          type="number"
+                          min="0"
+                          value={soDiscountedPrice}
+                          onChange={(e) => {
+                            setSoDiscountedPrice(e.target.value);
+                            if (soDiscountError) setSoDiscountError("");
+                          }}
                           placeholder="Promotional Price"
                           className={`w-full rounded-xl border bg-white pl-8 pr-16 py-3 text-[14px] font-semibold text-[var(--ink)] outline-none transition-all focus:ring-4 ${soDiscountError ? "border-[var(--red)] focus:border-[var(--red)] focus:ring-[var(--red)]/10" : "border-[var(--line)] focus:border-emerald-500 focus:ring-emerald-500/10"}`}
                         />
-                        {Number(soPrice) > 0 && Number(soDiscountedPrice) > 0 && Number(soDiscountedPrice) < Number(soPrice) && (
-                          <span className="absolute right-4 inset-y-0 flex items-center text-[11px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md my-auto h-fit">
-                            {calculateDiscountPct(Number(soPrice), Number(soDiscountedPrice))}% OFF
-                          </span>
-                        )}
+                        {Number(soPrice) > 0 &&
+                          Number(soDiscountedPrice) > 0 &&
+                          Number(soDiscountedPrice) < Number(soPrice) && (
+                            <span className="absolute right-4 inset-y-0 flex items-center text-[11px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md my-auto h-fit">
+                              {calculateDiscountPct(Number(soPrice), Number(soDiscountedPrice))}%
+                              OFF
+                            </span>
+                          )}
                       </div>
                       {soDiscountError && (
-                        <span className="text-[12px] font-bold text-[var(--red)] px-1">{soDiscountError}</span>
+                        <span className="text-[12px] font-bold text-[var(--red)] px-1">
+                          {soDiscountError}
+                        </span>
                       )}
                     </div>
                   )}
@@ -1014,10 +1213,11 @@ export default function CreatePlanPage() {
                 {/* Plan Dynamic Summary Help text */}
                 {Number(soPrice) > 0 && (
                   <div className="bg-blue-50/40 border border-blue-100 rounded-2xl p-4 text-[12px] text-slate-600 leading-relaxed flex items-start gap-2.5">
-                    <Icon name="helpCircle" className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                    <div className="flex-1">
-                      {getDynamicSummaryText()}
-                    </div>
+                    <Icon
+                      name="helpCircle"
+                      className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0"
+                    />
+                    <div className="flex-1">{getDynamicSummaryText()}</div>
                   </div>
                 )}
               </div>

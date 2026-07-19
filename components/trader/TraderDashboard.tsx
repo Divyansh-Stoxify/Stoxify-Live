@@ -180,7 +180,13 @@ function TradeCard({ trade }: { trade: Trade }) {
             <div className="text-center">
               <div className="mb-0.5 text-[10px] text-[var(--muted-2)]">Target</div>
               <div className="text-[13px] font-bold text-[var(--green)]">
-                {formatCurrency(trade.targets && trade.targets.length > 0 ? ((trade.direction === "SHORT" || trade.direction === "SELL") ? Math.min(...trade.targets.map(t => t.target_price)) : Math.max(...trade.targets.map(t => t.target_price))) : (trade.target ?? 0))}
+                {formatCurrency(
+                  trade.targets && trade.targets.length > 0
+                    ? trade.direction === "SHORT" || trade.direction === "SELL"
+                      ? Math.min(...trade.targets.map((t) => t.target_price))
+                      : Math.max(...trade.targets.map((t) => t.target_price))
+                    : (trade.target ?? 0)
+                )}
               </div>
             </div>
             <div className="text-center">
@@ -217,10 +223,7 @@ function TradeCard({ trade }: { trade: Trade }) {
       </div>
 
       {showDetailsModal && (
-        <TradeDetailsModal
-          trade={trade as any}
-          onClose={() => setShowDetailsModal(false)}
-        />
+        <TradeDetailsModal trade={trade as any} onClose={() => setShowDetailsModal(false)} />
       )}
     </>
   );
@@ -544,7 +547,8 @@ export function TraderDashboard({ user }: { user: DashboardUser }) {
               </div>
             </div>
             <div className="text-[13.5px] text-[var(--ink)] leading-relaxed mb-6">
-              You deleted your account and it was under deactivation phase for 30 days. After login, you need to delete again in order to go under deactivation phase of 30 days.
+              You deleted your account and it was under deactivation phase for 30 days. After login,
+              you need to delete again in order to go under deactivation phase of 30 days.
             </div>
             <button
               type="button"

@@ -149,8 +149,10 @@ function TradeRow({
         <div className="font-medium">
           {(
             (trade.targets && trade.targets.length > 0
-              ? ((trade.direction === "SHORT" || trade.direction === "SELL") ? Math.min(...trade.targets.map(t => t.target_price)) : Math.max(...trade.targets.map(t => t.target_price)))
-              : trade.target ?? trade.target_price) ?? 0
+              ? trade.direction === "SHORT" || trade.direction === "SELL"
+                ? Math.min(...trade.targets.map((t) => t.target_price))
+                : Math.max(...trade.targets.map((t) => t.target_price))
+              : (trade.target ?? trade.target_price)) ?? 0
           ).toLocaleString("en-IN")}
         </div>
         <div className="text-[11px] text-[var(--muted-2)]">
@@ -279,12 +281,25 @@ function SubscriberRow({ subscriber }: { subscriber: Subscriber }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const { metrics, isLoading: metricsLoading, isError: metricsError, refetch: refetchMetrics } = useDashboardMetrics();
-  const { trades, isLoading: tradesLoading, isError: tradesError, refetch: refetchTrades, removeTradeLocally } = useActiveTrades(5);
+  const {
+    metrics,
+    isLoading: metricsLoading,
+    isError: metricsError,
+    refetch: refetchMetrics,
+  } = useDashboardMetrics();
+  const {
+    trades,
+    isLoading: tradesLoading,
+    isError: tradesError,
+    refetch: refetchTrades,
+    removeTradeLocally,
+  } = useActiveTrades(5);
   const { subscribers, isLoading: subsLoading } = useRecentSubscribers(5);
-  const { prices: livePrices, tradeClosedEvent, tradeModifiedEvent } = useWebSocket(
-    trades.map((t) => t.symbol)
-  );
+  const {
+    prices: livePrices,
+    tradeClosedEvent,
+    tradeModifiedEvent,
+  } = useWebSocket(trades.map((t) => t.symbol));
   const { openCreateTrade, setOnTradeCreatedCallback } = useDashboard();
   const [showReactivationAlert, setShowReactivationAlert] = useState(false);
   const [selectedTradeForDetails, setSelectedTradeForDetails] = useState<Trade | null>(null);
@@ -532,7 +547,8 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="text-[13.5px] text-slate-700 leading-relaxed mb-6">
-              You deleted your account and it was under deactivation phase for 30 days. After login, you need to delete again in order to go under deactivation phase of 30 days.
+              You deleted your account and it was under deactivation phase for 30 days. After login,
+              you need to delete again in order to go under deactivation phase of 30 days.
             </div>
             <button
               type="button"

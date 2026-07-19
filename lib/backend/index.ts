@@ -28,19 +28,34 @@ function getBackendUrl(envName: BackendEnvName, fallback: string) {
 
 export const backendUrls = {
   get auth() {
-    return getBackendUrl("AUTH_SERVICE_URL", "https://stoxify-gateway.thankfulriver-811030ea.centralindia.azurecontainerapps.io");
+    return getBackendUrl(
+      "AUTH_SERVICE_URL",
+      "https://stoxify-gateway.thankfulriver-811030ea.centralindia.azurecontainerapps.io"
+    );
   },
   get user() {
-    return getBackendUrl("USER_SERVICE_URL", "https://stoxify-gateway.thankfulriver-811030ea.centralindia.azurecontainerapps.io");
+    return getBackendUrl(
+      "USER_SERVICE_URL",
+      "https://stoxify-gateway.thankfulriver-811030ea.centralindia.azurecontainerapps.io"
+    );
   },
   get trade() {
-    return getBackendUrl("TRADE_SERVICE_URL", "https://stoxify-gateway.thankfulriver-811030ea.centralindia.azurecontainerapps.io");
+    return getBackendUrl(
+      "TRADE_SERVICE_URL",
+      "https://stoxify-gateway.thankfulriver-811030ea.centralindia.azurecontainerapps.io"
+    );
   },
   get rbac() {
-    return getBackendUrl("RBAC_SERVICE_URL", "https://stoxify-gateway.thankfulriver-811030ea.centralindia.azurecontainerapps.io");
+    return getBackendUrl(
+      "RBAC_SERVICE_URL",
+      "https://stoxify-gateway.thankfulriver-811030ea.centralindia.azurecontainerapps.io"
+    );
   },
   get plan() {
-    return getBackendUrl("PLAN_SERVICE_URL", "https://stoxify-gateway.thankfulriver-811030ea.centralindia.azurecontainerapps.io");
+    return getBackendUrl(
+      "PLAN_SERVICE_URL",
+      "https://stoxify-gateway.thankfulriver-811030ea.centralindia.azurecontainerapps.io"
+    );
   },
   get marketData() {
     return getBackendUrl(

@@ -117,7 +117,9 @@ export default function NotificationsPage() {
   const markAsRead = async (notificationId: string) => {
     // Optimistic update
     setNotifications((prev) => {
-      const next = prev.map((n) => (n.notification_id === notificationId ? { ...n, read: true } : n));
+      const next = prev.map((n) =>
+        n.notification_id === notificationId ? { ...n, read: true } : n
+      );
       // If no unread notifications are left, clear the badge
       if (!next.some((n) => !n.read)) {
         setHasUnreadNotifications(false);
@@ -143,7 +145,8 @@ export default function NotificationsPage() {
     }
   };
   const unreadCount = notifications.filter((n) => !n.read).length;
-  const displayedNotifications = filter === "unread" ? notifications.filter((n) => !n.read) : notifications;
+  const displayedNotifications =
+    filter === "unread" ? notifications.filter((n) => !n.read) : notifications;
 
   useEffect(() => {
     if (!loading) {
@@ -234,18 +237,21 @@ export default function NotificationsPage() {
                 type="button"
                 onClick={() => {
                   if (!notif.read) markAsRead(notif.notification_id);
-                  
+
                   // Routing logic based on related entity
-                  if (notif.type === 'ADMIN_BROADCAST' || notif.type === 'SYSTEM_ANNOUNCEMENT') {
+                  if (notif.type === "ADMIN_BROADCAST" || notif.type === "SYSTEM_ANNOUNCEMENT") {
                     return; // No redirect for marketing broadcasts and system announcements
-                  } else if (notif.related_entity_type === 'TRADE') {
-                    router.push('/dashboard/live-trades');
-                  } else if (notif.related_entity_type === 'SUBSCRIPTION') {
-                    router.push('/dashboard/subscribers');
-                  } else if (notif.related_entity_type === 'BATCH' || notif.related_entity_type === 'PLAN') {
-                    router.push('/dashboard/subscription-plans');
+                  } else if (notif.related_entity_type === "TRADE") {
+                    router.push("/dashboard/live-trades");
+                  } else if (notif.related_entity_type === "SUBSCRIPTION") {
+                    router.push("/dashboard/subscribers");
+                  } else if (
+                    notif.related_entity_type === "BATCH" ||
+                    notif.related_entity_type === "PLAN"
+                  ) {
+                    router.push("/dashboard/subscription-plans");
                   } else {
-                    router.push('/dashboard');
+                    router.push("/dashboard");
                   }
                 }}
                 className={[

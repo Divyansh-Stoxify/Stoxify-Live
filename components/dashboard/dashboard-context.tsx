@@ -153,7 +153,12 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
       {/* Global Overlay Modal */}
       {isCreateTradeOpen && (
-        <CreateTradeModal livePrices={prices} sendMessage={sendMessage} onClose={closeCreateTrade} onSuccess={handleCreateSuccess} />
+        <CreateTradeModal
+          livePrices={prices}
+          sendMessage={sendMessage}
+          onClose={closeCreateTrade}
+          onSuccess={handleCreateSuccess}
+        />
       )}
 
       {tradeToClose && (
@@ -174,7 +179,13 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Global Success Toast */}
-      {toastMessage && <SuccessToast message={toastMessage.message} onClose={closeToast} title={toastMessage.title} />}
+      {toastMessage && (
+        <SuccessToast
+          message={toastMessage.message}
+          onClose={closeToast}
+          title={toastMessage.title}
+        />
+      )}
     </DashboardContext.Provider>
   );
 }

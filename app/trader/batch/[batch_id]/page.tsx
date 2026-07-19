@@ -124,9 +124,24 @@ function formatSegment(seg: string): string {
 }
 
 const RISK_META: Record<string, { label: string; dot: string; text: string; chip: string }> = {
-  LOW: { label: "Low", dot: "bg-emerald-500", text: "text-emerald-600", chip: "text-emerald-700 bg-emerald-50 border-emerald-200" },
-  MEDIUM: { label: "Med.", dot: "bg-amber-500", text: "text-amber-600", chip: "text-orange-700 bg-orange-50 border-orange-200" },
-  HIGH: { label: "High", dot: "bg-red-500", text: "text-red-600", chip: "text-red-700 bg-red-50 border-red-200" },
+  LOW: {
+    label: "Low",
+    dot: "bg-emerald-500",
+    text: "text-emerald-600",
+    chip: "text-emerald-700 bg-emerald-50 border-emerald-200",
+  },
+  MEDIUM: {
+    label: "Med.",
+    dot: "bg-amber-500",
+    text: "text-amber-600",
+    chip: "text-orange-700 bg-orange-50 border-orange-200",
+  },
+  HIGH: {
+    label: "High",
+    dot: "bg-red-500",
+    text: "text-red-600",
+    chip: "text-red-700 bg-red-50 border-red-200",
+  },
 };
 
 function getStartingPrice(batch: Batch): number {
@@ -195,7 +210,7 @@ export default function BatchDetailPage() {
       });
       const planData = await planRes.json().catch(() => ({}));
       const resolvedPlan: Batch | null =
-        planData?.plan ?? (planData?.plan_id ? planData : planData?.data ?? null);
+        planData?.plan ?? (planData?.plan_id ? planData : (planData?.data ?? null));
 
       if (!planRes.ok || !resolvedPlan?.plan_id) {
         setNotFound(true);
@@ -206,10 +221,13 @@ export default function BatchDetailPage() {
 
       const [analystRes, tradesRes, subRes] = await Promise.all([
         fetch(`/api/public/analysts/by-id/${resolvedPlan.analyst_id}`, { cache: "no-store" }),
-        fetch(`/api/trader/trades?analyst_id=${resolvedPlan.analyst_id}&plan_id=${batchId}&limit=50`, {
-          credentials: "same-origin",
-          cache: "no-store",
-        }),
+        fetch(
+          `/api/trader/trades?analyst_id=${resolvedPlan.analyst_id}&plan_id=${batchId}&limit=50`,
+          {
+            credentials: "same-origin",
+            cache: "no-store",
+          }
+        ),
         fetch(`/api/trader/subscriptions?status=ACTIVE`, {
           credentials: "same-origin",
           cache: "no-store",
@@ -220,7 +238,7 @@ export default function BatchDetailPage() {
       const tradesData = await tradesRes.json().catch(() => ({}));
       const subData = await subRes.json().catch(() => ({}));
 
-      setAnalyst(analystRes.ok ? analystData?.analyst ?? analystData ?? null : null);
+      setAnalyst(analystRes.ok ? (analystData?.analyst ?? analystData ?? null) : null);
       setTrades(tradesData.trades ?? tradesData.data ?? []);
       setActiveSubscriptions(subData.subscriptions ?? subData.data ?? []);
     } catch {
@@ -236,7 +254,10 @@ export default function BatchDetailPage() {
 
   // ── Performance stats + equity curve ──────────────────────────────────────
   const closedTrades = useMemo(
-    () => trades.filter((t) => t.status !== "LIVE" && t.pnl_percent !== undefined && t.pnl_percent !== null),
+    () =>
+      trades.filter(
+        (t) => t.status !== "LIVE" && t.pnl_percent !== undefined && t.pnl_percent !== null
+      ),
     [trades]
   );
 
@@ -290,7 +311,9 @@ export default function BatchDetailPage() {
     setCouponError(null);
     setCouponSuccess(null);
     try {
-      const price = checkoutPlan ? checkoutPlan.discounted_price || checkoutPlan.price : batch.price;
+      const price = checkoutPlan
+        ? checkoutPlan.discounted_price || checkoutPlan.price
+        : batch.price;
       const res = await fetch("/api/trader/coupons/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -307,7 +330,9 @@ export default function BatchDetailPage() {
         setCouponError(data.error || "Invalid coupon code");
         setFinalPrice(price);
       } else {
-        setCouponSuccess(`${data.type === "PERCENTAGE" ? data.discount_value + "%" : "₹" + data.discount_value} OFF applied!`);
+        setCouponSuccess(
+          `${data.type === "PERCENTAGE" ? data.discount_value + "%" : "₹" + data.discount_value} OFF applied!`
+        );
         setFinalPrice(data.final_price);
       }
     } catch {
@@ -329,7 +354,9 @@ export default function BatchDetailPage() {
     }
     const batchName = batch.name;
     const tierName = checkoutPlan?.name ?? "Monthly subscription";
-    const amountPaid = finalPrice ?? (checkoutPlan ? checkoutPlan.discounted_price || checkoutPlan.price : batch.price);
+    const amountPaid =
+      finalPrice ??
+      (checkoutPlan ? checkoutPlan.discounted_price || checkoutPlan.price : batch.price);
 
     setSubError(null);
     setSubSuccess(null);
@@ -360,7 +387,9 @@ export default function BatchDetailPage() {
       }
 
       if (typeof window === "undefined" || !(window as any).Razorpay) {
-        setSubError("Payment window was blocked. Disable ad-blocker/Brave Shields for this site and try again.");
+        setSubError(
+          "Payment window was blocked. Disable ad-blocker/Brave Shields for this site and try again."
+        );
         setIsSubmitting((prev) => ({ ...prev, [subKey]: false }));
         return;
       }
@@ -473,7 +502,12 @@ export default function BatchDetailPage() {
   }
 
   const risk = batch.risk_level ? RISK_META[batch.risk_level.toUpperCase()] : undefined;
-  const displaySegments = batch.segments && batch.segments.length > 0 ? batch.segments : batch.segment ? [batch.segment] : [];
+  const displaySegments =
+    batch.segments && batch.segments.length > 0
+      ? batch.segments
+      : batch.segment
+        ? [batch.segment]
+        : [];
   const activeBatches = (batch.batches ?? []).filter((b: Plan) => b.is_active !== false);
   const specializations = Array.isArray(analyst?.specialization)
     ? analyst?.specialization
@@ -525,12 +559,18 @@ export default function BatchDetailPage() {
               )}
               <div className="mt-4 flex flex-wrap gap-2">
                 {displaySegments.map((seg: string) => (
-                  <span key={seg} className="inline-flex items-center rounded-lg bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700 border border-blue-100">
+                  <span
+                    key={seg}
+                    className="inline-flex items-center rounded-lg bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700 border border-blue-100"
+                  >
                     {formatSegment(seg)}
                   </span>
                 ))}
                 {batch.horizons?.map((hz: string) => (
-                  <span key={hz} className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-slate-600 text-[11px] font-bold capitalize">
+                  <span
+                    key={hz}
+                    className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-slate-600 text-[11px] font-bold capitalize"
+                  >
                     <Icon name="timer" className="h-3 w-3 mr-1" />
                     {hz.toLowerCase().replace(/_/g, " ")}
                   </span>
@@ -541,13 +581,21 @@ export default function BatchDetailPage() {
             {/* Headline metric + volatility */}
             <div className="flex md:flex-col items-center md:items-end gap-3 md:gap-2 shrink-0">
               <div className="text-right">
-                <span className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted-2)]">Win Rate</span>
-                <span className="text-[22px] font-black tracking-tight text-emerald-600">{winRate}%</span>
+                <span className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted-2)]">
+                  Win Rate
+                </span>
+                <span className="text-[22px] font-black tracking-tight text-emerald-600">
+                  {winRate}%
+                </span>
               </div>
               {risk && (
-                <span className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 ${risk.chip}`}>
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 ${risk.chip}`}
+                >
                   <span className={`h-2 w-2 rounded-full ${risk.dot}`} />
-                  <span className="text-[10px] font-extrabold tracking-wide uppercase">{batch.risk_level} Volatility</span>
+                  <span className="text-[10px] font-extrabold tracking-wide uppercase">
+                    {batch.risk_level} Volatility
+                  </span>
                 </span>
               )}
             </div>
@@ -577,7 +625,10 @@ export default function BatchDetailPage() {
                 <h2 className="text-[16px] font-black text-[var(--ink)] mb-4">What you get</h2>
                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {batch.features.map((f: string) => (
-                    <li key={f} className="flex items-start gap-2.5 text-[13px] font-semibold text-slate-600">
+                    <li
+                      key={f}
+                      className="flex items-start gap-2.5 text-[13px] font-semibold text-slate-600"
+                    >
                       <Icon name="check" className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
                       <span className="leading-snug">{f}</span>
                     </li>
@@ -594,47 +645,84 @@ export default function BatchDetailPage() {
                 </div>
                 <div>
                   <h2 className="text-[16px] font-black text-[var(--ink)]">Performance</h2>
-                  <p className="text-[12.5px] font-medium text-[var(--muted)]">Analyst track record from recent trades.</p>
+                  <p className="text-[12.5px] font-medium text-[var(--muted)]">
+                    Analyst track record from recent trades.
+                  </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3 mb-6">
                 <div className="rounded-xl border border-[var(--line)] bg-[#fafafa] p-3.5 flex flex-col items-center">
-                  <span className="text-[10.5px] font-bold text-[var(--muted)] uppercase tracking-wider">Closed Trades</span>
+                  <span className="text-[10.5px] font-bold text-[var(--muted)] uppercase tracking-wider">
+                    Closed Trades
+                  </span>
                   <span className="text-[20px] font-black text-[var(--ink)]">{totalClosed}</span>
                 </div>
                 <div className="rounded-xl border border-[var(--line)] bg-[#fafafa] p-3.5 flex flex-col items-center">
-                  <span className="text-[10.5px] font-bold text-[var(--muted)] uppercase tracking-wider">Win Rate</span>
+                  <span className="text-[10.5px] font-bold text-[var(--muted)] uppercase tracking-wider">
+                    Win Rate
+                  </span>
                   <span className="text-[20px] font-black text-emerald-600">{winRate}%</span>
                 </div>
                 <div className="rounded-xl border border-[var(--line)] bg-[#fafafa] p-3.5 flex flex-col items-center">
-                  <span className="text-[10.5px] font-bold text-[var(--muted)] uppercase tracking-wider">Avg P&L</span>
-                  <span className={`text-[20px] font-black ${avgPnl >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                    {avgPnl >= 0 ? "+" : ""}{avgPnl.toFixed(1)}%
+                  <span className="text-[10.5px] font-bold text-[var(--muted)] uppercase tracking-wider">
+                    Avg P&L
+                  </span>
+                  <span
+                    className={`text-[20px] font-black ${avgPnl >= 0 ? "text-emerald-600" : "text-red-600"}`}
+                  >
+                    {avgPnl >= 0 ? "+" : ""}
+                    {avgPnl.toFixed(1)}%
                   </span>
                 </div>
               </div>
 
               {equityCurve.length >= 2 ? (
                 <ChartContainer className="aspect-auto h-56 w-full" config={chartConfig}>
-                  <AreaChart accessibilityLayer data={equityCurve} margin={{ left: 4, right: 8, top: 8, bottom: 0 }}>
+                  <AreaChart
+                    accessibilityLayer
+                    data={equityCurve}
+                    margin={{ left: 4, right: 8, top: 8, bottom: 0 }}
+                  >
                     <defs>
                       <linearGradient id="fillPnl" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="var(--color-pnl)" stopOpacity={0.3} />
                         <stop offset="95%" stopColor="var(--color-pnl)" stopOpacity={0.02} />
                       </linearGradient>
                     </defs>
-                    <XAxis dataKey="index" axisLine={false} tickLine={false} tickMargin={8} fontSize={11} />
-                    <YAxis axisLine={false} tickLine={false} width={36} fontSize={11} tickFormatter={(v) => `${v}%`} />
+                    <XAxis
+                      dataKey="index"
+                      axisLine={false}
+                      tickLine={false}
+                      tickMargin={8}
+                      fontSize={11}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      width={36}
+                      fontSize={11}
+                      tickFormatter={(v) => `${v}%`}
+                    />
                     <ChartTooltip content={<ChartTooltipContent hideLabel />} cursor={false} />
-                    <Area dataKey="pnl" type="monotone" stroke="var(--color-pnl)" strokeWidth={2} fill="url(#fillPnl)" />
+                    <Area
+                      dataKey="pnl"
+                      type="monotone"
+                      stroke="var(--color-pnl)"
+                      strokeWidth={2}
+                      fill="url(#fillPnl)"
+                    />
                   </AreaChart>
                 </ChartContainer>
               ) : (
                 <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/60 py-12 text-center">
                   <Icon name="lineChart" className="h-7 w-7 text-slate-300 mb-2" />
-                  <p className="text-[13px] font-semibold text-[var(--muted)]">Not enough data yet</p>
-                  <p className="text-[12px] font-medium text-[var(--muted-2)] mt-0.5">Performance chart appears as trades close.</p>
+                  <p className="text-[13px] font-semibold text-[var(--muted)]">
+                    Not enough data yet
+                  </p>
+                  <p className="text-[12px] font-medium text-[var(--muted-2)] mt-0.5">
+                    Performance chart appears as trades close.
+                  </p>
                 </div>
               )}
             </section>
@@ -647,28 +735,41 @@ export default function BatchDetailPage() {
                 </div>
                 <div>
                   <h2 className="text-[16px] font-black text-[var(--ink)]">Recent Trades</h2>
-                  <p className="text-[12.5px] font-medium text-[var(--muted)]">Live calls &amp; latest closed positions.</p>
+                  <p className="text-[12.5px] font-medium text-[var(--muted)]">
+                    Live calls &amp; latest closed positions.
+                  </p>
                 </div>
               </div>
 
               {isSubscribed ? (
                 trades.length === 0 ? (
-                  <div className="p-8 text-center text-[13px] font-medium text-slate-500">No trades recorded yet.</div>
+                  <div className="p-8 text-center text-[13px] font-medium text-slate-500">
+                    No trades recorded yet.
+                  </div>
                 ) : (
                   <div className="flex flex-col divide-y divide-[var(--line)]">
                     {trades.slice(0, 8).map((trade) => {
                       const isLong = trade.direction === "LONG" || trade.direction === "BUY";
                       const isLive = trade.status === "LIVE";
                       return (
-                        <div key={trade.trade_id} className="flex flex-col py-4 first:pt-0 last:pb-0">
+                        <div
+                          key={trade.trade_id}
+                          className="flex flex-col py-4 first:pt-0 last:pb-0"
+                        >
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2.5">
-                              <span className={`flex h-8 w-8 items-center justify-center rounded-lg text-[10px] font-extrabold ${isLong ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
+                              <span
+                                className={`flex h-8 w-8 items-center justify-center rounded-lg text-[10px] font-extrabold ${isLong ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}
+                              >
                                 {isLong ? "LONG" : "SHRT"}
                               </span>
                               <div>
-                                <div className="text-[14px] font-black text-slate-900 leading-none">{trade.symbol}</div>
-                                <div className="text-[11px] font-bold text-slate-400 mt-1">{trade.segment}</div>
+                                <div className="text-[14px] font-black text-slate-900 leading-none">
+                                  {trade.symbol}
+                                </div>
+                                <div className="text-[11px] font-bold text-slate-400 mt-1">
+                                  {trade.segment}
+                                </div>
                               </div>
                             </div>
                             {isLive ? (
@@ -677,7 +778,9 @@ export default function BatchDetailPage() {
                                 LIVE
                               </span>
                             ) : (
-                              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black ${trade.pnl_percent && trade.pnl_percent >= 0 ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
+                              <span
+                                className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black ${trade.pnl_percent && trade.pnl_percent >= 0 ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-red-50 text-red-700 border border-red-200"}`}
+                              >
                                 {trade.pnl_percent !== undefined && trade.pnl_percent !== null
                                   ? `${trade.pnl_percent >= 0 ? "+" : ""}${trade.pnl_percent.toFixed(2)}%`
                                   : trade.status.replace(/_/g, " ")}
@@ -686,16 +789,28 @@ export default function BatchDetailPage() {
                           </div>
                           <div className="flex items-center justify-between bg-[#fafafa] rounded-lg p-2.5 border border-slate-100">
                             <div className="flex flex-col">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Entry</span>
-                              <span className="text-[12.5px] font-bold text-slate-800">{formatCurrency(trade.entry_price)}</span>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                Entry
+                              </span>
+                              <span className="text-[12.5px] font-bold text-slate-800">
+                                {formatCurrency(trade.entry_price)}
+                              </span>
                             </div>
                             <div className="flex flex-col items-center">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Target</span>
-                              <span className="text-[12.5px] font-bold text-emerald-600">{formatCurrency(trade.target)}</span>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                Target
+                              </span>
+                              <span className="text-[12.5px] font-bold text-emerald-600">
+                                {formatCurrency(trade.target)}
+                              </span>
                             </div>
                             <div className="flex flex-col items-end">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Stop Loss</span>
-                              <span className="text-[12.5px] font-bold text-red-600">{formatCurrency(trade.stop_loss)}</span>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                Stop Loss
+                              </span>
+                              <span className="text-[12.5px] font-bold text-red-600">
+                                {formatCurrency(trade.stop_loss)}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -725,9 +840,12 @@ export default function BatchDetailPage() {
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 text-white shadow-md mb-3">
                       <Icon name="lock" className="h-5 w-5" />
                     </div>
-                    <h3 className="text-[15px] font-black text-[var(--ink)]">Subscribe to unlock recent trades</h3>
+                    <h3 className="text-[15px] font-black text-[var(--ink)]">
+                      Subscribe to unlock recent trades
+                    </h3>
                     <p className="text-[12.5px] font-medium text-[var(--muted)] mt-1 max-w-[280px]">
-                      Get live trade alerts, entries, targets &amp; stop-losses the moment they go out.
+                      Get live trade alerts, entries, targets &amp; stop-losses the moment they go
+                      out.
                     </p>
                     <button
                       type="button"
@@ -764,7 +882,9 @@ export default function BatchDetailPage() {
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-[15px] font-bold text-[var(--ink)]">{analyst?.name || batch.analyst_name}</h3>
+                    <h3 className="text-[15px] font-bold text-[var(--ink)]">
+                      {analyst?.name || batch.analyst_name}
+                    </h3>
                     {analyst?.state === "ACTIVE" && analyst?.sebi_license_number && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700 border border-emerald-100">
                         <Icon name="shieldCheck" className="h-3 w-3 text-emerald-600" />
@@ -773,15 +893,22 @@ export default function BatchDetailPage() {
                     )}
                   </div>
                   {analyst?.company_name && (
-                    <p className="text-[12.5px] font-semibold text-[var(--muted-2)] mt-0.5">{analyst.company_name}</p>
+                    <p className="text-[12.5px] font-semibold text-[var(--muted-2)] mt-0.5">
+                      {analyst.company_name}
+                    </p>
                   )}
                   {analyst?.bio && (
-                    <p className="text-[13px] font-medium leading-relaxed text-[var(--muted)] mt-2">{analyst.bio}</p>
+                    <p className="text-[13px] font-medium leading-relaxed text-[var(--muted)] mt-2">
+                      {analyst.bio}
+                    </p>
                   )}
                   {specializations.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {specializations.map((s) => (
-                        <span key={s} className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-bold text-slate-600">
+                        <span
+                          key={s}
+                          className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-bold text-slate-600"
+                        >
                           {s}
                         </span>
                       ))}
@@ -802,33 +929,50 @@ export default function BatchDetailPage() {
           {/* Right sidebar — pricing */}
           <aside className="lg:sticky lg:top-6 rounded-2xl border border-[var(--line)] bg-white p-6 shadow-sm">
             <div className="mb-4">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-2)]">Plans start from</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-2)]">
+                Plans start from
+              </span>
               <div className="flex items-baseline gap-1.5 mt-0.5">
-                <span className="text-[26px] font-black tracking-tight text-[var(--ink)]">{formatCurrency(getStartingPrice(batch))}</span>
+                <span className="text-[26px] font-black tracking-tight text-[var(--ink)]">
+                  {formatCurrency(getStartingPrice(batch))}
+                </span>
               </div>
             </div>
 
             {activeBatches.length > 0 ? (
               <div className="flex flex-col gap-3">
-                <span className="text-[12px] font-extrabold text-[var(--ink)]">Subscription Plans</span>
+                <span className="text-[12px] font-extrabold text-[var(--ink)]">
+                  Subscription Plans
+                </span>
                 {activeBatches.map((plan: Plan) => {
                   const owned = isSubscribedToPlanOrBatch(batch.plan_id, plan.batch_id);
                   const subKey = `${batch.plan_id}_${plan.batch_id}`;
                   const submitting = isSubmitting[subKey];
                   return (
-                    <div key={plan.batch_id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+                    <div
+                      key={plan.batch_id}
+                      className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.02)]"
+                    >
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <span className="text-[14px] font-bold text-slate-900">{plan.name}</span>
                         <div className="flex items-baseline gap-1.5 shrink-0">
                           {plan.discounted_price && (
-                            <span className="text-[12px] font-semibold line-through text-slate-400">₹{plan.price}</span>
+                            <span className="text-[12px] font-semibold line-through text-slate-400">
+                              ₹{plan.price}
+                            </span>
                           )}
-                          <span className="text-[15px] font-black text-slate-800">₹{plan.discounted_price || plan.price}</span>
+                          <span className="text-[15px] font-black text-slate-800">
+                            ₹{plan.discounted_price || plan.price}
+                          </span>
                         </div>
                       </div>
-                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">/ {plan.days} Days</div>
+                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                        / {plan.days} Days
+                      </div>
                       {plan.description && (
-                        <p className="text-[12px] font-medium leading-snug text-[var(--muted-2)] mb-3">{plan.description}</p>
+                        <p className="text-[12px] font-medium leading-snug text-[var(--muted-2)] mb-3">
+                          {plan.description}
+                        </p>
                       )}
                       {owned ? (
                         <button
@@ -856,8 +1000,12 @@ export default function BatchDetailPage() {
             ) : (
               <div className="flex flex-col gap-3">
                 <div className="flex items-baseline gap-1">
-                  <span className="text-[20px] font-black text-slate-900">{formatCurrency(batch.price)}</span>
-                  <span className="text-[12.5px] font-bold text-slate-500">/ {batch.days} days</span>
+                  <span className="text-[20px] font-black text-slate-900">
+                    {formatCurrency(batch.price)}
+                  </span>
+                  <span className="text-[12.5px] font-bold text-slate-500">
+                    / {batch.days} days
+                  </span>
                 </div>
                 {isSubscribedToPlanOrBatch(batch.plan_id) ? (
                   <button
@@ -894,10 +1042,17 @@ export default function BatchDetailPage() {
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
             <div className="px-6 py-5 flex items-center justify-between border-b border-slate-100">
               <div>
-                <h2 className="text-[17px] font-black text-slate-900 tracking-tight">Review &amp; Checkout</h2>
-                <p className="text-[12px] font-medium text-slate-400 mt-0.5">Confirm your subscription details</p>
+                <h2 className="text-[17px] font-black text-slate-900 tracking-tight">
+                  Review &amp; Checkout
+                </h2>
+                <p className="text-[12px] font-medium text-slate-400 mt-0.5">
+                  Confirm your subscription details
+                </p>
               </div>
-              <button onClick={closeCheckout} className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors">
+              <button
+                onClick={closeCheckout}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors"
+              >
                 <Icon name="x" className="h-4 w-4" />
               </button>
             </div>
@@ -905,7 +1060,9 @@ export default function BatchDetailPage() {
             <div className="px-6 py-5 flex flex-col gap-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex flex-col gap-0.5">
-                  <h3 className="text-[15px] font-black text-slate-900 leading-snug">{batch.name}</h3>
+                  <h3 className="text-[15px] font-black text-slate-900 leading-snug">
+                    {batch.name}
+                  </h3>
                   <p className="text-[13px] font-medium text-slate-500">
                     {checkoutPlan ? checkoutPlan.name : "Monthly subscription"}
                     <span className="mx-1.5 text-slate-300">·</span>
@@ -918,7 +1075,9 @@ export default function BatchDetailPage() {
               </div>
 
               <div className="rounded-xl border border-slate-200 p-4">
-                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Have a coupon code?</label>
+                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">
+                  Have a coupon code?
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -941,7 +1100,11 @@ export default function BatchDetailPage() {
                       onClick={() => {
                         setCouponSuccess(null);
                         setCouponCode("");
-                        setFinalPrice(checkoutPlan ? checkoutPlan.discounted_price || checkoutPlan.price : batch.price);
+                        setFinalPrice(
+                          checkoutPlan
+                            ? checkoutPlan.discounted_price || checkoutPlan.price
+                            : batch.price
+                        );
                       }}
                       className="rounded-lg bg-red-50 px-4 py-2.5 text-[13px] font-bold text-red-600 hover:bg-red-100 transition-colors"
                     >
@@ -949,8 +1112,14 @@ export default function BatchDetailPage() {
                     </button>
                   )}
                 </div>
-                {couponError && <p className="text-[12px] font-semibold text-red-500 mt-2">{couponError}</p>}
-                {couponSuccess && <p className="text-[12px] font-semibold text-emerald-600 mt-2">✓ {couponSuccess}</p>}
+                {couponError && (
+                  <p className="text-[12px] font-semibold text-red-500 mt-2">{couponError}</p>
+                )}
+                {couponSuccess && (
+                  <p className="text-[12px] font-semibold text-emerald-600 mt-2">
+                    ✓ {couponSuccess}
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center justify-between py-3 border-t border-slate-100">
@@ -958,10 +1127,16 @@ export default function BatchDetailPage() {
                 <div className="flex flex-col items-end">
                   {couponSuccess && (
                     <span className="text-[12px] font-bold text-slate-400 line-through mb-0.5">
-                      {formatCurrency(checkoutPlan ? checkoutPlan.discounted_price || checkoutPlan.price : batch.price)}
+                      {formatCurrency(
+                        checkoutPlan
+                          ? checkoutPlan.discounted_price || checkoutPlan.price
+                          : batch.price
+                      )}
                     </span>
                   )}
-                  <span className="text-[22px] font-black text-slate-900 tracking-tight">{formatCurrency(finalPrice ?? 0)}</span>
+                  <span className="text-[22px] font-black text-slate-900 tracking-tight">
+                    {formatCurrency(finalPrice ?? 0)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -969,14 +1144,21 @@ export default function BatchDetailPage() {
             <div className="px-6 pb-6">
               {(() => {
                 const owned = isSubscribedToPlanOrBatch(batch.plan_id, checkoutPlan?.batch_id);
-                const submitting = isSubmitting[checkoutPlan ? `${batch.plan_id}_${checkoutPlan.batch_id}` : batch.plan_id];
+                const submitting =
+                  isSubmitting[
+                    checkoutPlan ? `${batch.plan_id}_${checkoutPlan.batch_id}` : batch.plan_id
+                  ];
                 return (
                   <button
                     onClick={handleSubscribe}
                     disabled={owned || submitting}
                     className="w-full rounded-xl bg-slate-900 py-3.5 text-[14.5px] font-bold text-white transition-all hover:bg-black hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
                   >
-                    {owned ? "Already Subscribed" : submitting ? "Processing..." : "Proceed to Payment"}
+                    {owned
+                      ? "Already Subscribed"
+                      : submitting
+                        ? "Processing..."
+                        : "Proceed to Payment"}
                   </button>
                 );
               })()}
@@ -993,31 +1175,44 @@ export default function BatchDetailPage() {
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 ring-8 ring-emerald-50/60">
                 <Icon name="circleCheck" className="h-9 w-9 text-emerald-500" />
               </div>
-              <h2 className="mt-5 text-[19px] font-black text-slate-900 tracking-tight">Payment Successful</h2>
+              <h2 className="mt-5 text-[19px] font-black text-slate-900 tracking-tight">
+                Payment Successful
+              </h2>
               <p className="mt-1 text-[13px] font-medium text-slate-500">
-                You&apos;re now subscribed to <span className="font-bold text-slate-700">{successInfo.batchName}</span>.
+                You&apos;re now subscribed to{" "}
+                <span className="font-bold text-slate-700">{successInfo.batchName}</span>.
               </p>
 
               <div className="mt-6 w-full rounded-xl border border-slate-200 divide-y divide-slate-100">
                 <div className="flex items-center justify-between px-4 py-3">
                   <span className="text-[12.5px] font-semibold text-slate-400">Batch</span>
-                  <span className="text-[12.5px] font-bold text-slate-800">{successInfo.batchName} · {successInfo.tierName}</span>
+                  <span className="text-[12.5px] font-bold text-slate-800">
+                    {successInfo.batchName} · {successInfo.tierName}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between px-4 py-3">
                   <span className="text-[12.5px] font-semibold text-slate-400">Amount Paid</span>
-                  <span className="text-[12.5px] font-bold text-slate-800">{formatCurrency(successInfo.amount)}</span>
+                  <span className="text-[12.5px] font-bold text-slate-800">
+                    {formatCurrency(successInfo.amount)}
+                  </span>
                 </div>
                 {successInfo.endDate && (
                   <div className="flex items-center justify-between px-4 py-3">
                     <span className="text-[12.5px] font-semibold text-slate-400">Valid Until</span>
                     <span className="text-[12.5px] font-bold text-slate-800">
-                      {new Date(successInfo.endDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                      {new Date(successInfo.endDate).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
                     </span>
                   </div>
                 )}
                 <div className="flex items-center justify-between px-4 py-3">
                   <span className="text-[12.5px] font-semibold text-slate-400">Payment ID</span>
-                  <span className="text-[12px] font-mono font-semibold text-slate-500">{successInfo.paymentId}</span>
+                  <span className="text-[12px] font-mono font-semibold text-slate-500">
+                    {successInfo.paymentId}
+                  </span>
                 </div>
               </div>
             </div>

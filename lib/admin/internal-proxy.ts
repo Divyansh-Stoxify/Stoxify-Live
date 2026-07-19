@@ -111,7 +111,9 @@ export async function proxyAdminInternalRequest({
         "X-Internal-Secret": internalSecret,
       },
     });
-    console.log(`[PROXY ADMIN] Fetched ${backendUrls[backend]}${path} - Status: ${upstream.status}`);
+    console.log(
+      `[PROXY ADMIN] Fetched ${backendUrls[backend]}${path} - Status: ${upstream.status}`
+    );
   } catch (error) {
     console.error(`[PROXY ADMIN] Fetch error for ${backendUrls[backend]}${path}:`, error);
     return NextResponse.json(

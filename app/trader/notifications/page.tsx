@@ -216,14 +216,17 @@ export default function NotificationsPage() {
                 type="button"
                 onClick={() => {
                   if (!notif.read) markAsRead(notif.notification_id);
-                  
+
                   // Routing logic based on related entity
-                  if (notif.related_entity_type === 'TRADE') {
-                    router.push('/trader/dashboard');
-                  } else if (notif.related_entity_type === 'SUBSCRIPTION') {
-                    router.push('/trader/subscriptions');
-                  } else if (notif.related_entity_type === 'BATCH' || notif.related_entity_type === 'PLAN') {
-                    router.push('/trader/dashboard');
+                  if (notif.related_entity_type === "TRADE") {
+                    router.push("/trader/dashboard");
+                  } else if (notif.related_entity_type === "SUBSCRIPTION") {
+                    router.push("/trader/subscriptions");
+                  } else if (
+                    notif.related_entity_type === "BATCH" ||
+                    notif.related_entity_type === "PLAN"
+                  ) {
+                    router.push("/trader/dashboard");
                   }
                 }}
                 className={[

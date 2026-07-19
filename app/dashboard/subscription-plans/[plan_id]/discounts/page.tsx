@@ -74,7 +74,9 @@ export default function BatchDiscountsPage({ params }: { params: Promise<{ plan_
       <div className="flex-1 p-6 flex flex-col gap-6 overflow-y-auto">
         <div className="flex flex-col gap-1">
           <h1 className="text-[22px] font-black tracking-tight text-[var(--ink)]">Discounts</h1>
-          <p className="text-[13px] text-[var(--muted-2)] font-medium">Manage discount coupons available for this batch.</p>
+          <p className="text-[13px] text-[var(--muted-2)] font-medium">
+            Manage discount coupons available for this batch.
+          </p>
         </div>
 
         {/* Header Section */}
@@ -148,12 +150,15 @@ export default function BatchDiscountsPage({ params }: { params: Promise<{ plan_
                           : formatCurrency(coupon.discount_value)}
                       </td>
                       <td className="px-6 py-4 text-[var(--muted-2)] font-medium">
-                        <span className="text-[var(--ink)] font-bold">{coupon.quantity_used}</span> / {coupon.quantity_total === null ? "∞" : coupon.quantity_total}
+                        <span className="text-[var(--ink)] font-bold">{coupon.quantity_used}</span>{" "}
+                        / {coupon.quantity_total === null ? "∞" : coupon.quantity_total}
                       </td>
                       <td className="px-6 py-4">
                         <button
                           type="button"
-                          onClick={() => handleToggleStatus(coupon.coupon_id, coupon.is_active, coupon.code)}
+                          onClick={() =>
+                            handleToggleStatus(coupon.coupon_id, coupon.is_active, coupon.code)
+                          }
                           className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide uppercase cursor-pointer hover:opacity-85 transition-opacity ${
                             coupon.is_active
                               ? "bg-[var(--green-light)] text-[var(--green)] border border-[var(--green)]/15"

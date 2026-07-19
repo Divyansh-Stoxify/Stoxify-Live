@@ -97,7 +97,12 @@ export function AnalystLoginModal({ isOpen, onClose }: { isOpen: boolean; onClos
       }
 
       if (!res.ok) {
-        setGeneralError(cleanErrorMessage(data, data.error ?? "Unable to send verification code. Are you registered?"));
+        setGeneralError(
+          cleanErrorMessage(
+            data,
+            data.error ?? "Unable to send verification code. Are you registered?"
+          )
+        );
         setIsSubmitting(false);
         return;
       }
@@ -251,11 +256,13 @@ export function AnalystLoginModal({ isOpen, onClose }: { isOpen: boolean; onClos
               >
                 Phone Number
               </label>
-              <div className={`flex w-full rounded-lg border transition-all ${
+              <div
+                className={`flex w-full rounded-lg border transition-all ${
                   fieldErrors.phone
                     ? "border-red-500 bg-red-50/10"
                     : "border-[var(--line)] focus-within:border-[var(--brand)] focus-within:bg-white"
-                }`}>
+                }`}
+              >
                 <span className="flex items-center px-3 text-[13px] text-[var(--muted)] border-r border-inherit select-none">
                   +91
                 </span>

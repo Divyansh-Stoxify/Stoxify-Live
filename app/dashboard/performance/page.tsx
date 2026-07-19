@@ -4,6 +4,20 @@ import { useEffect, useMemo, useState } from "react";
 import { Topbar } from "@/components/dashboard/topbar";
 import { Icon, type IconName } from "@/components/stoxify-icon";
 import type { Trade } from "@/lib/types/analyst";
+import { useAnalystProfile } from "@/hooks/use-analyst-dashboard";
+import {
+  RAEvaluationDashboard,
+  RAEvaluationDashboardSkeleton,
+} from "@/components/public/RAEvaluationDashboard";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -21,10 +35,7 @@ function isLive(t: Trade): boolean {
 /** Realised P&L percentage for a closed trade. */
 function pnl(t: Trade): number {
   return (
-    (t as { combined_pnl_percent?: number }).combined_pnl_percent ??
-    t.pnl_percent ??
-    t.pnl_pct ??
-    0
+    (t as { combined_pnl_percent?: number }).combined_pnl_percent ?? t.pnl_percent ?? t.pnl_pct ?? 0
   );
 }
 
@@ -38,8 +49,18 @@ function fmtPct(n: number): string {
 }
 
 const MONTH_LABELS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
 
 // ─── Data hook ────────────────────────────────────────────────────────────────
@@ -146,8 +167,7 @@ function buildAnalytics(trades: Trade[]): Analytics {
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const monthTrades = closed.filter((t) => {
-      const ts =
-        (t as { exit_timestamp?: string }).exit_timestamp ?? t.updated_at;
+      const ts = (t as { exit_timestamp?: string }).exit_timestamp ?? t.updated_at;
       if (!ts) return false;
       const td = new Date(ts);
       return td.getFullYear() === d.getFullYear() && td.getMonth() === d.getMonth();
@@ -284,10 +304,37 @@ function BreakdownTable({
   );
 }
 
+// Custom Tooltip for the Monthly Closed Trades Bar Chart
+const CustomBarTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-md border border-slate-700/80 p-3 rounded-lg shadow-xl text-white text-xs">
+        <p className="font-bold mb-1">{data.label}</p>
+        <div className="space-y-1">
+          <p className="text-slate-300">
+            Closed Trades: <span className="font-semibold text-white">{data.total}</span>
+          </p>
+          <p className="text-slate-300">
+            Avg Return:{" "}
+            <span className={`font-bold ${data.avgPnl >= 0 ? "text-green-400" : "text-red-400"}`}>
+              {data.total > 0
+                ? `${data.avgPnl >= 0 ? "+" : ""}${data.avgPnl.toFixed(2)}%`
+                : "0.00%"}
+            </span>
+          </p>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function PerformancePage() {
   const { trades, isLoading, isError } = useAllTrades();
+  const { profile, isLoading: isProfileLoading } = useAnalystProfile();
   const a = useMemo(() => buildAnalytics(trades), [trades]);
 
   const maxMonthly = Math.max(1, ...a.monthly.map((m) => m.total));
@@ -306,6 +353,16 @@ export default function PerformancePage() {
           </p>
         </div>
 
+        {isProfileLoading ? (
+          <div className="mb-8">
+            <RAEvaluationDashboardSkeleton />
+          </div>
+        ) : profile?.username ? (
+          <div className="mb-8">
+            <RAEvaluationDashboard username={profile.username} />
+          </div>
+        ) : null}
+
         {isError ? (
           <div className="rounded-xl border border-[var(--red)]/20 bg-[var(--red-light)] p-5 text-[13px] text-[var(--red)]">
             <Icon className="mr-2 h-4 w-4" name="x" />
@@ -314,23 +371,15 @@ export default function PerformancePage() {
         ) : (
           <>
             {/* ── KPI cards ── */}
-            <div className="mb-5 grid grid-cols-4 gap-4 max-[1100px]:grid-cols-2 max-[640px]:grid-cols-1">
+            <div className="mb-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
               {isLoading ? (
                 <>
-                  <KpiSkeleton />
                   <KpiSkeleton />
                   <KpiSkeleton />
                   <KpiSkeleton />
                 </>
               ) : (
                 <>
-                  <KpiCard
-                    label="Win Rate"
-                    value={`${a.winRate.toFixed(1)}%`}
-                    sub={`${a.wins} wins / ${a.losses} losses`}
-                    icon="trendingUp"
-                    tone={a.winRate >= 50 ? "green" : "red"}
-                  />
                   <KpiCard
                     label="Total Trades"
                     value={String(a.totalTrades)}
@@ -397,33 +446,49 @@ export default function PerformancePage() {
                 Closed Trades — Last 6 Months
               </h2>
               {isLoading ? (
-                <div className="h-40 w-full animate-pulse rounded bg-[var(--line)]" />
+                <div className="h-44 w-full animate-pulse rounded bg-[var(--line)]" />
               ) : (
-                <div className="flex h-44 items-end justify-between gap-3">
-                  {a.monthly.map((m) => (
-                    <div key={m.label} className="flex flex-1 flex-col items-center gap-2">
-                      <div className="text-[11px] font-bold text-[var(--ink)]">
-                        {m.total > 0 ? m.total : ""}
-                      </div>
-                      <div className="flex w-full flex-1 items-end">
-                        <div
-                          className="w-full rounded-t-md bg-[var(--brand)] transition-all"
-                          style={{
-                            height: `${(m.total / maxMonthly) * 100}%`,
-                            minHeight: m.total > 0 ? "4px" : "0",
-                            opacity: m.total > 0 ? 1 : 0.15,
-                            background:
-                              m.total > 0 && m.avgPnl < 0
-                                ? "var(--red)"
-                                : "var(--brand)",
-                          }}
-                        />
-                      </div>
-                      <div className="text-[10.5px] font-medium text-[var(--muted-2)]">
-                        {m.label}
-                      </div>
-                    </div>
-                  ))}
+                <div className="h-44 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={a.monthly}
+                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                    >
+                      <XAxis
+                        dataKey="label"
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fill: "#64748b", fontSize: 11, fontWeight: 500 }}
+                      />
+                      <YAxis
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fill: "#64748b", fontSize: 11 }}
+                        allowDecimals={false}
+                      />
+                      <RechartsTooltip
+                        content={<CustomBarTooltip />}
+                        cursor={{ fill: "rgba(148, 163, 184, 0.1)" }}
+                      />
+                      <Bar dataKey="total" radius={[4, 4, 0, 0]} maxBarSize={45}>
+                        {a.monthly.map((entry, index) => {
+                          const isNegative = entry.avgPnl < 0;
+                          return (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={
+                                entry.total === 0
+                                  ? "rgba(148, 163, 184, 0.15)"
+                                  : isNegative
+                                    ? "#d93025"
+                                    : "#1f7ae0"
+                              }
+                            />
+                          );
+                        })}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               )}
             </div>

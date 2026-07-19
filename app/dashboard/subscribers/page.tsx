@@ -224,7 +224,10 @@ export default function SubscribersPage() {
         <div className="flex flex-wrap gap-4 items-center justify-between bg-white p-4 rounded-xl border border-[var(--line)] shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
           {/* Left search */}
           <div className="relative min-w-[280px] max-[640px]:w-full">
-            <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-2)] h-4 w-4" name="search" />
+            <Icon
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-2)] h-4 w-4"
+              name="search"
+            />
             <input
               type="text"
               placeholder="Search by name, email or subscription ID..."
@@ -358,7 +361,9 @@ export default function SubscribersPage() {
                     <td colSpan={6} className="py-12 text-center">
                       <div className="flex flex-col items-center gap-2 text-[var(--red)]">
                         <Icon className="h-8 w-8" name="x" />
-                        <span className="text-[13px] font-bold">Failed to load subscribers. Check if subscription service is active.</span>
+                        <span className="text-[13px] font-bold">
+                          Failed to load subscribers. Check if subscription service is active.
+                        </span>
                         <button
                           onClick={() => void fetchSubscribers()}
                           className="mt-2 text-[12px] font-bold text-[var(--brand)] hover:underline flex items-center gap-1"
@@ -374,7 +379,8 @@ export default function SubscribersPage() {
                       <div className="flex flex-col items-center gap-2 text-[var(--muted-2)]">
                         <Icon className="h-10 w-10 text-[var(--line)] mb-1" name="users" />
                         <span className="text-[13.5px] font-bold text-[var(--ink)]">
-                          No {activeTab.charAt(0) + activeTab.slice(1).toLowerCase()} subscribers found
+                          No {activeTab.charAt(0) + activeTab.slice(1).toLowerCase()} subscribers
+                          found
                         </span>
                         <span className="text-[12px] text-[var(--muted-2)]">
                           {subscribers.length === 0
@@ -424,7 +430,9 @@ export default function SubscribersPage() {
 
                         {/* Plan details */}
                         <td className="py-4 px-4">
-                          <span className={`inline-flex rounded px-2.5 py-0.5 text-[11px] font-bold ${getPlanColor(sub.plan_name)}`}>
+                          <span
+                            className={`inline-flex rounded px-2.5 py-0.5 text-[11px] font-bold ${getPlanColor(sub.plan_name)}`}
+                          >
                             {sub.plan_name}
                           </span>
                           <div className="text-[11px] text-[var(--muted-2)] mt-1">
