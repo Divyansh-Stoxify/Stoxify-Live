@@ -5,8 +5,19 @@ import { Topbar } from "@/components/dashboard/topbar";
 import { Icon, type IconName } from "@/components/stoxify-icon";
 import type { Trade } from "@/lib/types/analyst";
 import { useAnalystProfile } from "@/hooks/use-analyst-dashboard";
-import { RAEvaluationDashboard, RAEvaluationDashboardSkeleton } from "@/components/public/RAEvaluationDashboard";
-import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from "recharts";
+import {
+  RAEvaluationDashboard,
+  RAEvaluationDashboardSkeleton,
+} from "@/components/public/RAEvaluationDashboard";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -24,10 +35,7 @@ function isLive(t: Trade): boolean {
 /** Realised P&L percentage for a closed trade. */
 function pnl(t: Trade): number {
   return (
-    (t as { combined_pnl_percent?: number }).combined_pnl_percent ??
-    t.pnl_percent ??
-    t.pnl_pct ??
-    0
+    (t as { combined_pnl_percent?: number }).combined_pnl_percent ?? t.pnl_percent ?? t.pnl_pct ?? 0
   );
 }
 
@@ -41,8 +49,18 @@ function fmtPct(n: number): string {
 }
 
 const MONTH_LABELS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
 
 // ─── Data hook ────────────────────────────────────────────────────────────────
@@ -149,8 +167,7 @@ function buildAnalytics(trades: Trade[]): Analytics {
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const monthTrades = closed.filter((t) => {
-      const ts =
-        (t as { exit_timestamp?: string }).exit_timestamp ?? t.updated_at;
+      const ts = (t as { exit_timestamp?: string }).exit_timestamp ?? t.updated_at;
       if (!ts) return false;
       const td = new Date(ts);
       return td.getFullYear() === d.getFullYear() && td.getMonth() === d.getMonth();
@@ -301,7 +318,9 @@ const CustomBarTooltip = ({ active, payload }: any) => {
           <p className="text-slate-300">
             Avg Return:{" "}
             <span className={`font-bold ${data.avgPnl >= 0 ? "text-green-400" : "text-red-400"}`}>
-              {data.total > 0 ? `${data.avgPnl >= 0 ? "+" : ""}${data.avgPnl.toFixed(2)}%` : "0.00%"}
+              {data.total > 0
+                ? `${data.avgPnl >= 0 ? "+" : ""}${data.avgPnl.toFixed(2)}%`
+                : "0.00%"}
             </span>
           </p>
         </div>
@@ -431,27 +450,39 @@ export default function PerformancePage() {
               ) : (
                 <div className="h-44 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={a.monthly} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <XAxis 
-                        dataKey="label" 
-                        tickLine={false} 
-                        axisLine={false} 
+                    <BarChart
+                      data={a.monthly}
+                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                    >
+                      <XAxis
+                        dataKey="label"
+                        tickLine={false}
+                        axisLine={false}
                         tick={{ fill: "#64748b", fontSize: 11, fontWeight: 500 }}
                       />
-                      <YAxis 
-                        tickLine={false} 
-                        axisLine={false} 
+                      <YAxis
+                        tickLine={false}
+                        axisLine={false}
                         tick={{ fill: "#64748b", fontSize: 11 }}
                         allowDecimals={false}
                       />
-                      <RechartsTooltip content={<CustomBarTooltip />} cursor={{ fill: "rgba(148, 163, 184, 0.1)" }} />
+                      <RechartsTooltip
+                        content={<CustomBarTooltip />}
+                        cursor={{ fill: "rgba(148, 163, 184, 0.1)" }}
+                      />
                       <Bar dataKey="total" radius={[4, 4, 0, 0]} maxBarSize={45}>
                         {a.monthly.map((entry, index) => {
                           const isNegative = entry.avgPnl < 0;
                           return (
-                            <Cell 
-                              key={`cell-${index}`} 
-                              fill={entry.total === 0 ? "rgba(148, 163, 184, 0.15)" : isNegative ? "#d93025" : "#1f7ae0"} 
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={
+                                entry.total === 0
+                                  ? "rgba(148, 163, 184, 0.15)"
+                                  : isNegative
+                                    ? "#d93025"
+                                    : "#1f7ae0"
+                              }
                             />
                           );
                         })}

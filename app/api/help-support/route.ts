@@ -99,19 +99,13 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json(
-      { error: "Invalid request body." },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
 
   // Validate
   const { errors, data } = validateTicketPayload(body);
   if (!data) {
-    return NextResponse.json(
-      { error: "Validation failed.", details: errors },
-      { status: 422 }
-    );
+    return NextResponse.json({ error: "Validation failed.", details: errors }, { status: 422 });
   }
 
   // Generate ticket

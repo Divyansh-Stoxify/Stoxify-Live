@@ -23,26 +23,30 @@ interface BackendError {
  * field: 'submit' | 'batch' | 'symbol' | 'entry' | 'sl' | 'target' | 'expiry'
  */
 function resolveTradeError(data: BackendError): { field: string; message: string } {
-  const code = data.code ?? data.error ?? '';
+  const code = data.code ?? data.error ?? "";
 
   // Determine which field this error belongs to
-  let field = 'submit';
-  if (code === 'BATCH_REQUIRED' || code === 'SEGMENT_MISMATCH' || code === 'INVALID_BATCH') {
-    field = 'batch';
-  } else if (code === 'MISSING_FIELDS') {
-    field = 'symbol';
-  } else if (code === 'MISSING_TARGET') {
-    field = 'target';
-  } else if (code === 'INVALID_PRICE_LEVELS') {
-    field = 'stopLoss';
-  } else if (code === 'INVALID_BOOK_PERCENT') {
-    field = 'targets';
-  } else if (code === 'MISSING_EXPIRY' || code === 'INVALID_EXPIRY' || code === 'INVALID_EXPIRY_FORMAT') {
-    field = 'expiry';
+  let field = "submit";
+  if (code === "BATCH_REQUIRED" || code === "SEGMENT_MISMATCH" || code === "INVALID_BATCH") {
+    field = "batch";
+  } else if (code === "MISSING_FIELDS") {
+    field = "symbol";
+  } else if (code === "MISSING_TARGET") {
+    field = "target";
+  } else if (code === "INVALID_PRICE_LEVELS") {
+    field = "stopLoss";
+  } else if (code === "INVALID_BOOK_PERCENT") {
+    field = "targets";
+  } else if (
+    code === "MISSING_EXPIRY" ||
+    code === "INVALID_EXPIRY" ||
+    code === "INVALID_EXPIRY_FORMAT"
+  ) {
+    field = "expiry";
   }
 
   // Get the cleaned user-friendly error message
-  const fallback = data.message || data.error || 'Failed to create trade. Please try again.';
+  const fallback = data.message || data.error || "Failed to create trade. Please try again.";
   const message = cleanErrorMessage(data, fallback);
 
   return { field, message };
@@ -90,7 +94,12 @@ interface SearchResult {
   exchange: string;
 }
 
-export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }: CreateTradeModalProps) {
+export function CreateTradeModal({
+  onClose,
+  onSuccess,
+  livePrices,
+  sendMessage,
+}: CreateTradeModalProps) {
   const { mutate } = useSWRConfig();
 
   // Form states
@@ -100,10 +109,12 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
   const [tradeStructure, setTradeStructure] = useState<"SIMPLE" | "PAIR">("SIMPLE");
   const [segment, setSegment] = useState<"EQUITY" | "FNO">("EQUITY");
   const [position, setPosition] = useState<"LONG" | "SHORT">("LONG");
-  const [category, setCategory] = useState<"INTRADAY" | "SWING" | "POSITIONAL" | "SHORT_TERM" | "MEDIUM_TERM" | "LONG_TERM">("INTRADAY");
+  const [category, setCategory] = useState<
+    "INTRADAY" | "SWING" | "POSITIONAL" | "SHORT_TERM" | "MEDIUM_TERM" | "LONG_TERM"
+  >("INTRADAY");
   const [entryPrice, setEntryPrice] = useState("");
   const [targets, setTargets] = useState<{ price: string; percent: string }[]>([
-    { price: "", percent: "100" }
+    { price: "", percent: "100" },
   ]);
   const [stopLoss, setStopLoss] = useState("");
   const [notes, setNotes] = useState("");
@@ -173,7 +184,7 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
   const [isSubmittedOnce, setIsSubmittedOnce] = useState(false);
 
   const markTouched = useCallback((field: string) => {
-    setTouched((prev) => prev[field] ? prev : { ...prev, [field]: true });
+    setTouched((prev) => (prev[field] ? prev : { ...prev, [field]: true }));
   }, []);
 
   const validationErrors = useMemo(() => {
@@ -231,12 +242,14 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
           const tp = parseFloat(t.price);
           if (!isNaN(tp)) {
             if (tp <= entry) {
-              nextErrors[`target_${i}_price`] = "For Long position, Target must be greater than Entry";
+              nextErrors[`target_${i}_price`] =
+                "For Long position, Target must be greater than Entry";
             }
             if (i > 0) {
               const prevTp = parseFloat(targets[i - 1].price);
               if (!isNaN(prevTp) && tp <= prevTp) {
-                nextErrors[`target_${i}_price`] = `Target ${i + 1} must be strictly greater than Target ${i}`;
+                nextErrors[`target_${i}_price`] =
+                  `Target ${i + 1} must be strictly greater than Target ${i}`;
               }
             }
           }
@@ -250,12 +263,14 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
           const tp = parseFloat(t.price);
           if (!isNaN(tp)) {
             if (tp >= entry) {
-              nextErrors[`target_${i}_price`] = "For Short position, Target must be less than Entry";
+              nextErrors[`target_${i}_price`] =
+                "For Short position, Target must be less than Entry";
             }
             if (i > 0) {
               const prevTp = parseFloat(targets[i - 1].price);
               if (!isNaN(prevTp) && tp >= prevTp) {
-                nextErrors[`target_${i}_price`] = `Target ${i + 1} must be strictly less than Target ${i}`;
+                nextErrors[`target_${i}_price`] =
+                  `Target ${i + 1} must be strictly less than Target ${i}`;
               }
             }
           }
@@ -266,12 +281,15 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
     return nextErrors;
   }, [symbolQuery, entryPrice, targets, stopLoss, selectedPlanIds, expiry, segment, position]);
 
-  const getFieldError = useCallback((field: string) => {
-    if (touched[field] || isSubmittedOnce) {
-      if (validationErrors[field]) return validationErrors[field];
-    }
-    return errors[field];
-  }, [touched, isSubmittedOnce, validationErrors, errors]);
+  const getFieldError = useCallback(
+    (field: string) => {
+      if (touched[field] || isSubmittedOnce) {
+        if (validationErrors[field]) return validationErrors[field];
+      }
+      return errors[field];
+    },
+    [touched, isSubmittedOnce, validationErrors, errors]
+  );
 
   const autocompleteRef = useRef<HTMLDivElement>(null);
   const batchDropdownRef = useRef<HTMLDivElement>(null);
@@ -435,7 +453,7 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
     const symbol = symbolQuery;
     const interval = setInterval(() => {
       if (sendMessage) {
-        sendMessage({ type: 'watch', symbol });
+        sendMessage({ type: "watch", symbol });
       } else {
         fetchLivePrice(symbol, true);
       }
@@ -470,7 +488,7 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
 
     const parsedTargets = targets.map((t) => ({
       target_price: parseFloat(t.price),
-      book_percent: parseFloat(t.percent)
+      book_percent: parseFloat(t.percent),
     }));
 
     // Map position toggle to standard direction string
@@ -580,10 +598,11 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                   name="search"
                 />
                 <input
-                  className={`w-full rounded-lg border bg-white py-2.5 pl-10 pr-4 text-[13px] text-[var(--ink)] transition-all placeholder:text-[var(--muted-2)] focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${getFieldError("symbol")
+                  className={`w-full rounded-lg border bg-white py-2.5 pl-10 pr-4 text-[13px] text-[var(--ink)] transition-all placeholder:text-[var(--muted-2)] focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
+                    getFieldError("symbol")
                       ? "border-[var(--red)] ring-[var(--red)]/20"
                       : "border-[var(--line)]"
-                    }`}
+                  }`}
                   onFocus={() => setShowAutocomplete(true)}
                   onBlur={() => markTouched("symbol")}
                   onChange={(e) => {
@@ -723,20 +742,22 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                 </label>
                 <div className="flex bg-[var(--surface)] p-1 rounded-lg border border-[var(--line)]">
                   <button
-                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${tradeStructure === "SIMPLE"
+                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${
+                      tradeStructure === "SIMPLE"
                         ? "bg-white text-[var(--ink)] shadow-sm border border-[var(--line)]/50"
                         : "text-[var(--muted)] hover:text-[var(--ink)]"
-                      }`}
+                    }`}
                     onClick={() => setTradeStructure("SIMPLE")}
                     type="button"
                   >
                     Simple
                   </button>
                   <button
-                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${tradeStructure === "PAIR"
+                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${
+                      tradeStructure === "PAIR"
                         ? "bg-white text-[var(--ink)] shadow-sm border border-[var(--line)]/50"
                         : "text-[var(--muted)] hover:text-[var(--ink)]"
-                      }`}
+                    }`}
                     onClick={() => setTradeStructure("PAIR")}
                     type="button"
                   >
@@ -750,12 +771,15 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                 <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em] mb-1.5">
                   Segment
                 </label>
-                <div className={`flex bg-[var(--surface)] p-1 rounded-lg border border-[var(--line)] ${isSymbolSelected ? "opacity-75 cursor-not-allowed" : ""}`}>
+                <div
+                  className={`flex bg-[var(--surface)] p-1 rounded-lg border border-[var(--line)] ${isSymbolSelected ? "opacity-75 cursor-not-allowed" : ""}`}
+                >
                   <button
-                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${segment === "EQUITY"
+                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${
+                      segment === "EQUITY"
                         ? "bg-white text-[var(--ink)] shadow-sm border border-[var(--line)]/50"
                         : "text-[var(--muted)] hover:text-[var(--ink)]"
-                      }`}
+                    }`}
                     onClick={() => setSegment("EQUITY")}
                     type="button"
                     disabled={isSymbolSelected}
@@ -763,10 +787,11 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                     Equity
                   </button>
                   <button
-                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${segment === "FNO"
+                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${
+                      segment === "FNO"
                         ? "bg-white text-[var(--ink)] shadow-sm border border-[var(--line)]/50"
                         : "text-[var(--muted)] hover:text-[var(--ink)]"
-                      }`}
+                    }`}
                     onClick={() => setSegment("FNO")}
                     type="button"
                     disabled={isSymbolSelected}
@@ -778,82 +803,92 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
             </div>
 
             {/* FNO Specific Fields */}
-            {segment === "FNO" && (() => {
-              const queryRaw = symbolQuery.toUpperCase().replace(/\s+/g, "");
-              const isOptionAutoDetected = /^([A-Z]+?)([\d]*[A-Z]{3}\d{0,2})(\d+)(CE|PE)$/.test(queryRaw);
-              const isFutAutoDetected = /^([A-Z]+?)([\d]*[A-Z]{3}\d{0,2})FUT$/.test(queryRaw);
-              const isAutoDetected = isOptionAutoDetected || isFutAutoDetected;
+            {segment === "FNO" &&
+              (() => {
+                const queryRaw = symbolQuery.toUpperCase().replace(/\s+/g, "");
+                const isOptionAutoDetected = /^([A-Z]+?)([\d]*[A-Z]{3}\d{0,2})(\d+)(CE|PE)$/.test(
+                  queryRaw
+                );
+                const isFutAutoDetected = /^([A-Z]+?)([\d]*[A-Z]{3}\d{0,2})FUT$/.test(queryRaw);
+                const isAutoDetected = isOptionAutoDetected || isFutAutoDetected;
 
-              return (
-                <div className="grid grid-cols-3 gap-3 animate-[fadeIn_0.2s_ease-out]">
-                  {/* Expiry */}
-                  <div>
-                    <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em] mb-1.5">
-                      Expiry <span className="text-[var(--red)]">*</span>
-                    </label>
-                    <input
-                      className={`w-full rounded-lg border py-2 px-3 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${getFieldError("expiry") ? "border-[var(--red)]" : "border-[var(--line)]"
+                return (
+                  <div className="grid grid-cols-3 gap-3 animate-[fadeIn_0.2s_ease-out]">
+                    {/* Expiry */}
+                    <div>
+                      <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em] mb-1.5">
+                        Expiry <span className="text-[var(--red)]">*</span>
+                      </label>
+                      <input
+                        className={`w-full rounded-lg border py-2 px-3 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
+                          getFieldError("expiry") ? "border-[var(--red)]" : "border-[var(--line)]"
                         } ${isAutoDetected ? "bg-[var(--surface)] opacity-70 cursor-not-allowed" : "bg-white"}`}
-                      onChange={(e) => {
-                        setExpiry(e.target.value);
-                        markTouched("expiry");
-                      }}
-                      onBlur={() => markTouched("expiry")}
-                      placeholder="e.g. 26JUN"
-                      type="text"
-                      value={expiry}
-                      disabled={isAutoDetected}
-                    />
-                    {getFieldError("expiry") && (
-                      <div className="text-[10px] text-[var(--red)] font-semibold mt-1 leading-snug">
-                        {getFieldError("expiry")}
-                      </div>
-                    )}
-                  </div>
+                        onChange={(e) => {
+                          setExpiry(e.target.value);
+                          markTouched("expiry");
+                        }}
+                        onBlur={() => markTouched("expiry")}
+                        placeholder="e.g. 26JUN"
+                        type="text"
+                        value={expiry}
+                        disabled={isAutoDetected}
+                      />
+                      {getFieldError("expiry") && (
+                        <div className="text-[10px] text-[var(--red)] font-semibold mt-1 leading-snug">
+                          {getFieldError("expiry")}
+                        </div>
+                      )}
+                    </div>
 
-                  {/* Strike Price */}
-                  <div>
-                    <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em] mb-1.5">
-                      Strike Price
-                    </label>
-                    <input
-                      className={`w-full rounded-lg border border-[var(--line)] py-2 px-3 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${isAutoDetected ? "bg-[var(--surface)] opacity-70 cursor-not-allowed" : "bg-white"
+                    {/* Strike Price */}
+                    <div>
+                      <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em] mb-1.5">
+                        Strike Price
+                      </label>
+                      <input
+                        className={`w-full rounded-lg border border-[var(--line)] py-2 px-3 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
+                          isAutoDetected
+                            ? "bg-[var(--surface)] opacity-70 cursor-not-allowed"
+                            : "bg-white"
                         }`}
-                      onChange={(e) => setStrikePrice(e.target.value)}
-                      placeholder="e.g. 1350"
-                      type="number"
-                      step="0.05"
-                      value={strikePrice}
-                      disabled={isAutoDetected}
-                    />
-                  </div>
-
-                  {/* Option Type */}
-                  <div>
-                    <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em] mb-1.5">
-                      Option Type
-                    </label>
-                    <div className="relative">
-                      <select
-                        className={`w-full appearance-none rounded-lg border border-[var(--line)] py-2 px-3.5 text-[12.5px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${isOptionAutoDetected ? "bg-[var(--surface)] opacity-70 cursor-not-allowed" : "bg-white"
-                          }`}
-                        onChange={(e) => setOptionType(e.target.value as "CE" | "PE" | "")}
-                        value={optionType}
-                        disabled={isOptionAutoDetected}
-                      >
-                        <option value="">Select</option>
-                        <option value="CE">CE (Call)</option>
-                        <option value="PE">PE (Put)</option>
-                      </select>
-                      <Icon
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-2)] pointer-events-none h-3 w-3"
-                        name="chevronDown"
+                        onChange={(e) => setStrikePrice(e.target.value)}
+                        placeholder="e.g. 1350"
+                        type="number"
+                        step="0.05"
+                        value={strikePrice}
+                        disabled={isAutoDetected}
                       />
                     </div>
+
+                    {/* Option Type */}
+                    <div>
+                      <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em] mb-1.5">
+                        Option Type
+                      </label>
+                      <div className="relative">
+                        <select
+                          className={`w-full appearance-none rounded-lg border border-[var(--line)] py-2 px-3.5 text-[12.5px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
+                            isOptionAutoDetected
+                              ? "bg-[var(--surface)] opacity-70 cursor-not-allowed"
+                              : "bg-white"
+                          }`}
+                          onChange={(e) => setOptionType(e.target.value as "CE" | "PE" | "")}
+                          value={optionType}
+                          disabled={isOptionAutoDetected}
+                        >
+                          <option value="">Select</option>
+                          <option value="CE">CE (Call)</option>
+                          <option value="PE">PE (Put)</option>
+                        </select>
+                        <Icon
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-2)] pointer-events-none h-3 w-3"
+                          name="chevronDown"
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              );
-            })()}
+                );
+              })()}
 
             {/* Toggle Row 2: Position & Category */}
             <div className="grid grid-cols-2 gap-4">
@@ -864,20 +899,22 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                 </label>
                 <div className="flex bg-[var(--surface)] p-1 rounded-lg border border-[var(--line)]">
                   <button
-                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${position === "LONG"
+                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${
+                      position === "LONG"
                         ? "bg-white text-[var(--green)] shadow-sm border border-[var(--line)]/50"
                         : "text-[var(--muted)] hover:text-[var(--ink)]"
-                      }`}
+                    }`}
                     onClick={() => setPosition("LONG")}
                     type="button"
                   >
                     Long
                   </button>
                   <button
-                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${position === "SHORT"
+                    className={`flex-1 py-1.5 text-center text-[12px] font-bold rounded-md transition-all ${
+                      position === "SHORT"
                         ? "bg-white text-[var(--red)] shadow-sm border border-[var(--line)]/50"
                         : "text-[var(--muted)] hover:text-[var(--ink)]"
-                      }`}
+                    }`}
                     onClick={() => setPosition("SHORT")}
                     type="button"
                   >
@@ -920,22 +957,23 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
               <button
                 type="button"
                 onClick={() => setShowBatchDropdown((v) => !v)}
-                className={`w-full flex items-center justify-between gap-2 rounded-lg border bg-white py-2 px-3.5 text-[12.5px] font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${getFieldError("batch") ? "border-[var(--red)]" : "border-[var(--line)]"
-                  } ${selectedPlanIds.length === 0 ? "text-[var(--muted-2)]" : "text-[var(--ink)]"}`}
+                className={`w-full flex items-center justify-between gap-2 rounded-lg border bg-white py-2 px-3.5 text-[12.5px] font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
+                  getFieldError("batch") ? "border-[var(--red)]" : "border-[var(--line)]"
+                } ${selectedPlanIds.length === 0 ? "text-[var(--muted-2)]" : "text-[var(--ink)]"}`}
               >
                 <span className="flex flex-wrap items-center gap-1.5 text-left min-w-0">
                   {selectedPlanIds.length === 0
                     ? "Select batches..."
                     : plans
-                      .filter((p) => selectedPlanIds.includes(p.plan_id))
-                      .map((p) => (
-                        <span
-                          key={p.plan_id}
-                          className="inline-flex items-center rounded bg-[var(--brand-light)] text-[var(--brand)] px-1.5 py-0.5 text-[11px] font-bold border border-[var(--brand)]/15"
-                        >
-                          {p.name}
-                        </span>
-                      ))}
+                        .filter((p) => selectedPlanIds.includes(p.plan_id))
+                        .map((p) => (
+                          <span
+                            key={p.plan_id}
+                            className="inline-flex items-center rounded bg-[var(--brand-light)] text-[var(--brand)] px-1.5 py-0.5 text-[11px] font-bold border border-[var(--brand)]/15"
+                          >
+                            {p.name}
+                          </span>
+                        ))}
                 </span>
                 <Icon
                   className="text-[var(--muted-2)] pointer-events-none h-3 w-3 shrink-0"
@@ -966,10 +1004,11 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                         }}
                       >
                         <span
-                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${checked
+                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
+                            checked
                               ? "bg-[var(--brand)] border-[var(--brand)] text-white"
                               : "border-[var(--line)] bg-white"
-                            }`}
+                          }`}
                         >
                           {checked && <Icon name="check" className="h-3 w-3" />}
                         </span>
@@ -992,15 +1031,17 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
               {/* Entry — read-only, always the live LTP fetched from Angel One */}
               <div>
                 <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em] mb-1.5">
-                  Entry Price <span className="normal-case font-semibold text-[var(--muted-2)]">(Live)</span>
+                  Entry Price{" "}
+                  <span className="normal-case font-semibold text-[var(--muted-2)]">(Live)</span>
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[12.5px] font-medium text-[var(--muted-2)]">
                     ₹
                   </span>
                   <input
-                    className={`w-full rounded-lg border bg-[var(--surface)] text-[var(--muted-2)] cursor-not-allowed border-dashed py-2 pl-6 pr-8 text-[13px] font-medium transition-colors focus:outline-none ${getFieldError("entry") ? "border-[var(--red)]" : "border-[var(--line)]"
-                      } ${isFetchingPrice ? "animate-pulse" : ""}`}
+                    className={`w-full rounded-lg border bg-[var(--surface)] text-[var(--muted-2)] cursor-not-allowed border-dashed py-2 pl-6 pr-8 text-[13px] font-medium transition-colors focus:outline-none ${
+                      getFieldError("entry") ? "border-[var(--red)]" : "border-[var(--line)]"
+                    } ${isFetchingPrice ? "animate-pulse" : ""}`}
                     onBlur={() => markTouched("entry")}
                     placeholder={isFetchingPrice ? "Fetching…" : "Select instrument"}
                     type="number"
@@ -1051,8 +1092,12 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                     type="button"
                     onClick={() => {
                       if (targets.length >= 5) return;
-                      const remainingPct = 100 - targets.reduce((acc, t) => acc + (parseFloat(t.percent) || 0), 0);
-                      setTargets([...targets, { price: "", percent: remainingPct > 0 ? String(remainingPct) : "0" }]);
+                      const remainingPct =
+                        100 - targets.reduce((acc, t) => acc + (parseFloat(t.percent) || 0), 0);
+                      setTargets([
+                        ...targets,
+                        { price: "", percent: remainingPct > 0 ? String(remainingPct) : "0" },
+                      ]);
                     }}
                     disabled={targets.length >= 5}
                     className="text-[11px] font-bold text-[var(--brand)] hover:text-[var(--brand-dark)] transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1074,8 +1119,11 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                           ₹
                         </span>
                         <input
-                          className={`w-full rounded-lg border bg-white py-2 pl-6 pr-3.5 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${getFieldError(`target_${idx}_price`) ? "border-[var(--red)]" : "border-[var(--line)]"
-                            }`}
+                          className={`w-full rounded-lg border bg-white py-2 pl-6 pr-3.5 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
+                            getFieldError(`target_${idx}_price`)
+                              ? "border-[var(--red)]"
+                              : "border-[var(--line)]"
+                          }`}
                           onChange={(e) => {
                             const newTargets = [...targets];
                             newTargets[idx].price = e.target.value;
@@ -1100,8 +1148,11 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                     <div className="w-[100px]">
                       <div className="relative">
                         <input
-                          className={`w-full rounded-lg border bg-white py-2 pl-3 pr-6 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${getFieldError(`target_${idx}_percent`) ? "border-[var(--red)]" : "border-[var(--line)]"
-                            }`}
+                          className={`w-full rounded-lg border bg-white py-2 pl-3 pr-6 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
+                            getFieldError(`target_${idx}_percent`)
+                              ? "border-[var(--red)]"
+                              : "border-[var(--line)]"
+                          }`}
                           onChange={(e) => {
                             const newTargets = [...targets];
                             newTargets[idx].percent = e.target.value;
@@ -1174,8 +1225,9 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                     ₹
                   </span>
                   <input
-                    className={`w-full rounded-lg border bg-white py-2 pl-6 pr-3.5 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${getFieldError("stopLoss") ? "border-[var(--red)]" : "border-[var(--line)]"
-                      }`}
+                    className={`w-full rounded-lg border bg-white py-2 pl-6 pr-3.5 text-[13px] font-medium text-[var(--ink)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--brand)] ${
+                      getFieldError("stopLoss") ? "border-[var(--red)]" : "border-[var(--line)]"
+                    }`}
                     onChange={(e) => {
                       setStopLoss(e.target.value);
                       markTouched("stopLoss");
@@ -1199,8 +1251,17 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
             {/* Risk : Reward Ratio */}
             {(() => {
               const e = parseFloat(entryPrice);
-              const totalPercent = targets.reduce((acc, t) => acc + (parseFloat(t.percent) || 0), 0);
-              const t = totalPercent > 0 ? targets.reduce((acc, t) => acc + ((parseFloat(t.price) || 0) * (parseFloat(t.percent) || 0)), 0) / totalPercent : 0;
+              const totalPercent = targets.reduce(
+                (acc, t) => acc + (parseFloat(t.percent) || 0),
+                0
+              );
+              const t =
+                totalPercent > 0
+                  ? targets.reduce(
+                      (acc, t) => acc + (parseFloat(t.price) || 0) * (parseFloat(t.percent) || 0),
+                      0
+                    ) / totalPercent
+                  : 0;
               const s = parseFloat(stopLoss);
               const valid = !isNaN(e) && !isNaN(t) && !isNaN(s) && e > 0 && t > 0 && s > 0;
               if (!valid) return null;
@@ -1267,7 +1328,9 @@ export function CreateTradeModal({ onClose, onSuccess, livePrices, sendMessage }
                 <label className="block text-[11.5px] font-bold text-[var(--muted)] uppercase tracking-[0.05em]">
                   Analyst Notes (Optional)
                 </label>
-                <span className={`text-[10px] font-semibold ${notes.length > 500 ? "text-[var(--red)]" : "text-[var(--muted-2)]"}`}>
+                <span
+                  className={`text-[10px] font-semibold ${notes.length > 500 ? "text-[var(--red)]" : "text-[var(--muted-2)]"}`}
+                >
                   {notes.length}/500
                 </span>
               </div>

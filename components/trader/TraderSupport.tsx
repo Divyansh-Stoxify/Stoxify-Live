@@ -142,9 +142,7 @@ export function TraderSupport({ user }: { user: SupportUser }) {
         return;
       }
 
-      toast.success(
-        `Support ticket raised successfully! Ticket ID: ${data.ticket_id}`
-      );
+      toast.success(`Support ticket raised successfully! Ticket ID: ${data.ticket_id}`);
       setEmail("");
       setSubject("");
       setDescription("");

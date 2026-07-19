@@ -21,7 +21,7 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
       ? isShort
         ? Math.min(...trade.targets.map((t) => t.target_price))
         : Math.max(...trade.targets.map((t) => t.target_price))
-      : trade.target ?? trade.target_price;
+      : (trade.target ?? trade.target_price);
 
   const entry = trade.entry_price || 0;
 
@@ -49,16 +49,16 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
   const isClosed =
     trade.status === "CLOSED" || trade.status === "TARGET_HIT" || trade.status === "SL_HIT";
   const pnlPercent = isClosed
-    ? trade.pnl_percent ?? trade.pnl_pct ?? 0
+    ? (trade.pnl_percent ?? trade.pnl_pct ?? 0)
     : entry > 0
-    ? ((isShort ? entry - liveLtpState : liveLtpState - entry) / entry) * 100
-    : 0;
+      ? ((isShort ? entry - liveLtpState : liveLtpState - entry) / entry) * 100
+      : 0;
 
   const pnlPerUnit = isClosed
     ? (trade.exit_price ?? entry) - entry
     : isShort
-    ? entry - liveLtpState
-    : liveLtpState - entry;
+      ? entry - liveLtpState
+      : liveLtpState - entry;
 
   const pnlPositive = pnlPercent >= 0;
 
@@ -71,9 +71,7 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
   // per-unit risk. 0x at entry, -1.0x at the stop, `rrRatio` once the target lands.
   const liveRMultiple = risk > 0 ? pnlPerUnit / risk : null;
   const liveRr =
-    liveRMultiple === null
-      ? "—"
-      : `${liveRMultiple >= 0 ? "+" : ""}${liveRMultiple.toFixed(2)}x`;
+    liveRMultiple === null ? "—" : `${liveRMultiple >= 0 ? "+" : ""}${liveRMultiple.toFixed(2)}x`;
 
   // Estimated stats
   const estimatedGains = targetVal && entry > 0 ? (Math.abs(targetVal - entry) / entry) * 100 : 0;
@@ -97,7 +95,9 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
     }
   };
 
-  const createdDate = formatDate(trade.nse_timestamp ?? trade.created_at ?? (trade as any).entry_timestamp);
+  const createdDate = formatDate(
+    trade.nse_timestamp ?? trade.created_at ?? (trade as any).entry_timestamp
+  );
   const exitDate = formatDate(trade.exit_timestamp);
 
   // Duration
@@ -129,7 +129,9 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--line)] px-5 py-4 bg-[var(--surface)]">
           <div className="flex items-center gap-2">
-            <span className={`h-2 w-2 rounded-full ${isClosed ? "bg-slate-400" : "bg-emerald-500 animate-pulse"}`} />
+            <span
+              className={`h-2 w-2 rounded-full ${isClosed ? "bg-slate-400" : "bg-emerald-500 animate-pulse"}`}
+            />
             <h2 className="text-[16px] font-extrabold text-[var(--ink)]">
               {isClosed ? "Past Trade Details" : "Live Trade Details"}
             </h2>
@@ -158,21 +160,33 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
                     <span className="w-1.5 h-1.5 rounded-full bg-orange-500" /> NSE
                   </span>
                 </div>
-                <div className="text-[11px] text-[var(--muted-2)] font-semibold uppercase tracking-wider mt-1">{segmentDisplay}</div>
+                <div className="text-[11px] text-[var(--muted-2)] font-semibold uppercase tracking-wider mt-1">
+                  {segmentDisplay}
+                </div>
               </div>
             </div>
 
             {/* Right side: LTP directly above the badges */}
             <div className="text-right flex flex-col items-end">
               {/* LTP value */}
-              <div className={`text-[19px] font-extrabold leading-none text-slate-800 transition-colors duration-300 ${priceDirection === 'up' ? 'text-emerald-600' : priceDirection === 'down' ? 'text-rose-600' : ''}`}>
-                ₹{(isClosed ? trade.exit_price ?? liveLtpState : liveLtpState).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              <div
+                className={`text-[19px] font-extrabold leading-none text-slate-800 transition-colors duration-300 ${priceDirection === "up" ? "text-emerald-600" : priceDirection === "down" ? "text-rose-600" : ""}`}
+              >
+                ₹
+                {(isClosed ? (trade.exit_price ?? liveLtpState) : liveLtpState).toLocaleString(
+                  "en-IN",
+                  { minimumFractionDigits: 2 }
+                )}
               </div>
               {/* Return (P&L %) and unit profit */}
-              <div className={`text-[11.5px] font-bold mt-1 ${pnlPositive ? "text-emerald-600" : "text-rose-600"}`}>
-                {pnlPositive ? "+" : ""}{pnlPercent.toFixed(2)}%
+              <div
+                className={`text-[11.5px] font-bold mt-1 ${pnlPositive ? "text-emerald-600" : "text-rose-600"}`}
+              >
+                {pnlPositive ? "+" : ""}
+                {pnlPercent.toFixed(2)}%
                 <span className="text-[10px] ml-1 font-semibold opacity-75">
-                  ({pnlPositive ? "+" : ""}₹{Math.abs(pnlPerUnit).toLocaleString("en-IN", { minimumFractionDigits: 2 })})
+                  ({pnlPositive ? "+" : ""}₹
+                  {Math.abs(pnlPerUnit).toLocaleString("en-IN", { minimumFractionDigits: 2 })})
                 </span>
               </div>
 
@@ -194,7 +208,9 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
                 </span>
               </div>
               {trade.trade_subtype && (
-                <div className="text-[9.5px] text-[var(--muted-2)] mt-1 font-semibold">Category: {trade.trade_subtype}</div>
+                <div className="text-[9.5px] text-[var(--muted-2)] mt-1 font-semibold">
+                  Category: {trade.trade_subtype}
+                </div>
               )}
             </div>
           </div>
@@ -205,7 +221,9 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
             <div className="space-y-4">
               {/* Trade Statistics Card */}
               <div className="space-y-2">
-                <h3 className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider">Trade statistics</h3>
+                <h3 className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider">
+                  Trade statistics
+                </h3>
                 <div className="border border-[var(--line)] bg-white rounded-xl p-4 shadow-sm space-y-2.5">
                   {!isClosed ? (
                     <>
@@ -223,13 +241,18 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
                       </div>
                       <div className="flex justify-between items-center text-[12.5px] py-0.5 border-b border-[var(--line)] last:border-0">
                         <span className="text-[var(--muted)] font-semibold">Live Return</span>
-                        <span className={`font-extrabold text-[13.5px] ${pnlPositive ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
-                          {pnlPositive ? "+" : ""}{pnlPercent.toFixed(2)}%
+                        <span
+                          className={`font-extrabold text-[13.5px] ${pnlPositive ? "text-[var(--green)]" : "text-[var(--red)]"}`}
+                        >
+                          {pnlPositive ? "+" : ""}
+                          {pnlPercent.toFixed(2)}%
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-[12.5px] py-0.5 last:border-0">
                         <span className="text-[var(--muted)] font-semibold">Live R/R</span>
-                        <span className={`font-extrabold text-[13.5px] ${pnlPositive ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
+                        <span
+                          className={`font-extrabold text-[13.5px] ${pnlPositive ? "text-[var(--green)]" : "text-[var(--red)]"}`}
+                        >
                           {liveRr}
                         </span>
                       </div>
@@ -237,9 +260,14 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
                   ) : (
                     <>
                       <div className="flex justify-between items-center text-[12.5px] py-0.5 border-b border-[var(--line)] last:border-0">
-                        <span className="text-[var(--muted)] font-semibold">Net P&L (realised)</span>
-                        <span className={`font-extrabold text-[13.5px] ${pnlPositive ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
-                          {pnlPositive ? "+" : ""}{pnlPercent.toFixed(2)}%
+                        <span className="text-[var(--muted)] font-semibold">
+                          Net P&L (realised)
+                        </span>
+                        <span
+                          className={`font-extrabold text-[13.5px] ${pnlPositive ? "text-[var(--green)]" : "text-[var(--red)]"}`}
+                        >
+                          {pnlPositive ? "+" : ""}
+                          {pnlPercent.toFixed(2)}%
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-[12.5px] py-0.5 last:border-0">
@@ -255,16 +283,26 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
 
               {/* Targets & SL Section */}
               <div className="space-y-2">
-                <h3 className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider">Targets & Stop Loss</h3>
+                <h3 className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider">
+                  Targets & Stop Loss
+                </h3>
                 <div className="border border-[var(--line)] bg-white rounded-xl p-3.5 grid grid-cols-3 gap-2 text-center shadow-sm">
                   <div className="flex flex-col justify-start">
-                    <span className="text-[9.5px] text-[var(--muted-2)] font-bold uppercase tracking-wider mb-1">Entry</span>
-                    <span className="font-extrabold text-[14px] text-[var(--ink)]">₹{entry.toLocaleString("en-IN")}</span>
+                    <span className="text-[9.5px] text-[var(--muted-2)] font-bold uppercase tracking-wider mb-1">
+                      Entry
+                    </span>
+                    <span className="font-extrabold text-[14px] text-[var(--ink)]">
+                      ₹{entry.toLocaleString("en-IN")}
+                    </span>
                   </div>
                   <div className="w-px bg-[var(--line)] mx-auto h-9" />
                   <div className="flex flex-col justify-start">
-                    <span className="text-[9.5px] text-[var(--muted-2)] font-bold uppercase tracking-wider mb-1">Stop Loss</span>
-                    <span className="font-extrabold text-[14px] text-[var(--red)]">{slVal ? `₹${slVal.toLocaleString("en-IN")}` : "—"}</span>
+                    <span className="text-[9.5px] text-[var(--muted-2)] font-bold uppercase tracking-wider mb-1">
+                      Stop Loss
+                    </span>
+                    <span className="font-extrabold text-[14px] text-[var(--red)]">
+                      {slVal ? `₹${slVal.toLocaleString("en-IN")}` : "—"}
+                    </span>
                   </div>
                 </div>
 
@@ -277,12 +315,17 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
                     </div>
                     <div className="space-y-1.5">
                       {trade.targets.map((t, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-[12px] bg-white px-3 py-2.5 rounded-lg border border-[var(--line)] shadow-sm">
+                        <div
+                          key={idx}
+                          className="flex justify-between items-center text-[12px] bg-white px-3 py-2.5 rounded-lg border border-[var(--line)] shadow-sm"
+                        >
                           <div className="flex items-center gap-2">
                             <span className="h-5 w-5 bg-[var(--green-light)] rounded-full flex items-center justify-center text-[9px] font-black text-[var(--green)] border border-[var(--green)]/20">
                               T{idx + 1}
                             </span>
-                            <span className="font-semibold text-[var(--ink)]">₹{t.target_price.toLocaleString("en-IN")}</span>
+                            <span className="font-semibold text-[var(--ink)]">
+                              ₹{t.target_price.toLocaleString("en-IN")}
+                            </span>
                           </div>
                           <span className="text-[10px] font-bold text-[var(--muted-2)] bg-[var(--surface)] px-1.5 py-0.5 rounded">
                             Book {t.book_percent}%
@@ -294,7 +337,9 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
                 ) : targetVal ? (
                   <div className="bg-[var(--surface)] border border-[var(--line)] rounded-xl p-3 flex justify-between items-center text-[12px]">
                     <span className="text-[var(--muted)] font-bold">Target Price</span>
-                    <span className="font-extrabold text-[var(--green)] text-sm">₹{targetVal.toLocaleString("en-IN")}</span>
+                    <span className="font-extrabold text-[var(--green)] text-sm">
+                      ₹{targetVal.toLocaleString("en-IN")}
+                    </span>
                   </div>
                 ) : null}
               </div>
@@ -304,11 +349,15 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
             <div className="space-y-4">
               {/* Trade Metadata & Stats */}
               <div className="space-y-2">
-                <h3 className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider">Metadata & History</h3>
+                <h3 className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider">
+                  Metadata & History
+                </h3>
                 <div className="border border-[var(--line)] bg-white rounded-xl p-4 shadow-sm space-y-2.5">
                   <div className="flex justify-between items-center text-[12.5px] py-1 border-b border-[var(--line)] last:border-0 last:pb-0">
                     <span className="text-[var(--muted)] font-semibold">Status</span>
-                    <span className={`font-extrabold text-[11px] uppercase ${isClosed ? (pnlPositive ? "text-[var(--green)]" : "text-[var(--red)]") : "text-emerald-500 animate-pulse"}`}>
+                    <span
+                      className={`font-extrabold text-[11px] uppercase ${isClosed ? (pnlPositive ? "text-[var(--green)]" : "text-[var(--red)]") : "text-emerald-500 animate-pulse"}`}
+                    >
                       {trade.status}
                     </span>
                   </div>
@@ -352,7 +401,9 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
               {/* Trade Rationale / Notes */}
               {trade.note && (
                 <div className="space-y-2">
-                  <h3 className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider">Analyst Rationale</h3>
+                  <h3 className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider">
+                    Analyst Rationale
+                  </h3>
                   <div className="border border-[var(--line)] bg-[var(--surface)] rounded-xl p-4 text-[12.5px] text-[var(--muted)] leading-relaxed italic whitespace-pre-line font-medium shadow-inner">
                     &ldquo;{trade.note}&rdquo;
                   </div>

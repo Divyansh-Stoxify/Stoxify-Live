@@ -103,7 +103,8 @@ export function RAEvaluationDashboard({ username }: RAEvaluationDashboardProps) 
               Performance evaluation metrics
             </h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-              Comprehensive evaluation of the analyst's risk-adjusted returns & hit rates against standard industry benchmarks.
+              Comprehensive evaluation of the analyst's risk-adjusted returns & hit rates against
+              standard industry benchmarks.
             </p>
           </div>
 

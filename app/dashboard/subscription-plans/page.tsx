@@ -150,7 +150,9 @@ export default function SubscriptionPlansPage() {
                       <h3 className="text-[16px] font-bold text-slate-900 tracking-tight leading-tight group-hover:text-[var(--brand)] transition-colors">
                         {plan.name}
                       </h3>
-                      <p className="text-[12px] text-slate-400 font-medium mt-0.5">Subscription Batch</p>
+                      <p className="text-[12px] text-slate-400 font-medium mt-0.5">
+                        Subscription Batch
+                      </p>
                     </div>
                     <span
                       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10.5px] font-bold tracking-wide uppercase border ${

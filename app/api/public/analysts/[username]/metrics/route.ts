@@ -4,7 +4,7 @@ import { backendUrls, forwardedIpHeaders, signedBackendFetch } from "@/lib/backe
 function djb2(str: string): number {
   let hash = 5381;
   for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) + hash) + str.charCodeAt(i);
+    hash = (hash << 5) + hash + str.charCodeAt(i);
   }
   return Math.abs(hash);
 }
@@ -27,10 +27,7 @@ export async function GET(
     });
 
     if (!backendResponse.ok) {
-      return NextResponse.json(
-        { error: "Analyst not found" },
-        { status: backendResponse.status }
-      );
+      return NextResponse.json({ error: "Analyst not found" }, { status: backendResponse.status });
     }
 
     const analyst = await backendResponse.json();
@@ -92,8 +89,9 @@ export async function GET(
           formatted: `${cagrVal}%`,
           history: cagrHistory,
           benchmark: ">= 20%",
-          explanation: "Compound Annual Growth Rate represents the smoothed annual return rate of the portfolio over time.",
-          status: cagrVal >= 20 ? "good" : "poor"
+          explanation:
+            "Compound Annual Growth Rate represents the smoothed annual return rate of the portfolio over time.",
+          status: cagrVal >= 20 ? "good" : "poor",
         },
         maxDrawdown: {
           name: "Maximum Drawdown",
@@ -101,8 +99,9 @@ export async function GET(
           formatted: `${maxDdVal}%`,
           history: maxDdHistory,
           benchmark: "<= 15%",
-          explanation: "The largest peak-to-trough decline, indicating the worst-case capital loss risk.",
-          status: maxDdVal <= 15 ? "good" : "poor"
+          explanation:
+            "The largest peak-to-trough decline, indicating the worst-case capital loss risk.",
+          status: maxDdVal <= 15 ? "good" : "poor",
         },
         profitFactor: {
           name: "Profit Factor",
@@ -110,8 +109,9 @@ export async function GET(
           formatted: String(pfVal),
           history: pfHistory,
           benchmark: ">= 1.5",
-          explanation: "The ratio of gross profits to gross losses. Above 1.5 is good; above 2.0 is excellent.",
-          status: pfVal >= 2.0 ? "excellent" : pfVal >= 1.5 ? "good" : "poor"
+          explanation:
+            "The ratio of gross profits to gross losses. Above 1.5 is good; above 2.0 is excellent.",
+          status: pfVal >= 2.0 ? "excellent" : pfVal >= 1.5 ? "good" : "poor",
         },
         rrr: {
           name: "Risk-to-Reward Ratio",
@@ -120,7 +120,7 @@ export async function GET(
           history: rrrHistory,
           benchmark: ">= 1:2",
           explanation: "Average profit size relative to average loss size per trade.",
-          status: rrrVal >= 2.0 ? "good" : "poor"
+          status: rrrVal >= 2.0 ? "good" : "poor",
         },
         winRate: {
           name: "Win Rate",
@@ -129,9 +129,9 @@ export async function GET(
           history: winRateHistory,
           benchmark: "55% - 65%",
           explanation: "The percentage of profitable trades relative to total executed trades.",
-          status: winRateVal >= 55 && winRateVal <= 65 ? "good" : "poor"
-        }
-      }
+          status: winRateVal >= 55 && winRateVal <= 65 ? "good" : "poor",
+        },
+      },
     };
 
     return NextResponse.json(responseData, { status: 200 });

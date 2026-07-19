@@ -7,10 +7,13 @@ import { ChevronDown, X } from "lucide-react";
 
 function PlansModal({ plan, onClose }: { plan: SubscriptionPlan; onClose: () => void }) {
   const batches = plan.batches || [];
-  
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div 
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+    >
+      <div
         className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
@@ -19,21 +22,25 @@ function PlansModal({ plan, onClose }: { plan: SubscriptionPlan; onClose: () => 
             <h3 className="font-bold text-slate-900 text-lg">{plan.name}</h3>
             <p className="text-xs text-slate-500 mt-0.5">Available Subscriptions</p>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400"
           >
             <X size={20} />
           </button>
         </div>
-        
+
         <div className="p-4 bg-slate-50 max-h-[60vh] overflow-y-auto space-y-3">
           {batches.map((batch) => (
-            <div key={batch.batch_id} className="bg-white border border-slate-200 rounded-lg p-4 flex items-center justify-between shadow-sm">
+            <div
+              key={batch.batch_id}
+              className="bg-white border border-slate-200 rounded-lg p-4 flex items-center justify-between shadow-sm"
+            >
               <div>
                 <div className="font-bold text-slate-900 text-[15px]">{batch.name}</div>
                 <div className="text-[12px] text-slate-500 font-medium mt-0.5">
-                  <span className="font-bold text-slate-700">₹{batch.price}</span> / {batch.billing_cycle.toLowerCase()}
+                  <span className="font-bold text-slate-700">₹{batch.price}</span> /{" "}
+                  {batch.billing_cycle.toLowerCase()}
                 </div>
               </div>
               <Link
@@ -57,13 +64,13 @@ export function BatchListClient({ plans }: { plans: SubscriptionPlan[] }) {
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {plans.map(plan => {
+        {plans.map((plan) => {
           const batches = plan.batches || [];
-          const minPrice = batches.length > 0 ? Math.min(...batches.map(b => b.price)) : 0;
-          
+          const minPrice = batches.length > 0 ? Math.min(...batches.map((b) => b.price)) : 0;
+
           return (
-            <div 
-              key={plan.plan_id} 
+            <div
+              key={plan.plan_id}
               className="bg-white rounded-xl border border-slate-200 flex flex-col h-full hover:shadow-lg transition-shadow overflow-hidden cursor-pointer"
               onClick={() => batches.length > 0 && setSelectedPlan(plan)}
             >
@@ -72,20 +79,20 @@ export function BatchListClient({ plans }: { plans: SubscriptionPlan[] }) {
                   <div>
                     <h3 className="text-xl font-bold text-slate-900">{plan.name}</h3>
                     {plan.description && (
-                      <p className="text-[13px] text-slate-500 mt-2 line-clamp-2">{plan.description}</p>
+                      <p className="text-[13px] text-slate-500 mt-2 line-clamp-2">
+                        {plan.description}
+                      </p>
                     )}
                   </div>
                 </div>
-                
+
                 <div className="mt-auto pt-6 border-t border-slate-100 flex items-center justify-between">
                   <div>
                     <span className="text-[12px] text-slate-500 font-medium">Plans start from</span>
-                    <div className="text-xl font-bold text-slate-900 mt-0.5">
-                      ₹{minPrice}
-                    </div>
+                    <div className="text-xl font-bold text-slate-900 mt-0.5">₹{minPrice}</div>
                   </div>
                   <span className="px-3 py-1.5 bg-blue-50 text-blue-600 text-[12px] font-bold rounded-lg">
-                    {batches.length} {batches.length === 1 ? 'Plan' : 'Plans'}
+                    {batches.length} {batches.length === 1 ? "Plan" : "Plans"}
                   </span>
                 </div>
               </div>
@@ -93,10 +100,8 @@ export function BatchListClient({ plans }: { plans: SubscriptionPlan[] }) {
           );
         })}
       </div>
-      
-      {selectedPlan && (
-        <PlansModal plan={selectedPlan} onClose={() => setSelectedPlan(null)} />
-      )}
+
+      {selectedPlan && <PlansModal plan={selectedPlan} onClose={() => setSelectedPlan(null)} />}
     </>
   );
 }

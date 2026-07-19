@@ -49,31 +49,48 @@ export default function BatchInsightsPage({ params }: { params: Promise<{ plan_i
   const getPnl = (t: Trade): number | undefined => t.pnl_pct ?? t.pnl_percent;
 
   // All statuses the backend considers "closed"
-  const CLOSED_STATUSES = ["CLOSED", "MANUALLY_CLOSED", "CLOSED_BY_SL", "CLOSED_BY_TARGET", "TARGET_HIT", "SL_HIT"];
+  const CLOSED_STATUSES = [
+    "CLOSED",
+    "MANUALLY_CLOSED",
+    "CLOSED_BY_SL",
+    "CLOSED_BY_TARGET",
+    "TARGET_HIT",
+    "SL_HIT",
+  ];
 
   // Compute Insights Metrics
   const insights = useMemo(() => {
     const totalTrades = trades.length;
-    
+
     // Status breakdown — backend creates trades with status "LIVE"
     const activeTrades = trades.filter(
       (t) => t.status === "LIVE" || t.status === "ACTIVE" || t.status === "PENDING"
     ).length;
     const closedTrades = trades.filter((t) => CLOSED_STATUSES.includes(t.status));
-    
+
     // Win Rate: CLOSED_BY_TARGET / TARGET_HIT = win; CLOSED_BY_SL / SL_HIT = loss;
     // MANUALLY_CLOSED / CLOSED = infer from PnL.
     let wins = 0;
     let losses = 0;
-    
-    closedTrades.forEach(t => {
+
+    closedTrades.forEach((t) => {
       const pnl = getPnl(t);
-      if (t.status === "TARGET_HIT" || t.status === "CLOSED_BY_TARGET" || (pnl !== undefined && pnl > 0)) wins++;
-      else if (t.status === "SL_HIT" || t.status === "CLOSED_BY_SL" || (pnl !== undefined && pnl <= 0)) losses++;
+      if (
+        t.status === "TARGET_HIT" ||
+        t.status === "CLOSED_BY_TARGET" ||
+        (pnl !== undefined && pnl > 0)
+      )
+        wins++;
+      else if (
+        t.status === "SL_HIT" ||
+        t.status === "CLOSED_BY_SL" ||
+        (pnl !== undefined && pnl <= 0)
+      )
+        losses++;
     });
 
     const winRate = wins + losses > 0 ? (wins / (wins + losses)) * 100 : 0;
-    
+
     // Segment breakdown
     const segmentCounts: Record<string, number> = {};
     trades.forEach((t) => {
@@ -86,7 +103,7 @@ export default function BatchInsightsPage({ params }: { params: Promise<{ plan_i
     trades.forEach((t) => {
       const pnl = getPnl(t);
       if (pnl !== undefined && pnl > 0) {
-        const bestPnl = bestTrade ? (getPnl(bestTrade) || 0) : 0;
+        const bestPnl = bestTrade ? getPnl(bestTrade) || 0 : 0;
         if (!bestTrade || pnl > bestPnl) {
           bestTrade = t;
         }
@@ -120,7 +137,10 @@ export default function BatchInsightsPage({ params }: { params: Promise<{ plan_i
         {isLoading ? (
           <div className="grid grid-cols-4 gap-4">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-28 rounded-xl bg-[var(--surface)] animate-pulse border border-[var(--line)]"></div>
+              <div
+                key={i}
+                className="h-28 rounded-xl bg-[var(--surface)] animate-pulse border border-[var(--line)]"
+              ></div>
             ))}
           </div>
         ) : (
@@ -192,7 +212,7 @@ export default function BatchInsightsPage({ params }: { params: Promise<{ plan_i
                   <Icon className="h-4 w-4 text-amber-500" name="star" />
                   <h3 className="text-[14px] font-bold text-[var(--ink)]">Best Performing Trade</h3>
                 </div>
-                
+
                 {insights.bestTrade !== null ? (
                   <div className="flex-1 flex flex-col justify-center">
                     <div className="flex items-center justify-between mb-4 pb-4 border-b border-[var(--line)]/50">
@@ -215,13 +235,23 @@ export default function BatchInsightsPage({ params }: { params: Promise<{ plan_i
                     </div>
                     <div className="flex items-center justify-between text-[13px] text-[var(--muted)] font-medium">
                       <div className="flex flex-col">
-                        <span className="text-[11px] uppercase tracking-wider font-bold mb-1">Entry</span>
-                        <span className="text-[var(--ink)] font-bold">{formatCurrency(insights.bestTrade.entry_price || 0)}</span>
+                        <span className="text-[11px] uppercase tracking-wider font-bold mb-1">
+                          Entry
+                        </span>
+                        <span className="text-[var(--ink)] font-bold">
+                          {formatCurrency(insights.bestTrade.entry_price || 0)}
+                        </span>
                       </div>
                       <Icon className="h-4 w-4 text-[var(--line)]" name="arrowRight" />
                       <div className="flex flex-col text-right">
-                        <span className="text-[11px] uppercase tracking-wider font-bold mb-1">High / LTP</span>
-                        <span className="text-[var(--ink)] font-bold">{formatCurrency(insights.bestTrade.ltp || insights.bestTrade.target_price || 0)}</span>
+                        <span className="text-[11px] uppercase tracking-wider font-bold mb-1">
+                          High / LTP
+                        </span>
+                        <span className="text-[var(--ink)] font-bold">
+                          {formatCurrency(
+                            insights.bestTrade.ltp || insights.bestTrade.target_price || 0
+                          )}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -230,7 +260,9 @@ export default function BatchInsightsPage({ params }: { params: Promise<{ plan_i
                     <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center mb-3">
                       <Icon className="h-5 w-5 text-slate-300" name="star" />
                     </div>
-                    <h4 className="text-[13px] font-bold text-[var(--ink)]">No profitable trades yet</h4>
+                    <h4 className="text-[13px] font-bold text-[var(--ink)]">
+                      No profitable trades yet
+                    </h4>
                     <p className="text-[12px] text-[var(--muted-2)] mt-1">
                       Publish a trade and hit a target to see it here.
                     </p>
@@ -244,7 +276,7 @@ export default function BatchInsightsPage({ params }: { params: Promise<{ plan_i
                   <Icon className="h-4 w-4 text-[var(--brand)]" name="activity" />
                   <h3 className="text-[14px] font-bold text-[var(--ink)]">Trade Distribution</h3>
                 </div>
-                
+
                 {insights.totalTrades > 0 ? (
                   <div className="flex-1 flex flex-col justify-center">
                     <div className="space-y-4">
@@ -254,11 +286,13 @@ export default function BatchInsightsPage({ params }: { params: Promise<{ plan_i
                           <div key={segment}>
                             <div className="flex justify-between text-[12px] font-bold mb-1.5">
                               <span className="text-[var(--ink)]">{segment}</span>
-                              <span className="text-[var(--muted)]">{count} Trades ({pct}%)</span>
+                              <span className="text-[var(--muted)]">
+                                {count} Trades ({pct}%)
+                              </span>
                             </div>
                             <div className="h-2 w-full bg-[var(--surface)] rounded-full overflow-hidden">
-                              <div 
-                                className="h-full bg-[var(--brand)] rounded-full" 
+                              <div
+                                className="h-full bg-[var(--brand)] rounded-full"
                                 style={{ width: `${pct}%` }}
                               ></div>
                             </div>
@@ -272,7 +306,9 @@ export default function BatchInsightsPage({ params }: { params: Promise<{ plan_i
                     <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center mb-3">
                       <Icon className="h-5 w-5 text-slate-300" name="activity" />
                     </div>
-                    <h4 className="text-[13px] font-bold text-[var(--ink)]">No distribution data</h4>
+                    <h4 className="text-[13px] font-bold text-[var(--ink)]">
+                      No distribution data
+                    </h4>
                     <p className="text-[12px] text-[var(--muted-2)] mt-1">
                       Start publishing trades to see breakdown.
                     </p>
@@ -280,23 +316,33 @@ export default function BatchInsightsPage({ params }: { params: Promise<{ plan_i
                 )}
               </div>
             </div>
-            
+
             {/* Win/Loss Summary */}
             <div className="mt-6 bg-white border border-[var(--line)] rounded-xl p-6 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-[14px] font-bold text-[var(--ink)] mb-1">Performance Overview</h3>
-                  <p className="text-[12px] text-[var(--muted-2)]">Overall win and loss records for completed trades.</p>
+                  <h3 className="text-[14px] font-bold text-[var(--ink)] mb-1">
+                    Performance Overview
+                  </h3>
+                  <p className="text-[12px] text-[var(--muted-2)]">
+                    Overall win and loss records for completed trades.
+                  </p>
                 </div>
                 <div className="flex items-center gap-6">
                   <div className="flex flex-col items-end">
-                    <div className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider mb-1">Wins</div>
+                    <div className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider mb-1">
+                      Wins
+                    </div>
                     <div className="text-[20px] font-black text-emerald-500">{insights.wins}</div>
                   </div>
                   <div className="w-[1px] h-10 bg-[var(--line)]"></div>
                   <div className="flex flex-col items-start">
-                    <div className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider mb-1">Losses</div>
-                    <div className="text-[20px] font-black text-[var(--red)]">{insights.losses}</div>
+                    <div className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider mb-1">
+                      Losses
+                    </div>
+                    <div className="text-[20px] font-black text-[var(--red)]">
+                      {insights.losses}
+                    </div>
                   </div>
                 </div>
               </div>

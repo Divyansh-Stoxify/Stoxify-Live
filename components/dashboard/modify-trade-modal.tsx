@@ -18,10 +18,16 @@ export function ModifyTradeModal({ trade, onClose, onSuccess, livePrices }: Modi
   const [error, setError] = useState<string | null>(null);
 
   // Pre-fill existing targets and stop loss
-  const [stopLoss, setStopLoss] = useState<string>((trade.stop_loss ?? trade.stop_loss_price ?? "").toString());
-  const initialTargets = trade.targets && trade.targets.length > 0
-    ? trade.targets.map((t: any) => ({ price: String(t.target_price), percent: String(t.book_percent) }))
-    : [{ price: String(trade.target ?? trade.target_price ?? ""), percent: "100" }];
+  const [stopLoss, setStopLoss] = useState<string>(
+    (trade.stop_loss ?? trade.stop_loss_price ?? "").toString()
+  );
+  const initialTargets =
+    trade.targets && trade.targets.length > 0
+      ? trade.targets.map((t: any) => ({
+          price: String(t.target_price),
+          percent: String(t.book_percent),
+        }))
+      : [{ price: String(trade.target ?? trade.target_price ?? ""), percent: "100" }];
   const [targets, setTargets] = useState<{ price: string; percent: string }[]>(initialTargets);
   const [reason, setReason] = useState("");
 
@@ -40,7 +46,7 @@ export function ModifyTradeModal({ trade, onClose, onSuccess, livePrices }: Modi
       }
 
       const payload: any = { modification_reason: reason.trim() };
-      
+
       const slValue = parseFloat(stopLoss);
       if (ltp !== null) {
         if (!isNaN(slValue) && slValue > 0) {
@@ -55,7 +61,9 @@ export function ModifyTradeModal({ trade, onClose, onSuccess, livePrices }: Modi
           const tp = parseFloat(t.price);
           if (!isNaN(tp) && tp > 0) {
             if ((trade.direction === "LONG" || trade.direction === "BUY") && tp <= ltp) {
-              throw new Error(`Target (₹${tp}) must be greater than current market price (₹${ltp})`);
+              throw new Error(
+                `Target (₹${tp}) must be greater than current market price (₹${ltp})`
+              );
             }
             if ((trade.direction === "SHORT" || trade.direction === "SELL") && tp >= ltp) {
               throw new Error(`Target (₹${tp}) must be less than current market price (₹${ltp})`);
@@ -71,10 +79,12 @@ export function ModifyTradeModal({ trade, onClose, onSuccess, livePrices }: Modi
         payload.stop_loss = slValue;
       }
 
-      const validTargets = targets.filter(t => parseFloat(t.price) > 0 && parseFloat(t.percent) > 0);
+      const validTargets = targets.filter(
+        (t) => parseFloat(t.price) > 0 && parseFloat(t.percent) > 0
+      );
       if (validTargets.length > 0) {
         let totalPercent = 0;
-        const parsedTargets = validTargets.map(t => {
+        const parsedTargets = validTargets.map((t) => {
           const bp = parseFloat(t.percent);
           if (isNaN(bp) || bp <= 0 || bp > 100) {
             throw new Error("Target allocation percentage must be between 1% and 100%.");
@@ -89,13 +99,15 @@ export function ModifyTradeModal({ trade, onClose, onSuccess, livePrices }: Modi
 
         // Only send targets when they differ from what's already on the trade.
         const originalTargets = initialTargets
-          .filter(t => parseFloat(t.price) > 0 && parseFloat(t.percent) > 0)
-          .map(t => ({ target_price: parseFloat(t.price), book_percent: parseFloat(t.percent) }));
+          .filter((t) => parseFloat(t.price) > 0 && parseFloat(t.percent) > 0)
+          .map((t) => ({ target_price: parseFloat(t.price), book_percent: parseFloat(t.percent) }));
         const targetsChanged =
           originalTargets.length !== parsedTargets.length ||
-          parsedTargets.some((t, i) =>
-            t.target_price !== originalTargets[i].target_price ||
-            t.book_percent !== originalTargets[i].book_percent);
+          parsedTargets.some(
+            (t, i) =>
+              t.target_price !== originalTargets[i].target_price ||
+              t.book_percent !== originalTargets[i].book_percent
+          );
         if (targetsChanged) {
           payload.targets = parsedTargets;
         }
@@ -113,7 +125,10 @@ export function ModifyTradeModal({ trade, onClose, onSuccess, livePrices }: Modi
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const cleaned = cleanErrorMessage(data, data.message || `Failed to modify trade: ${res.statusText}`);
+        const cleaned = cleanErrorMessage(
+          data,
+          data.message || `Failed to modify trade: ${res.statusText}`
+        );
         throw new Error(cleaned);
       }
 
@@ -129,8 +144,8 @@ export function ModifyTradeModal({ trade, onClose, onSuccess, livePrices }: Modi
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-slate-900/60 backdrop-blur-[6px] transition-opacity duration-300" 
+      <div
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-[6px] transition-opacity duration-300"
         onClick={onClose}
       />
 
@@ -138,7 +153,7 @@ export function ModifyTradeModal({ trade, onClose, onSuccess, livePrices }: Modi
       <div className="relative w-full max-w-[440px] rounded-[24px] bg-gradient-to-b from-white to-slate-50 border border-slate-100 shadow-[0_20px_50px_rgba(15,23,42,0.08),0_1px_3px_rgba(0,0,0,0.02)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Decorative Top Accent */}
         <div className="h-1.5 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
-        
+
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4.5">
           <div className="flex items-center gap-2.5">
@@ -159,17 +174,18 @@ export function ModifyTradeModal({ trade, onClose, onSuccess, livePrices }: Modi
         {/* Form Body */}
         <form onSubmit={handleSubmit}>
           <div className="p-6 space-y-5">
-            
             {/* Trade Context Info */}
             <div className="rounded-2xl border border-slate-100 bg-gradient-to-r from-slate-50 via-slate-100/50 to-slate-50 p-4 flex justify-between items-center shadow-inner">
               <div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Symbol</div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Symbol
+                </div>
                 <div className="text-[15px] font-extrabold text-slate-800 flex items-center gap-1.5 mt-0.5">
                   {trade.symbol}
                   {ltp !== null && (
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      ₹{ltp}
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />₹
+                      {ltp}
                     </span>
                   )}
                 </div>
@@ -178,10 +194,14 @@ export function ModifyTradeModal({ trade, onClose, onSuccess, livePrices }: Modi
                 <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-center gap-1">
                   <Icon name="lock" className="h-3 w-3 text-slate-400" /> Entry
                 </div>
-                <div className="text-[14px] font-extrabold text-slate-700 mt-0.5">₹{trade.entry_price}</div>
+                <div className="text-[14px] font-extrabold text-slate-700 mt-0.5">
+                  ₹{trade.entry_price}
+                </div>
               </div>
               <div className="text-right">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Direction</div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Direction
+                </div>
                 <div className="mt-0.5">
                   {trade.direction === "LONG" || trade.direction === "BUY" ? (
                     <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/40 shadow-[0_2px_8px_rgba(16,185,129,0.04)]">
@@ -210,7 +230,8 @@ export function ModifyTradeModal({ trade, onClose, onSuccess, livePrices }: Modi
               {/* Stop Loss */}
               <div>
                 <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                  Stop Loss <span className="text-slate-400 font-medium lowercase italic">(optional)</span>
+                  Stop Loss{" "}
+                  <span className="text-slate-400 font-medium lowercase italic">(optional)</span>
                 </label>
                 <div className="relative group">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] font-extrabold text-slate-400 transition-colors group-focus-within:text-blue-500">
@@ -232,14 +253,19 @@ export function ModifyTradeModal({ trade, onClose, onSuccess, livePrices }: Modi
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                    Target Prices <span className="text-slate-400 font-medium lowercase italic">(optional)</span>
+                    Target Prices{" "}
+                    <span className="text-slate-400 font-medium lowercase italic">(optional)</span>
                   </label>
                   <button
                     type="button"
                     onClick={() => {
                       if (targets.length >= 5) return;
-                      const remainingPct = 100 - targets.reduce((acc, t) => acc + (parseFloat(t.percent) || 0), 0);
-                      setTargets([...targets, { price: "", percent: remainingPct > 0 ? String(remainingPct) : "0" }]);
+                      const remainingPct =
+                        100 - targets.reduce((acc, t) => acc + (parseFloat(t.percent) || 0), 0);
+                      setTargets([
+                        ...targets,
+                        { price: "", percent: remainingPct > 0 ? String(remainingPct) : "0" },
+                      ]);
                     }}
                     disabled={targets.length >= 5}
                     className="text-[12px] font-bold text-blue-600 hover:text-blue-700 transition-all flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
@@ -247,21 +273,23 @@ export function ModifyTradeModal({ trade, onClose, onSuccess, livePrices }: Modi
                     <Icon name="plus" className="h-3 w-3" /> Add Target
                   </button>
                 </div>
-                
+
                 <div className="space-y-2 max-h-[190px] overflow-y-auto pr-1 no-scrollbar">
                   {targets.map((t, index) => (
-                    <div 
-                      key={index} 
+                    <div
+                      key={index}
                       className="flex gap-2 items-center animate-in slide-in-from-top-1 duration-200"
                     >
                       {/* Target Indicator Badge */}
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-[11px] font-bold text-slate-500 border border-slate-200/40">
                         T{index + 1}
                       </span>
-                      
+
                       {/* Price Input */}
                       <div className="relative flex-1 group">
-                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] font-extrabold text-slate-400 transition-colors group-focus-within:text-blue-500">₹</span>
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] font-extrabold text-slate-400 transition-colors group-focus-within:text-blue-500">
+                          ₹
+                        </span>
                         <input
                           className="w-full rounded-xl border border-slate-200/80 bg-white py-2.5 pl-8 pr-3 text-[14px] font-semibold text-slate-700 shadow-sm outline-none transition-all placeholder:text-slate-300 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/50"
                           placeholder="Price"
@@ -293,7 +321,9 @@ export function ModifyTradeModal({ trade, onClose, onSuccess, livePrices }: Modi
                           }}
                           onFocus={(e) => e.target.select()}
                         />
-                        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[12px] font-bold text-slate-400 transition-colors group-focus-within:text-blue-500">%</span>
+                        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[12px] font-bold text-slate-400 transition-colors group-focus-within:text-blue-500">
+                          %
+                        </span>
                       </div>
 
                       {/* Delete Action */}
@@ -328,7 +358,6 @@ export function ModifyTradeModal({ trade, onClose, onSuccess, livePrices }: Modi
                 placeholder="e.g. Trailing SL due to market volatility"
               />
             </div>
-            
           </div>
 
           {/* Footer Actions */}

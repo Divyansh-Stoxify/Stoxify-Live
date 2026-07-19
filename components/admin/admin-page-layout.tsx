@@ -201,7 +201,7 @@ function QueueLayout({ page }: { page: AdminPageConfig }) {
         {page.rows.length > 0 ? (
           page.rows.map((row, index) => (
             <ReviewCard
-              key={row.Applicant ?? row.User ?? row.Role ?? row.Signal ?? String(index)}
+              key={`${row.Applicant ?? row.User ?? row.Role ?? row.Signal ?? "item"}-${index}`}
               row={row}
               rawItem={page.items?.[index]}
               rowActions={page.rowActions}

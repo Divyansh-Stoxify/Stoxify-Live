@@ -19,7 +19,7 @@ function getTransporter(): nodemailer.Transporter | null {
   if (!smtpHost || !smtpUser || !smtpPass) {
     console.warn(
       "[mail] SMTP credentials not configured. Emails will not be sent. " +
-      "Set SMTP_HOST, SMTP_USER, SMTP_PASS in environment variables."
+        "Set SMTP_HOST, SMTP_USER, SMTP_PASS in environment variables."
     );
     return null;
   }
@@ -40,11 +40,7 @@ function getTransporter(): nodemailer.Transporter | null {
  * Send an email. Returns `true` on success, `false` on failure (logged).
  * Never throws — callers can fire-and-forget.
  */
-export async function sendMail(
-  to: string,
-  subject: string,
-  html: string
-): Promise<boolean> {
+export async function sendMail(to: string, subject: string, html: string): Promise<boolean> {
   const transporter = getTransporter();
   if (!transporter) return false;
 
@@ -84,9 +80,7 @@ export type SupportTicketData = {
 
 // ─── Confirmation email → User ────────────────────────────────────────────────
 
-export async function sendTicketConfirmationEmail(
-  ticket: SupportTicketData
-): Promise<boolean> {
+export async function sendTicketConfirmationEmail(ticket: SupportTicketData): Promise<boolean> {
   const date = new Date(ticket.created_at);
   const formattedDate = date.toLocaleDateString("en-IN", {
     weekday: "long",
@@ -176,18 +170,12 @@ export async function sendTicketConfirmationEmail(
 </body>
 </html>`;
 
-  return sendMail(
-    ticket.email,
-    `Support Request Received — ${ticket.ticket_id}`,
-    html
-  );
+  return sendMail(ticket.email, `Support Request Received — ${ticket.ticket_id}`, html);
 }
 
 // ─── Notification email → Support Team ────────────────────────────────────────
 
-export async function sendTicketNotificationEmail(
-  ticket: SupportTicketData
-): Promise<boolean> {
+export async function sendTicketNotificationEmail(ticket: SupportTicketData): Promise<boolean> {
   const date = new Date(ticket.created_at);
   const formattedDate = date.toLocaleDateString("en-IN", {
     weekday: "short",
@@ -226,10 +214,14 @@ export async function sendTicketNotificationEmail(
                   <td style="padding:8px 0;font-weight:700;color:#64748b;width:130px;vertical-align:top;">Ticket ID</td>
                   <td style="padding:8px 0;font-weight:700;color:#1f7ae0;">${esc(ticket.ticket_id)}</td>
                 </tr>
-                ${ticket.user_id ? `<tr>
+                ${
+                  ticket.user_id
+                    ? `<tr>
                   <td style="padding:8px 0;font-weight:700;color:#64748b;vertical-align:top;">User ID</td>
                   <td style="padding:8px 0;">${esc(ticket.user_id)}</td>
-                </tr>` : ""}
+                </tr>`
+                    : ""
+                }
                 <tr>
                   <td style="padding:8px 0;font-weight:700;color:#64748b;vertical-align:top;">Name</td>
                   <td style="padding:8px 0;">${esc(ticket.name)}</td>
@@ -238,10 +230,14 @@ export async function sendTicketNotificationEmail(
                   <td style="padding:8px 0;font-weight:700;color:#64748b;vertical-align:top;">Email</td>
                   <td style="padding:8px 0;"><a href="mailto:${esc(ticket.email)}" style="color:#2563eb;text-decoration:none;">${esc(ticket.email)}</a></td>
                 </tr>
-                ${ticket.phone ? `<tr>
+                ${
+                  ticket.phone
+                    ? `<tr>
                   <td style="padding:8px 0;font-weight:700;color:#64748b;vertical-align:top;">Phone</td>
                   <td style="padding:8px 0;">${esc(ticket.phone)}</td>
-                </tr>` : ""}
+                </tr>`
+                    : ""
+                }
                 <tr>
                   <td style="padding:8px 0;font-weight:700;color:#64748b;vertical-align:top;">Category</td>
                   <td style="padding:8px 0;">${esc(ticket.category)}</td>
@@ -274,9 +270,5 @@ export async function sendTicketNotificationEmail(
 </body>
 </html>`;
 
-  return sendMail(
-    supportEmail,
-    `New Help & Support Ticket — ${ticket.ticket_id}`,
-    html
-  );
+  return sendMail(supportEmail, `New Help & Support Ticket — ${ticket.ticket_id}`, html);
 }

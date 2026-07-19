@@ -164,9 +164,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const reactivated = data.reactivated || false;
-  const redirectTo = actualUserType === "ANALYST"
-    ? `/dashboard${reactivated ? "?reactivated=true" : ""}`
-    : `/trader/dashboard${reactivated ? "?reactivated=true" : ""}`;
+  const redirectTo =
+    actualUserType === "ANALYST"
+      ? `/dashboard${reactivated ? "?reactivated=true" : ""}`
+      : `/trader/dashboard${reactivated ? "?reactivated=true" : ""}`;
 
   const response = NextResponse.json({
     ok: true,

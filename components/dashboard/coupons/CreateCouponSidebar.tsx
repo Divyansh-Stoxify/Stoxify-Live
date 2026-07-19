@@ -18,7 +18,13 @@ interface CreateCouponSidebarProps {
   editCoupon?: Coupon | null;
 }
 
-export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, editCoupon }: CreateCouponSidebarProps) {
+export function CreateCouponSidebar({
+  type,
+  onClose,
+  onSave,
+  showSuccessToast,
+  editCoupon,
+}: CreateCouponSidebarProps) {
   const isEditMode = !!editCoupon;
   const { plans } = useSubscriptionPlans();
 
@@ -66,7 +72,7 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
     setIsCaseInsensitive(editCoupon.is_case_insensitive);
     setDiscountValue(String(editCoupon.discount_value));
     setAvailability(editCoupon.availability);
-    setLegacyUserIds(editCoupon.availability === "SPECIFIC" ? editCoupon.user_ids ?? [] : []);
+    setLegacyUserIds(editCoupon.availability === "SPECIFIC" ? (editCoupon.user_ids ?? []) : []);
     setQuantity(editCoupon.quantity_total != null ? "LIMITED" : "UNLIMITED");
     setQuantityTotal(editCoupon.quantity_total != null ? String(editCoupon.quantity_total) : "");
     if (editCoupon.valid_from) setValidFrom(editCoupon.valid_from.substring(0, 10));
@@ -88,7 +94,10 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
       if (batchDropdownRef.current && !batchDropdownRef.current.contains(event.target as Node)) {
         setBatchDropdownOpen(false);
       }
-      if (pricingDropdownRef.current && !pricingDropdownRef.current.contains(event.target as Node)) {
+      if (
+        pricingDropdownRef.current &&
+        !pricingDropdownRef.current.contains(event.target as Node)
+      ) {
         setPricingDropdownOpen(false);
       }
     }
@@ -110,9 +119,10 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
   );
 
   const getBatchDisplayName = (batchName: string, planName: string) => {
-    const hasDuplicate = plans.some((p) =>
-      p.name !== planName &&
-      (p.batches || []).some((b) => b.name.toLowerCase() === batchName.toLowerCase())
+    const hasDuplicate = plans.some(
+      (p) =>
+        p.name !== planName &&
+        (p.batches || []).some((b) => b.name.toLowerCase() === batchName.toLowerCase())
     );
     return hasDuplicate ? `${batchName} (${planName})` : batchName;
   };
@@ -123,9 +133,7 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
 
   const handleTogglePlan = (planId: string) => {
     setSelectedPlans((prev) => {
-      const next = prev.includes(planId)
-        ? prev.filter((id) => id !== planId)
-        : [...prev, planId];
+      const next = prev.includes(planId) ? prev.filter((id) => id !== planId) : [...prev, planId];
       // Clean up selectedPricingPlans whose parent plan is not in next
       setSelectedPricingPlans((curr) =>
         curr.filter((bId) => {
@@ -160,9 +168,7 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
 
   const handleTogglePricingPlan = (batchId: string) => {
     setSelectedPricingPlans((prev) =>
-      prev.includes(batchId)
-        ? prev.filter((id) => id !== batchId)
-        : [...prev, batchId]
+      prev.includes(batchId) ? prev.filter((id) => id !== batchId) : [...prev, batchId]
     );
   };
 
@@ -180,7 +186,10 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
       newErrors.discountValue = "Percentage must be between 1 and 100";
     }
 
-    if (quantity === "LIMITED" && (!quantityTotal || !Number.isInteger(Number(quantityTotal)) || Number(quantityTotal) < 1)) {
+    if (
+      quantity === "LIMITED" &&
+      (!quantityTotal || !Number.isInteger(Number(quantityTotal)) || Number(quantityTotal) < 1)
+    ) {
       newErrors.quantityTotal = "Quantity must be a whole number of 1 or more";
     }
 
@@ -242,14 +251,24 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
 
   return (
     <>
-      <div className="fixed inset-0 z-[200] bg-black/20 backdrop-blur-sm transition-opacity" onClick={onClose} />
+      <div
+        className="fixed inset-0 z-[200] bg-black/20 backdrop-blur-sm transition-opacity"
+        onClick={onClose}
+      />
       <div className="fixed inset-y-0 right-0 z-[210] w-[400px] bg-white shadow-2xl flex flex-col animate-[slideInRight_0.2s_ease-out]">
         <div className="flex items-center gap-3 border-b border-[var(--line)] px-6 py-5">
-          <button onClick={onClose} className="text-[var(--muted)] hover:text-[var(--ink)] transition-colors cursor-pointer">
+          <button
+            onClick={onClose}
+            className="text-[var(--muted)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+          >
             <Icon className="h-4 w-4" name="chevronRight" style={{ transform: "rotate(180deg)" }} />
           </button>
           <h2 className="text-[16px] font-extrabold text-[var(--ink)] tracking-tight">
-            {isEditMode ? "Edit Coupon" : (type === "PERCENTAGE" ? "Percentage Discount" : "Flat Discount")}
+            {isEditMode
+              ? "Edit Coupon"
+              : type === "PERCENTAGE"
+                ? "Percentage Discount"
+                : "Flat Discount"}
           </h2>
         </div>
 
@@ -271,7 +290,9 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
                 autoCapitalize="characters"
                 disabled={isEditMode}
                 className={`w-full rounded-xl border px-4 py-2.5 text-[13px] font-semibold outline-none transition-all focus:ring-2 focus:ring-[var(--brand)]/20 uppercase ${
-                  errors.code ? "border-red-400" : "border-[var(--line)] focus:border-[var(--brand)]"
+                  errors.code
+                    ? "border-red-400"
+                    : "border-[var(--line)] focus:border-[var(--brand)]"
                 } ${isEditMode ? "bg-slate-100 text-[var(--muted)] cursor-not-allowed" : ""}`}
                 placeholder="Enter coupon code"
                 maxLength={20}
@@ -281,12 +302,16 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
                   Coupon code cannot be changed
                 </span>
               )}
-              {errors.code && <span className="text-[11px] font-bold text-red-500">{errors.code}</span>}
+              {errors.code && (
+                <span className="text-[11px] font-bold text-red-500">{errors.code}</span>
+              )}
             </div>
 
             {/* Case Insensitive Toggle */}
             <div className="flex items-center justify-between">
-              <label className="text-[12px] font-bold text-[var(--ink)]">Make Coupon Code Case InSensitive</label>
+              <label className="text-[12px] font-bold text-[var(--ink)]">
+                Make Coupon Code Case InSensitive
+              </label>
               <button
                 type="button"
                 role="switch"
@@ -340,14 +365,18 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
                       onFocus={() => setBatchDropdownOpen(true)}
                       placeholder="Search batches..."
                       className={`w-full rounded-xl border pl-10 pr-4 py-2.5 text-[13px] font-semibold outline-none transition-all focus:ring-2 focus:ring-[var(--brand)]/20 ${
-                        errors.plans ? "border-red-400" : "border-[var(--line)] focus:border-[var(--brand)]"
+                        errors.plans
+                          ? "border-red-400"
+                          : "border-[var(--line)] focus:border-[var(--brand)]"
                       }`}
                     />
                     <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted)]">
                       <Icon className="h-4 w-4" name="search" />
                     </div>
                   </div>
-                  {errors.plans && <span className="text-[11px] font-bold text-red-500">{errors.plans}</span>}
+                  {errors.plans && (
+                    <span className="text-[11px] font-bold text-red-500">{errors.plans}</span>
+                  )}
 
                   {/* Selected Batches Badges */}
                   {selectedPlans.length > 0 && (
@@ -359,7 +388,9 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
                             key={planId}
                             className="flex items-center gap-1 bg-white border border-slate-200 rounded-full px-2.5 py-1 text-[11px] font-bold text-[var(--ink)] shadow-sm"
                           >
-                            <span className="truncate max-w-[150px]">{plan?.name || "Unknown Batch"}</span>
+                            <span className="truncate max-w-[150px]">
+                              {plan?.name || "Unknown Batch"}
+                            </span>
                             <button
                               type="button"
                               onClick={() => handleRemovePlan(planId)}
@@ -391,9 +422,14 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
                                 onClick={() => handleTogglePlan(plan.plan_id)}
                                 className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-slate-50 transition-colors cursor-pointer"
                               >
-                                <span className="text-[12.5px] font-bold text-[var(--ink)] truncate mr-2">{plan.name}</span>
+                                <span className="text-[12.5px] font-bold text-[var(--ink)] truncate mr-2">
+                                  {plan.name}
+                                </span>
                                 {isSelected && (
-                                  <Icon className="h-3.5 w-3.5 text-[var(--brand)] shrink-0" name="check" />
+                                  <Icon
+                                    className="h-3.5 w-3.5 text-[var(--brand)] shrink-0"
+                                    name="check"
+                                  />
                                 )}
                               </button>
                             );
@@ -414,7 +450,7 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
                       </span>
                     )}
                   </label>
-                  
+
                   {selectedPlans.length === 0 ? (
                     <div className="w-full rounded-xl border border-dashed border-[var(--line)] bg-slate-50/50 px-4 py-3 text-[12px] font-semibold text-[var(--muted)] text-center">
                       Select at least one batch above first
@@ -442,7 +478,9 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
                       {selectedPricingPlans.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mt-1 max-h-28 overflow-y-auto p-1 bg-slate-50 rounded-xl border border-[var(--line)]">
                           {selectedPricingPlans.map((batchId) => {
-                            const pricing = eligiblePricingPlans.find((b) => b.batch_id === batchId);
+                            const pricing = eligiblePricingPlans.find(
+                              (b) => b.batch_id === batchId
+                            );
                             const displayName = pricing
                               ? getBatchDisplayName(pricing.name, pricing.plan_name)
                               : "Unknown Plan";
@@ -476,7 +514,10 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
                             <div className="py-1">
                               {filteredPricingBatches.map((batch) => {
                                 const isSelected = selectedPricingPlans.includes(batch.batch_id);
-                                const displayName = getBatchDisplayName(batch.name, batch.plan_name);
+                                const displayName = getBatchDisplayName(
+                                  batch.name,
+                                  batch.plan_name
+                                );
                                 return (
                                   <button
                                     key={batch.batch_id}
@@ -484,9 +525,14 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
                                     onClick={() => handleTogglePricingPlan(batch.batch_id)}
                                     className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-slate-50 transition-colors cursor-pointer"
                                   >
-                                    <span className="text-[12.5px] font-bold text-[var(--ink)] truncate mr-2">{displayName}</span>
+                                    <span className="text-[12.5px] font-bold text-[var(--ink)] truncate mr-2">
+                                      {displayName}
+                                    </span>
                                     {isSelected && (
-                                      <Icon className="h-3.5 w-3.5 text-[var(--brand)] shrink-0" name="check" />
+                                      <Icon
+                                        className="h-3.5 w-3.5 text-[var(--brand)] shrink-0"
+                                        name="check"
+                                      />
                                     )}
                                   </button>
                                 );
@@ -527,7 +573,9 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
                   </span>
                 )}
               </div>
-              {errors.discountValue && <span className="text-[11px] font-bold text-red-500">{errors.discountValue}</span>}
+              {errors.discountValue && (
+                <span className="text-[11px] font-bold text-red-500">{errors.discountValue}</span>
+              )}
             </div>
 
             {/* Offer Availability */}
@@ -543,7 +591,8 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
                         Specific Users
                         {legacyUserIds.length > 0 && (
                           <span className="text-[var(--muted)] font-medium">
-                            {" "}· {legacyUserIds.length} user{legacyUserIds.length === 1 ? "" : "s"}
+                            {" "}
+                            · {legacyUserIds.length} user{legacyUserIds.length === 1 ? "" : "s"}
                           </span>
                         )}
                       </span>
@@ -560,9 +609,9 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
                     </button>
                   </div>
                   <span className="text-[11px] text-[var(--muted-2)] font-medium">
-                    This coupon targets a fixed list of users. That option is no longer offered for new
-                    coupons, so the list can&apos;t be edited here — it stays as-is unless you switch this
-                    coupon to Everyone, which releases it to all users permanently.
+                    This coupon targets a fixed list of users. That option is no longer offered for
+                    new coupons, so the list can&apos;t be edited here — it stays as-is unless you
+                    switch this coupon to Everyone, which releases it to all users permanently.
                   </span>
                 </>
               ) : (
@@ -578,8 +627,10 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
                   </select>
                   <span className="text-[11px] text-[var(--muted-2)] font-medium">
                     {availability === "EVERYONE" && "Offer available to everyone"}
-                    {availability === "NEW_USER" && "Only users who have never subscribed to you can redeem this"}
-                    {availability === "EXISTING_USER" && "Only your current or past subscribers can redeem this"}
+                    {availability === "NEW_USER" &&
+                      "Only users who have never subscribed to you can redeem this"}
+                    {availability === "EXISTING_USER" &&
+                      "Only your current or past subscribers can redeem this"}
                   </span>
                 </>
               )}
@@ -606,12 +657,16 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
                     value={quantityTotal}
                     onChange={(e) => setQuantityTotal(e.target.value.replace(/[^0-9]/g, ""))}
                     className={`w-full rounded-xl border px-4 py-2.5 text-[13px] font-semibold outline-none transition-all ${
-                      errors.quantityTotal ? "border-red-400" : "border-[var(--line)] focus:border-[var(--brand)]"
+                      errors.quantityTotal
+                        ? "border-red-400"
+                        : "border-[var(--line)] focus:border-[var(--brand)]"
                     }`}
                     placeholder="Enter maximum usage"
                   />
                   {errors.quantityTotal && (
-                    <span className="text-[11px] font-bold text-red-500 mt-1 block">{errors.quantityTotal}</span>
+                    <span className="text-[11px] font-bold text-red-500 mt-1 block">
+                      {errors.quantityTotal}
+                    </span>
                   )}
                 </div>
               )}
@@ -658,11 +713,16 @@ export function CreateCouponSidebar({ type, onClose, onSave, showSuccessToast, e
             disabled={isSubmitting}
             className="rounded-full bg-black px-6 py-2.5 text-[13px] font-bold text-white hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer shadow-md"
           >
-            {isSubmitting ? (isEditMode ? "Updating..." : "Creating...") : (isEditMode ? "Update Coupon" : "Create Coupon")}
+            {isSubmitting
+              ? isEditMode
+                ? "Updating..."
+                : "Creating..."
+              : isEditMode
+                ? "Update Coupon"
+                : "Create Coupon"}
           </button>
         </div>
       </div>
     </>
   );
 }
-

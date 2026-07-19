@@ -242,16 +242,18 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
   };
 
   // Compare batches exactly
-  const hasUnsavedChanges = plan ? JSON.stringify(plan.batches ?? []) !== JSON.stringify(batches) : false;
+  const hasUnsavedChanges = plan
+    ? JSON.stringify(plan.batches ?? []) !== JSON.stringify(batches)
+    : false;
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-[#F9FAFB]">
-
       <div className="flex-1 flex max-h-[calc(100vh-64px)] overflow-hidden relative">
         {/* Main Content Area */}
-        <div className={`flex-1 overflow-y-auto p-8 transition-all duration-300 ${isDrawerOpen ? 'mr-[420px]' : ''}`}>
+        <div
+          className={`flex-1 overflow-y-auto p-8 transition-all duration-300 ${isDrawerOpen ? "mr-[420px]" : ""}`}
+        >
           <div className="max-w-4xl mx-auto flex flex-col gap-8">
-
             {/* Header / Back Link */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -259,14 +261,18 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
                   onClick={() => router.push("/dashboard/subscription-plans")}
                   className="p-2 rounded-full hover:bg-slate-200 transition-colors text-slate-600 cursor-pointer"
                 >
-                  <Icon className="h-5 w-5" name="arrowRight" style={{ transform: "rotate(180deg)" }} />
+                  <Icon
+                    className="h-5 w-5"
+                    name="arrowRight"
+                    style={{ transform: "rotate(180deg)" }}
+                  />
                 </button>
                 <div>
                   <h1 className="text-2xl font-black tracking-tight text-slate-900">
                     Plans and Pricing
                   </h1>
                   <p className="text-sm text-slate-500 font-medium">
-                    {plan?.name ? `Manage sub-plans for ${plan.name}` : 'Loading...'}
+                    {plan?.name ? `Manage sub-plans for ${plan.name}` : "Loading..."}
                   </p>
                 </div>
               </div>
@@ -301,7 +307,9 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
               <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">
                 <h3 className="font-bold">Error</h3>
                 <p className="text-sm mt-1">{error}</p>
-                <button onClick={fetchPlan} className="mt-3 text-sm font-bold underline">Retry</button>
+                <button onClick={fetchPlan} className="mt-3 text-sm font-bold underline">
+                  Retry
+                </button>
               </div>
             )}
 
@@ -318,10 +326,15 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
                 ) : (
                   batches.map((batch) => {
                     const isActive = batch.is_active !== false;
-                    const discountPct = batch.discounted_price ? Math.round(((batch.price - batch.discounted_price) / batch.price) * 100) : 0;
+                    const discountPct = batch.discounted_price
+                      ? Math.round(((batch.price - batch.discounted_price) / batch.price) * 100)
+                      : 0;
 
                     return (
-                      <div key={batch.batch_id} className={`rounded-2xl border bg-white p-5 shadow-sm transition-all flex items-center justify-between ${!isActive ? 'opacity-60 grayscale' : 'border-slate-200 hover:border-slate-300 hover:shadow-md'}`}>
+                      <div
+                        key={batch.batch_id}
+                        className={`rounded-2xl border bg-white p-5 shadow-sm transition-all flex items-center justify-between ${!isActive ? "opacity-60 grayscale" : "border-slate-200 hover:border-slate-300 hover:shadow-md"}`}
+                      >
                         <div className="flex items-start gap-4">
                           <div className="mt-1 text-slate-300">
                             <Icon className="h-5 w-5" name="grid" />
@@ -330,21 +343,28 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
                             <h3 className="text-[16px] font-bold text-slate-900">{batch.name}</h3>
                             <div className="flex items-baseline gap-2 mt-1">
                               <span className="text-[14px] font-medium text-slate-700">
-                                {batch.discounted_price ? formatCurrency(batch.discounted_price) : formatCurrency(batch.price)}
+                                {batch.discounted_price
+                                  ? formatCurrency(batch.discounted_price)
+                                  : formatCurrency(batch.price)}
                               </span>
                               <span className="text-[13px] text-slate-500">
-                                / {batch.plan_type === 'LIFETIME' ? 'Lifetime' : `${batch.days} Days`}
+                                /{" "}
+                                {batch.plan_type === "LIFETIME" ? "Lifetime" : `${batch.days} Days`}
                               </span>
                               {batch.discounted_price && (
                                 <>
-                                  <span className="text-[12px] text-slate-400 line-through ml-1">{formatCurrency(batch.price)}</span>
+                                  <span className="text-[12px] text-slate-400 line-through ml-1">
+                                    {formatCurrency(batch.price)}
+                                  </span>
                                   <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded ml-1">
                                     {discountPct}% off
                                   </span>
                                 </>
                               )}
                             </div>
-                            <p className="text-[12px] text-slate-500 mt-1">{batch.plan_type === 'SUBSCRIPTION' ? 'Batch' : 'Lifetime Access'}</p>
+                            <p className="text-[12px] text-slate-500 mt-1">
+                              {batch.plan_type === "SUBSCRIPTION" ? "Batch" : "Lifetime Access"}
+                            </p>
                           </div>
                         </div>
 
@@ -367,7 +387,12 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
                           </div>
                           <div className="w-px h-8 bg-slate-200"></div>
                           <label className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" className="sr-only peer" checked={isActive} onChange={() => handleToggleBatchActive(batch.batch_id)} />
+                            <input
+                              type="checkbox"
+                              className="sr-only peer"
+                              checked={isActive}
+                              onChange={() => handleToggleBatchActive(batch.batch_id)}
+                            />
                             <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                           </label>
                         </div>
@@ -383,11 +408,16 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
               <button
                 disabled={!hasUnsavedChanges || isSaving}
                 onClick={handlePersistChanges}
-                className={`px-8 py-3 rounded-full text-[14px] font-bold shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer ${hasUnsavedChanges ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-600/20" : "bg-slate-200 text-slate-400 shadow-none cursor-not-allowed"
-                  }`}
+                className={`px-8 py-3 rounded-full text-[14px] font-bold shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer ${
+                  hasUnsavedChanges
+                    ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-600/20"
+                    : "bg-slate-200 text-slate-400 shadow-none cursor-not-allowed"
+                }`}
               >
                 {isSaving ? (
-                  <><Icon className="h-4 w-4 animate-spin" name="loader" /> Saving...</>
+                  <>
+                    <Icon className="h-4 w-4 animate-spin" name="loader" /> Saving...
+                  </>
                 ) : (
                   "Save Changes"
                 )}
@@ -398,13 +428,18 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
 
         {/* Side Drawer */}
         <div
-          className={`absolute top-0 right-0 h-full w-[420px] bg-white border-l border-slate-200 shadow-2xl transform transition-transform duration-300 ease-in-out flex flex-col z-10 ${isDrawerOpen ? "translate-x-0" : "translate-x-full"
-            }`}
+          className={`absolute top-0 right-0 h-full w-[420px] bg-white border-l border-slate-200 shadow-2xl transform transition-transform duration-300 ease-in-out flex flex-col z-10 ${
+            isDrawerOpen ? "translate-x-0" : "translate-x-full"
+          }`}
         >
           {/* Drawer Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
             <h2 className="text-[16px] font-extrabold flex items-center gap-2">
-              <Icon className="h-4 w-4 text-slate-400" name="chevronRight" style={{ transform: "rotate(180deg)" }} />
+              <Icon
+                className="h-4 w-4 text-slate-400"
+                name="chevronRight"
+                style={{ transform: "rotate(180deg)" }}
+              />
               {editingBatchId ? "Edit Plan" : "New Plan"}
             </h2>
             <button
@@ -418,7 +453,6 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
           {/* Drawer Content Form */}
           <div className="flex-1 overflow-y-auto px-6 py-6">
             <form id="plan-form" onSubmit={handleSaveBatchToList} className="flex flex-col gap-6">
-
               {/* Plan Name */}
               <div className="flex flex-col gap-2">
                 <label className="text-[13px] font-bold text-slate-800">Plan Name</label>
@@ -426,13 +460,20 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
                   <input
                     type="text"
                     value={name}
-                    onChange={(e) => { setName(e.target.value); if (formErrors.name) setFormErrors(p => ({ ...p, name: "" })) }}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      if (formErrors.name) setFormErrors((p) => ({ ...p, name: "" }));
+                    }}
                     placeholder="Give your plan a name"
-                    className={`w-full rounded-lg border px-4 py-2.5 text-[14px] text-slate-900 outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all ${formErrors.name ? 'border-red-400' : 'border-slate-200'}`}
+                    className={`w-full rounded-lg border px-4 py-2.5 text-[14px] text-slate-900 outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all ${formErrors.name ? "border-red-400" : "border-slate-200"}`}
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400">{name.length}/75</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400">
+                    {name.length}/75
+                  </span>
                 </div>
-                {formErrors.name && <span className="text-[11px] text-red-500 font-bold">{formErrors.name}</span>}
+                {formErrors.name && (
+                  <span className="text-[11px] text-red-500 font-bold">{formErrors.name}</span>
+                )}
               </div>
 
               {/* Plan Type */}
@@ -467,8 +508,11 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
                     <input
                       type="number"
                       value={days}
-                      onChange={(e) => { setDays(e.target.value); if (formErrors.days) setFormErrors(p => ({ ...p, days: "" })) }}
-                      className={`w-full rounded-lg border px-4 py-2.5 text-[14px] text-slate-900 outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all ${formErrors.days ? 'border-red-400' : 'border-slate-200'}`}
+                      onChange={(e) => {
+                        setDays(e.target.value);
+                        if (formErrors.days) setFormErrors((p) => ({ ...p, days: "" }));
+                      }}
+                      className={`w-full rounded-lg border px-4 py-2.5 text-[14px] text-slate-900 outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all ${formErrors.days ? "border-red-400" : "border-slate-200"}`}
                     />
                   </div>
                   <div className="flex-[2]">
@@ -485,21 +529,30 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
                   </div>
                 </div>
               )}
-              {formErrors.days && planType === "SUBSCRIPTION" && <span className="text-[11px] text-red-500 font-bold -mt-4">{formErrors.days}</span>}
+              {formErrors.days && planType === "SUBSCRIPTION" && (
+                <span className="text-[11px] text-red-500 font-bold -mt-4">{formErrors.days}</span>
+              )}
 
               {/* Pricing */}
               <div className="flex flex-col gap-2">
                 <label className="text-[13px] font-bold text-slate-800">Plan Price</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[14px] font-bold text-slate-500">₹</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[14px] font-bold text-slate-500">
+                    ₹
+                  </span>
                   <input
                     type="number"
                     value={price}
-                    onChange={(e) => { setPrice(e.target.value); if (formErrors.price) setFormErrors(p => ({ ...p, price: "" })) }}
-                    className={`w-full rounded-lg border pl-8 pr-4 py-2.5 text-[14px] text-slate-900 outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all ${formErrors.price ? 'border-red-400' : 'border-slate-200'}`}
+                    onChange={(e) => {
+                      setPrice(e.target.value);
+                      if (formErrors.price) setFormErrors((p) => ({ ...p, price: "" }));
+                    }}
+                    className={`w-full rounded-lg border pl-8 pr-4 py-2.5 text-[14px] text-slate-900 outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all ${formErrors.price ? "border-red-400" : "border-slate-200"}`}
                   />
                 </div>
-                {formErrors.price && <span className="text-[11px] text-red-500 font-bold">{formErrors.price}</span>}
+                {formErrors.price && (
+                  <span className="text-[11px] text-red-500 font-bold">{formErrors.price}</span>
+                )}
               </div>
 
               {/* Discount Checkbox */}
@@ -511,22 +564,34 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
                     onChange={(e) => setOfferDiscount(e.target.checked)}
                     className="mt-0.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer"
                   />
-                  <span className="text-[13.5px] text-slate-700 group-hover:text-slate-900 transition-colors">Offer discounted price on plan price</span>
+                  <span className="text-[13.5px] text-slate-700 group-hover:text-slate-900 transition-colors">
+                    Offer discounted price on plan price
+                  </span>
                 </label>
 
                 {offerDiscount && (
                   <div className="flex flex-col gap-2 ml-6">
                     <label className="text-[12px] font-bold text-slate-500">Discounted Price</label>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[14px] font-bold text-slate-500">₹</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[14px] font-bold text-slate-500">
+                        ₹
+                      </span>
                       <input
                         type="number"
                         value={discountedPrice}
-                        onChange={(e) => { setDiscountedPrice(e.target.value); if (formErrors.discountedPrice) setFormErrors(p => ({ ...p, discountedPrice: "" })) }}
-                        className={`w-full rounded-lg border pl-8 pr-4 py-2.5 text-[14px] text-slate-900 outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all ${formErrors.discountedPrice ? 'border-red-400' : 'border-slate-200'}`}
+                        onChange={(e) => {
+                          setDiscountedPrice(e.target.value);
+                          if (formErrors.discountedPrice)
+                            setFormErrors((p) => ({ ...p, discountedPrice: "" }));
+                        }}
+                        className={`w-full rounded-lg border pl-8 pr-4 py-2.5 text-[14px] text-slate-900 outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all ${formErrors.discountedPrice ? "border-red-400" : "border-slate-200"}`}
                       />
                     </div>
-                    {formErrors.discountedPrice && <span className="text-[11px] text-red-500 font-bold">{formErrors.discountedPrice}</span>}
+                    {formErrors.discountedPrice && (
+                      <span className="text-[11px] text-red-500 font-bold">
+                        {formErrors.discountedPrice}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
@@ -536,11 +601,39 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
                 <label className="text-[13px] font-bold text-slate-800">Description</label>
                 <div className="border border-slate-200 rounded-lg overflow-hidden focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-900/10 transition-all">
                   <div className="flex items-center gap-1 bg-slate-50 border-b border-slate-200 p-1.5">
-                    <button type="button" onClick={() => insertMarkdown("**", "**")} className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded transition-colors" title="Bold"><Icon className="h-3.5 w-3.5" name="bold" /></button>
-                    <button type="button" onClick={() => insertMarkdown("*", "*")} className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded transition-colors" title="Italic"><Icon className="h-3.5 w-3.5" name="italic" /></button>
+                    <button
+                      type="button"
+                      onClick={() => insertMarkdown("**", "**")}
+                      className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded transition-colors"
+                      title="Bold"
+                    >
+                      <Icon className="h-3.5 w-3.5" name="bold" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertMarkdown("*", "*")}
+                      className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded transition-colors"
+                      title="Italic"
+                    >
+                      <Icon className="h-3.5 w-3.5" name="italic" />
+                    </button>
                     <div className="w-px h-4 bg-slate-300 mx-1"></div>
-                    <button type="button" onClick={() => insertMarkdown("\n- ")} className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded transition-colors" title="Bullet List"><Icon className="h-3.5 w-3.5" name="list" /></button>
-                    <button type="button" onClick={() => insertMarkdown("[Link Text](url)")} className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded transition-colors" title="Link"><Icon className="h-3.5 w-3.5" name="link" /></button>
+                    <button
+                      type="button"
+                      onClick={() => insertMarkdown("\n- ")}
+                      className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded transition-colors"
+                      title="Bullet List"
+                    >
+                      <Icon className="h-3.5 w-3.5" name="list" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertMarkdown("[Link Text](url)")}
+                      className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded transition-colors"
+                      title="Link"
+                    >
+                      <Icon className="h-3.5 w-3.5" name="link" />
+                    </button>
                   </div>
                   <textarea
                     ref={descriptionRef}
@@ -551,7 +644,6 @@ export default function ManageBatchesPage({ params }: { params: Promise<{ plan_i
                   />
                 </div>
               </div>
-
             </form>
           </div>
 

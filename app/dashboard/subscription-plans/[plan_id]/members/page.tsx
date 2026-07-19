@@ -50,17 +50,22 @@ function avatarGradient(name?: string) {
 
 function getBillingLabel(cycle: string): string {
   switch (cycle) {
-    case "WEEK": return "Weekly";
-    case "MONTH": return "Monthly";
-    case "QUARTER": return "Quarterly";
-    case "YEAR": return "Yearly";
-    default: return cycle;
+    case "WEEK":
+      return "Weekly";
+    case "MONTH":
+      return "Monthly";
+    case "QUARTER":
+      return "Quarterly";
+    case "YEAR":
+      return "Yearly";
+    default:
+      return cycle;
   }
 }
 
 export default function BatchMembersPage({ params }: { params: Promise<{ plan_id: string }> }) {
   const { plan_id } = use(params);
-  
+
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
@@ -131,9 +136,12 @@ export default function BatchMembersPage({ params }: { params: Promise<{ plan_id
 
   const getStatusBadge = (status?: string) => {
     switch (status) {
-      case "ACTIVE": return "bg-[var(--green-light)] text-[var(--green)]";
-      case "CANCELLED": return "bg-[var(--orange-light)] text-[var(--orange)]";
-      default: return "bg-[var(--red-light)] text-[var(--red)]";
+      case "ACTIVE":
+        return "bg-[var(--green-light)] text-[var(--green)]";
+      case "CANCELLED":
+        return "bg-[var(--orange-light)] text-[var(--orange)]";
+      default:
+        return "bg-[var(--red-light)] text-[var(--red)]";
     }
   };
 
@@ -141,12 +149,17 @@ export default function BatchMembersPage({ params }: { params: Promise<{ plan_id
     <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
       <div className="flex flex-col gap-1">
         <h1 className="text-[22px] font-black tracking-tight text-[var(--ink)]">Members</h1>
-        <p className="text-[13px] text-[var(--muted-2)] font-medium">Manage subscribers for this batch.</p>
+        <p className="text-[13px] text-[var(--muted-2)] font-medium">
+          Manage subscribers for this batch.
+        </p>
       </div>
 
       <div className="flex flex-wrap gap-4 items-center justify-between bg-white p-4 rounded-xl border border-[var(--line)] shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
         <div className="relative min-w-[280px] max-[640px]:w-full">
-          <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-2)] h-4 w-4" name="search" />
+          <Icon
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-2)] h-4 w-4"
+            name="search"
+          />
           <input
             type="text"
             placeholder="Search by name, email..."
@@ -176,65 +189,129 @@ export default function BatchMembersPage({ params }: { params: Promise<{ plan_id
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-[var(--line)] bg-[var(--line-2)]">
-                <th className="py-4 pl-6 pr-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]">Subscriber</th>
-                <th className="py-4 px-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]">Billing Cycle</th>
-                <th className="py-4 px-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]">Amount Paid</th>
-                <th className="py-4 px-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]">Subscribed On</th>
-                <th className="py-4 px-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]">Valid Till</th>
-                <th className="py-4 px-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]">Remaining</th>
-                <th className="py-4 pl-4 pr-6 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)] text-center">Status</th>
+                <th className="py-4 pl-6 pr-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]">
+                  Subscriber
+                </th>
+                <th className="py-4 px-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]">
+                  Billing Cycle
+                </th>
+                <th className="py-4 px-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]">
+                  Amount Paid
+                </th>
+                <th className="py-4 px-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]">
+                  Subscribed On
+                </th>
+                <th className="py-4 px-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]">
+                  Valid Till
+                </th>
+                <th className="py-4 px-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)]">
+                  Remaining
+                </th>
+                <th className="py-4 pl-4 pr-6 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted-2)] text-center">
+                  Status
+                </th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 Array.from({ length: 3 }).map((_, idx) => (
                   <tr key={idx} className="border-b border-[var(--line)]">
-                    <td className="py-5 pl-6 pr-4"><div className="h-9 w-32 animate-pulse rounded bg-[var(--line)]" /></td>
-                    <td className="py-5 px-4"><div className="h-4 w-16 animate-pulse rounded bg-[var(--line)]" /></td>
-                    <td className="py-5 px-4"><div className="h-4 w-12 animate-pulse rounded bg-[var(--line)]" /></td>
-                    <td className="py-5 px-4"><div className="h-4 w-20 animate-pulse rounded bg-[var(--line)]" /></td>
-                    <td className="py-5 px-4"><div className="h-4 w-20 animate-pulse rounded bg-[var(--line)]" /></td>
-                    <td className="py-5 px-4"><div className="h-4 w-20 animate-pulse rounded bg-[var(--line)]" /></td>
-                    <td className="py-5 pl-4 pr-6 text-center"><div className="mx-auto h-5 w-16 animate-pulse rounded-full bg-[var(--line)]" /></td>
+                    <td className="py-5 pl-6 pr-4">
+                      <div className="h-9 w-32 animate-pulse rounded bg-[var(--line)]" />
+                    </td>
+                    <td className="py-5 px-4">
+                      <div className="h-4 w-16 animate-pulse rounded bg-[var(--line)]" />
+                    </td>
+                    <td className="py-5 px-4">
+                      <div className="h-4 w-12 animate-pulse rounded bg-[var(--line)]" />
+                    </td>
+                    <td className="py-5 px-4">
+                      <div className="h-4 w-20 animate-pulse rounded bg-[var(--line)]" />
+                    </td>
+                    <td className="py-5 px-4">
+                      <div className="h-4 w-20 animate-pulse rounded bg-[var(--line)]" />
+                    </td>
+                    <td className="py-5 px-4">
+                      <div className="h-4 w-20 animate-pulse rounded bg-[var(--line)]" />
+                    </td>
+                    <td className="py-5 pl-4 pr-6 text-center">
+                      <div className="mx-auto h-5 w-16 animate-pulse rounded-full bg-[var(--line)]" />
+                    </td>
                   </tr>
                 ))
               ) : isError ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-[var(--red)] text-[13px] font-bold">Failed to load subscribers.</td>
+                  <td
+                    colSpan={7}
+                    className="py-12 text-center text-[var(--red)] text-[13px] font-bold"
+                  >
+                    Failed to load subscribers.
+                  </td>
                 </tr>
               ) : filteredSubscribers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-16 text-center text-[13px] font-bold text-[var(--muted-2)]">No subscribers found in this batch.</td>
+                  <td
+                    colSpan={7}
+                    className="py-16 text-center text-[13px] font-bold text-[var(--muted-2)]"
+                  >
+                    No subscribers found in this batch.
+                  </td>
                 </tr>
               ) : (
                 filteredSubscribers.map((sub) => {
                   const validity = getValidityDetails(sub);
                   return (
-                    <tr key={sub.subscription_id} className="border-b border-[var(--line)] hover:bg-[var(--surface)] transition-colors">
+                    <tr
+                      key={sub.subscription_id}
+                      className="border-b border-[var(--line)] hover:bg-[var(--surface)] transition-colors"
+                    >
                       <td className="py-4 pl-6 pr-4">
                         <div className="flex items-center gap-3">
                           {sub.user_avatar ? (
-                            <Image alt={sub.user_name} className="h-9 w-9 shrink-0 rounded-full object-cover border border-[var(--line)]" src={sub.user_avatar} width={36} height={36} />
+                            <Image
+                              alt={sub.user_name}
+                              className="h-9 w-9 shrink-0 rounded-full object-cover border border-[var(--line)]"
+                              src={sub.user_avatar}
+                              width={36}
+                              height={36}
+                            />
                           ) : (
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11.5px] font-extrabold text-white" style={{ background: avatarGradient(sub.user_name) }}>
+                            <div
+                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11.5px] font-extrabold text-white"
+                              style={{ background: avatarGradient(sub.user_name) }}
+                            >
                               {getInitials(sub.user_name)}
                             </div>
                           )}
                           <div className="min-w-0">
-                            <div className="text-[13px] font-bold text-[var(--ink)] truncate">{sub.user_name}</div>
-                            <div className="text-[11.5px] text-[var(--muted-2)] truncate mt-0.5">{sub.user_email || "No email"}</div>
+                            <div className="text-[13px] font-bold text-[var(--ink)] truncate">
+                              {sub.user_name}
+                            </div>
+                            <div className="text-[11.5px] text-[var(--muted-2)] truncate mt-0.5">
+                              {sub.user_email || "No email"}
+                            </div>
                           </div>
                         </div>
                       </td>
                       <td className="py-4 px-4 text-[12.5px] font-medium text-[var(--muted-2)]">
                         {getBillingLabel(sub.billing_cycle)}
                       </td>
-                      <td className="py-4 px-4 text-[13px] font-bold text-[var(--ink)]">{formatCurrency(sub.amount ?? 0)}</td>
-                      <td className="py-4 px-4 text-[12.5px] text-[var(--ink)] font-medium">{formatDate(sub.subscribed_at)}</td>
-                      <td className="py-4 px-4 text-[12.5px] text-[var(--ink)] font-medium">{formatDate(sub.end_date)}</td>
-                      <td className="py-4 px-4 text-[12.5px]"><span className={validity.className}>{validity.text}</span></td>
+                      <td className="py-4 px-4 text-[13px] font-bold text-[var(--ink)]">
+                        {formatCurrency(sub.amount ?? 0)}
+                      </td>
+                      <td className="py-4 px-4 text-[12.5px] text-[var(--ink)] font-medium">
+                        {formatDate(sub.subscribed_at)}
+                      </td>
+                      <td className="py-4 px-4 text-[12.5px] text-[var(--ink)] font-medium">
+                        {formatDate(sub.end_date)}
+                      </td>
+                      <td className="py-4 px-4 text-[12.5px]">
+                        <span className={validity.className}>{validity.text}</span>
+                      </td>
                       <td className="py-4 pl-4 pr-6 text-center">
-                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-[0.03em] ${getStatusBadge(sub.status)}`}>
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-[0.03em] ${getStatusBadge(sub.status)}`}
+                        >
                           {sub.status || "UNKNOWN"}
                         </span>
                       </td>

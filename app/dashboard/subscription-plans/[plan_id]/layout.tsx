@@ -67,10 +67,17 @@ export default function BatchLayout({
               href="/dashboard/subscription-plans"
               className="group inline-flex items-center gap-1.5 text-[12px] font-bold text-[var(--muted-2)] hover:text-[var(--ink)] transition-colors mb-3"
             >
-              <Icon className="h-3 w-3 transition-transform group-hover:-translate-x-0.5 duration-200" name="arrowRight" style={{ transform: "rotate(180deg)" }} />
+              <Icon
+                className="h-3 w-3 transition-transform group-hover:-translate-x-0.5 duration-200"
+                name="arrowRight"
+                style={{ transform: "rotate(180deg)" }}
+              />
               Back to Batches
             </Link>
-            <h2 className="text-[15px] font-bold text-[var(--ink)] tracking-tight truncate" title={plan?.name || "Loading..."}>
+            <h2
+              className="text-[15px] font-bold text-[var(--ink)] tracking-tight truncate"
+              title={plan?.name || "Loading..."}
+            >
               {plan ? plan.name : "Loading..."}
             </h2>
             <p className="text-[10px] font-bold text-[var(--muted-2)] uppercase tracking-wider mt-0.5">
@@ -82,7 +89,7 @@ export default function BatchLayout({
             <ul className="space-y-1">
               {BATCH_NAV_ITEMS.map((item) => {
                 const active = isActive(item.href);
-                
+
                 if (item.disabled) {
                   return (
                     <li key={item.href}>
@@ -107,7 +114,10 @@ export default function BatchLayout({
                         }
                       `}
                     >
-                      <Icon className={`h-4 w-4 shrink-0 transition-transform duration-200 ${active ? "scale-105" : ""}`} name={item.icon} />
+                      <Icon
+                        className={`h-4 w-4 shrink-0 transition-transform duration-200 ${active ? "scale-105" : ""}`}
+                        name={item.icon}
+                      />
                       <span className="flex-1">{item.label}</span>
                     </Link>
                   </li>

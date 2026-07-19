@@ -109,10 +109,7 @@ function formatDateTime(dateStr: string): string {
 }
 
 // Visual status mapping for the transactions list / receipt.
-const TXN_STATUS: Record<
-  Transaction["status"],
-  { label: string; cls: string }
-> = {
+const TXN_STATUS: Record<Transaction["status"], { label: string; cls: string }> = {
   CAPTURED: { label: "Paid", cls: "bg-[var(--green-light)] text-[var(--green)]" },
   CREATED: { label: "Pending", cls: "bg-[var(--orange-light)] text-[var(--orange)]" },
   FAILED: { label: "Failed", cls: "bg-[var(--red-light)] text-[var(--red)]" },
@@ -137,7 +134,9 @@ function SubscriptionCard({ sub }: { sub: Subscription }) {
             {sub.analyst_name || "Analyst"}
           </h3>
           <p className="text-[12px] text-[var(--muted)] truncate">
-            {sub.plan_name ? `${sub.plan_name}${sub.batch_name ? ` • ${sub.batch_name}` : ""}` : sub.plan_id}
+            {sub.plan_name
+              ? `${sub.plan_name}${sub.batch_name ? ` • ${sub.batch_name}` : ""}`
+              : sub.plan_id}
           </p>
         </div>
         <span
@@ -908,7 +907,8 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
                     No transactions yet
                   </h3>
                   <p className="text-[12.5px] text-[var(--muted)] max-w-[280px] select-none">
-                    Your payment history and receipts will appear here once you subscribe to a batch.
+                    Your payment history and receipts will appear here once you subscribe to a
+                    batch.
                   </p>
                 </div>
               ) : (
@@ -924,7 +924,10 @@ export function TraderProfile({ user }: { user: ProfileUser }) {
                         <div
                           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${isRefund ? "bg-slate-100 text-slate-500" : "bg-emerald-50 text-emerald-600"}`}
                         >
-                          <Icon name={isRefund ? "banknote" : "creditCard"} className="h-4.5 w-4.5" />
+                          <Icon
+                            name={isRefund ? "banknote" : "creditCard"}
+                            className="h-4.5 w-4.5"
+                          />
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="text-[13.5px] font-bold text-[var(--ink)] truncate">

@@ -16,9 +16,7 @@ export function CloseTradeModal({ trade, onClose, onSuccess }: CloseTradeModalPr
   const [error, setError] = useState<string | null>(null);
 
   // Pre-fill with LTP or Entry Price
-  const [exitPrice, setExitPrice] = useState<string>(
-    (trade.ltp ?? trade.entry_price).toString()
-  );
+  const [exitPrice, setExitPrice] = useState<string>((trade.ltp ?? trade.entry_price).toString());
   const [note, setNote] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,7 +41,10 @@ export function CloseTradeModal({ trade, onClose, onSuccess }: CloseTradeModalPr
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const cleaned = cleanErrorMessage(data, data.message || `Failed to close trade: ${res.statusText}`);
+        const cleaned = cleanErrorMessage(
+          data,
+          data.message || `Failed to close trade: ${res.statusText}`
+        );
         throw new Error(cleaned);
       }
 
@@ -59,14 +60,13 @@ export function CloseTradeModal({ trade, onClose, onSuccess }: CloseTradeModalPr
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-[var(--ink)]/40 backdrop-blur-sm transition-opacity" 
+      <div
+        className="absolute inset-0 bg-[var(--ink)]/40 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 
       {/* Modal */}
       <div className="relative w-full max-w-[440px] rounded-2xl bg-white shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--line)] px-5 py-4">
           <h2 className="text-[16px] font-extrabold text-[var(--ink)]">Close Trade</h2>
@@ -81,7 +81,6 @@ export function CloseTradeModal({ trade, onClose, onSuccess }: CloseTradeModalPr
         {/* Form Body */}
         <form onSubmit={handleSubmit}>
           <div className="p-5 space-y-5">
-            
             {/* Trade Context Info */}
             <div className="rounded-xl border border-[var(--line)] bg-[#f8fafc] p-4 flex justify-between items-center">
               <div>
@@ -90,7 +89,9 @@ export function CloseTradeModal({ trade, onClose, onSuccess }: CloseTradeModalPr
               </div>
               <div className="text-right">
                 <div className="text-[12px] font-semibold text-[var(--muted)]">Direction</div>
-                <div className={`text-[12.5px] font-bold ${trade.direction === "LONG" || trade.direction === "BUY" ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
+                <div
+                  className={`text-[12.5px] font-bold ${trade.direction === "LONG" || trade.direction === "BUY" ? "text-[var(--green)]" : "text-[var(--red)]"}`}
+                >
                   {trade.direction}
                 </div>
               </div>
@@ -105,15 +106,14 @@ export function CloseTradeModal({ trade, onClose, onSuccess }: CloseTradeModalPr
             {/* Exit Price */}
             <div>
               <label className="mb-1.5 block text-[13px] font-bold text-[var(--ink)]">
-                Exit Price <span className="text-[var(--muted-2)] font-medium">(Current Market Price)</span>
+                Exit Price{" "}
+                <span className="text-[var(--muted-2)] font-medium">(Current Market Price)</span>
               </label>
               <div className="relative">
                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[15px] font-bold text-[var(--muted)]">
                   ₹
                 </span>
-                <div
-                  className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface)] py-2.5 pl-8 pr-4 text-[14px] font-semibold text-[var(--muted)] shadow-sm cursor-not-allowed"
-                >
+                <div className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface)] py-2.5 pl-8 pr-4 text-[14px] font-semibold text-[var(--muted)] shadow-sm cursor-not-allowed">
                   {exitPrice}
                 </div>
               </div>
@@ -132,7 +132,6 @@ export function CloseTradeModal({ trade, onClose, onSuccess }: CloseTradeModalPr
                 placeholder="Why are you closing this trade?"
               />
             </div>
-            
           </div>
 
           {/* Footer Actions */}

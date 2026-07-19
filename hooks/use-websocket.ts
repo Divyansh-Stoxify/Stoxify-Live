@@ -21,6 +21,20 @@ interface PriceMap {
   [symbol: string]: number;
 }
 
+export interface TradeClosedEvent {
+  type: string;
+  event_type?: string;
+  trade_id: string;
+  [key: string]: unknown;
+}
+
+export interface TradeModifiedEvent {
+  type: string;
+  event_type?: string;
+  trade_id: string;
+  [key: string]: unknown;
+}
+
 interface UseWebSocketReturn {
   /** Current live prices — symbol → LTP */
   prices: PriceMap;
@@ -29,11 +43,11 @@ interface UseWebSocketReturn {
   /** Last connection error, if any */
   error: string | null;
   /** The latest notification received, if any */
-  latestNotification: any | null;
+  latestNotification: Record<string, unknown> | null;
   /** Emitted when a trade is closed by the backend */
-  tradeClosedEvent: any | null;
+  tradeClosedEvent: TradeClosedEvent | null;
   /** Emitted when a trade is modified */
-  tradeModifiedEvent: any | null;
+  tradeModifiedEvent: TradeModifiedEvent | null;
   /**
    * Send an arbitrary JSON message over the WebSocket connection.
    * No-ops silently if the connection is not yet open.
@@ -48,9 +62,11 @@ export function useWebSocket(seedSymbols: string[] = []): UseWebSocketReturn {
   const [prices, setPrices] = useState<PriceMap>({});
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [latestNotification, setLatestNotification] = useState<any | null>(null);
-  const [tradeClosedEvent, setTradeClosedEvent] = useState<any | null>(null);
-  const [tradeModifiedEvent, setTradeModifiedEvent] = useState<any | null>(null);
+  const [latestNotification, setLatestNotification] = useState<Record<string, unknown> | null>(
+    null
+  );
+  const [tradeClosedEvent, setTradeClosedEvent] = useState<TradeClosedEvent | null>(null);
+  const [tradeModifiedEvent, setTradeModifiedEvent] = useState<TradeModifiedEvent | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttemptsRef = useRef(0);
@@ -81,7 +97,8 @@ export function useWebSocket(seedSymbols: string[] = []): UseWebSocketReturn {
 
       // Step 2: Determine the WebSocket URL
       const wsBaseUrl =
-        process.env.NEXT_PUBLIC_WS_URL || "wss://stoxify-gateway.thankfulriver-811030ea.centralindia.azurecontainerapps.io/ws";
+        process.env.NEXT_PUBLIC_WS_URL ||
+        "wss://stoxify-gateway.thankfulriver-811030ea.centralindia.azurecontainerapps.io/ws";
       const wsUrl = `${wsBaseUrl}/?channel_id=${channel_id}`;
 
       // Step 3: Open WebSocket connection
@@ -226,5 +243,13 @@ export function useWebSocket(seedSymbols: string[] = []): UseWebSocketReturn {
     }
   }, []);
 
-  return { prices, isConnected, error, latestNotification, tradeClosedEvent, tradeModifiedEvent, sendMessage };
+  return {
+    prices,
+    isConnected,
+    error,
+    latestNotification,
+    tradeClosedEvent,
+    tradeModifiedEvent,
+    sendMessage,
+  };
 }

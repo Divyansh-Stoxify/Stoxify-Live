@@ -184,7 +184,6 @@ export function useActiveTrades(limit: number = 5) {
   return { trades, isLoading, isError, refetch: fetchTrades, removeTradeLocally };
 }
 
-
 export function useClosedTrades() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -282,9 +281,7 @@ export function useLiveTradesStats() {
         // must count once, so dedupe on user_id (falling back to subscription_id
         // for legacy rows that don't carry a user_id).
         const uniqueSubscribers = new Set(
-          activeSubscriptions
-            .map((s: any) => s.user_id ?? s.subscription_id)
-            .filter(Boolean)
+          activeSubscriptions.map((s: any) => s.user_id ?? s.subscription_id).filter(Boolean)
         ).size;
 
         // Win rate for the *current calendar month*, with a real month-over-month
@@ -300,9 +297,7 @@ export function useLiveTradesStats() {
           return isNaN(d.getTime()) ? null : d.getFullYear() * 12 + d.getMonth();
         };
         const winRateOf = (list: Trade[]) =>
-          list.length > 0
-            ? Math.round((list.filter(isWin).length / list.length) * 1000) / 10
-            : 0;
+          list.length > 0 ? Math.round((list.filter(isWin).length / list.length) * 1000) / 10 : 0;
 
         const nowMonth = new Date().getFullYear() * 12 + new Date().getMonth();
         const thisMonthClosed = closedList.filter((t) => closedMonth(t) === nowMonth);
@@ -471,6 +466,7 @@ export function useSubscriptionPlans() {
   }, []);
 
   useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
     void load();
   }, [load]);
 
@@ -482,6 +478,17 @@ interface SubscriptionPlansStats {
   monthly_recurring_revenue: number;
   total_plans_count: number;
   active_plans_count: number;
+}
+
+interface DashboardSubscription {
+  plan_id: string;
+  amount?: number;
+}
+
+interface RawPlan {
+  plan_id: string;
+  is_active?: boolean;
+  status?: PlanStatus;
 }
 
 export function useSubscriptionPlansStats() {
@@ -508,13 +515,15 @@ export function useSubscriptionPlansStats() {
       const plansJson = await plansRes.json();
       const subsJson = subscribersRes.ok ? await subscribersRes.json().catch(() => ({})) : {};
 
-      const activeSubscriptions = Array.isArray(subsJson.subscriptions)
-        ? subsJson.subscriptions
-        : Array.isArray(subsJson.data)
-          ? subsJson.data
-          : Array.isArray(subsJson)
-            ? subsJson
-            : [];
+      const activeSubscriptions = (
+        Array.isArray(subsJson.subscriptions)
+          ? subsJson.subscriptions
+          : Array.isArray(subsJson.data)
+            ? subsJson.data
+            : Array.isArray(subsJson)
+              ? subsJson
+              : []
+      ) as DashboardSubscription[];
 
       const list: SubscriptionPlan[] = (
         Array.isArray(plansJson.plans)
@@ -524,10 +533,10 @@ export function useSubscriptionPlansStats() {
             : Array.isArray(plansJson)
               ? plansJson
               : []
-      ).map((p: any) => {
-        const planSubscribers = activeSubscriptions.filter((s: any) => s.plan_id === p.plan_id);
+      ).map((p: RawPlan) => {
+        const planSubscribers = activeSubscriptions.filter((s) => s.plan_id === p.plan_id);
         return {
-          ...p,
+          ...(p as unknown as SubscriptionPlan),
           status: p.status || (p.is_active ? "ACTIVE" : "INACTIVE"),
           subscribers_count: planSubscribers.length,
         };
@@ -535,9 +544,9 @@ export function useSubscriptionPlansStats() {
 
       const totalSubscribers = list.reduce((sum, p) => sum + (p.subscribers_count ?? 0), 0);
 
-      const collectedRevenue = activeSubscriptions.reduce((sum: number, sub: any) => {
+      const collectedRevenue = activeSubscriptions.reduce((sum: number, sub) => {
         // Only count revenue from subscriptions belonging to ACTIVE plans (kept consistent with original)
-        const plan = list.find(p => p.plan_id === sub.plan_id);
+        const plan = list.find((p) => p.plan_id === sub.plan_id);
         if (plan && plan.status !== "ACTIVE") return sum;
 
         return sum + (sub.amount || 0);
@@ -559,6 +568,7 @@ export function useSubscriptionPlansStats() {
   }, []);
 
   useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
     void load();
   }, [load]);
 
@@ -569,11 +579,11 @@ export interface Coupon {
   coupon_id: string;
   analyst_id: string;
   code: string;
-  type: 'PERCENTAGE' | 'FLAT';
+  type: "PERCENTAGE" | "FLAT";
   discount_value: number;
   plan_ids: string[];
   user_ids?: string[];
-  availability: 'EVERYONE' | 'NEW_USER' | 'EXISTING_USER' | 'SPECIFIC';
+  availability: "EVERYONE" | "NEW_USER" | "EXISTING_USER" | "SPECIFIC";
   quantity_total: number | null;
   quantity_used: number;
   valid_from?: string;
@@ -591,14 +601,16 @@ export function useAnalystCoupons(planId?: string) {
   const load = useCallback(async () => {
     setIsLoading(true);
     try {
-      const url = planId ? `/api/analyst/plans/coupons?plan_id=${planId}` : "/api/analyst/plans/coupons";
+      const url = planId
+        ? `/api/analyst/plans/coupons?plan_id=${planId}`
+        : "/api/analyst/plans/coupons";
       const res = await fetch(url, {
         credentials: "same-origin",
         cache: "no-store",
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      setCoupons(Array.isArray(json) ? json : json.data ?? []);
+      setCoupons(Array.isArray(json) ? json : (json.data ?? []));
       setIsError(false);
     } catch {
       setCoupons([]);
@@ -609,6 +621,7 @@ export function useAnalystCoupons(planId?: string) {
   }, [planId]);
 
   useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
     void load();
   }, [load]);
 

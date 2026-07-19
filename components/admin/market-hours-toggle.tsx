@@ -71,7 +71,9 @@ export function MarketHoursToggle({ onChanged }: { onChanged?: () => void }) {
         <CardTitle className="flex items-center gap-2">
           Off-hours trading
           {enabled !== null && (
-            <Badge variant={enabled ? "default" : "secondary"}>{enabled ? "Allowed" : "Blocked"}</Badge>
+            <Badge variant={enabled ? "default" : "secondary"}>
+              {enabled ? "Allowed" : "Blocked"}
+            </Badge>
           )}
         </CardTitle>
         <CardDescription>

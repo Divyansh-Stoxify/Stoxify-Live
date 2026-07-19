@@ -44,11 +44,21 @@ const LOCAL_URLS = {
  * Hosted environment URLs
  */
 const HOSTED_URLS = {
-  apiUrl: process.env.NEXT_PUBLIC_API_URL || "https://stoxify-gateway.thankfulriver-811030ea.centralindia.azurecontainerapps.io",
-  wsUrl: process.env.NEXT_PUBLIC_WS_URL || "wss://stoxify-gateway.thankfulriver-811030ea.centralindia.azurecontainerapps.io/ws",
-  rbacUrl: process.env.NEXT_PUBLIC_RBAC_URL || "https://stoxify-gateway.thankfulriver-811030ea.centralindia.azurecontainerapps.io/rbac",
-  planUrl: process.env.NEXT_PUBLIC_PLAN_URL || "https://stoxify-gateway.thankfulriver-811030ea.centralindia.azurecontainerapps.io/plans",
-  userUrl: process.env.NEXT_PUBLIC_USER_URL || "https://stoxify-gateway.thankfulriver-811030ea.centralindia.azurecontainerapps.io/users",
+  apiUrl:
+    process.env.NEXT_PUBLIC_API_URL ||
+    "https://stoxify-gateway.thankfulriver-811030ea.centralindia.azurecontainerapps.io",
+  wsUrl:
+    process.env.NEXT_PUBLIC_WS_URL ||
+    "wss://stoxify-gateway.thankfulriver-811030ea.centralindia.azurecontainerapps.io/ws",
+  rbacUrl:
+    process.env.NEXT_PUBLIC_RBAC_URL ||
+    "https://stoxify-gateway.thankfulriver-811030ea.centralindia.azurecontainerapps.io/rbac",
+  planUrl:
+    process.env.NEXT_PUBLIC_PLAN_URL ||
+    "https://stoxify-gateway.thankfulriver-811030ea.centralindia.azurecontainerapps.io/plans",
+  userUrl:
+    process.env.NEXT_PUBLIC_USER_URL ||
+    "https://stoxify-gateway.thankfulriver-811030ea.centralindia.azurecontainerapps.io/users",
   marketDataUrl:
     process.env.NEXT_PUBLIC_MARKET_DATA_URL ||
     "https://stoxify-gateway.thankfulriver-811030ea.centralindia.azurecontainerapps.io/market-data",

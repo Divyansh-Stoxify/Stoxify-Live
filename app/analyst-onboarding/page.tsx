@@ -368,12 +368,16 @@ function AnalystOnboardingForm() {
           if (newFieldErrors.name || newFieldErrors.email) {
             setFormStep(0);
           }
-          setGeneralError(cleanErrorMessage(data, data.error ?? "Please check the highlighted fields."));
+          setGeneralError(
+            cleanErrorMessage(data, data.error ?? "Please check the highlighted fields.")
+          );
           setIsSubmitting(false);
           return;
         }
 
-        setGeneralError(cleanErrorMessage(data, data.error ?? "Registration failed. Please try again."));
+        setGeneralError(
+          cleanErrorMessage(data, data.error ?? "Registration failed. Please try again.")
+        );
         setIsSubmitting(false);
         return;
       }

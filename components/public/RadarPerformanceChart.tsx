@@ -39,8 +39,8 @@ function CustomTooltip({ active, payload }: any) {
       data.status === "excellent"
         ? "text-emerald-500"
         : data.status === "good"
-        ? "text-green-500"
-        : "text-red-500";
+          ? "text-green-500"
+          : "text-red-500";
 
     return (
       <div className="bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-md border border-slate-700/80 p-4 rounded-xl shadow-xl max-w-xs text-white">
@@ -53,9 +53,7 @@ function CustomTooltip({ active, payload }: any) {
             Benchmark: {data.benchmark}
           </span>
         </div>
-        <p className="text-xs text-slate-300 leading-relaxed font-medium">
-          {data.explanation}
-        </p>
+        <p className="text-xs text-slate-300 leading-relaxed font-medium">{data.explanation}</p>
       </div>
     );
   }
@@ -119,7 +117,7 @@ export function RadarPerformanceChart({ metrics }: RadarPerformanceChartProps) {
         <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
           {/* Subtle Grid and Radar Styling */}
           <PolarGrid stroke="#94a3b8" strokeDasharray="3 3" opacity={0.3} />
-          
+
           <PolarAngleAxis
             dataKey="subject"
             tick={{
@@ -129,13 +127,8 @@ export function RadarPerformanceChart({ metrics }: RadarPerformanceChartProps) {
               className: "text-slate-600 dark:text-slate-400 font-sans tracking-wide",
             }}
           />
-          
-          <PolarRadiusAxis
-            angle={90}
-            domain={[0, 100]}
-            tick={false}
-            axisLine={false}
-          />
+
+          <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
 
           <Radar
             name="Current RA"

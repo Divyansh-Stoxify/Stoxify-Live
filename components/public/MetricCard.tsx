@@ -27,11 +27,10 @@ export function MetricCard({
     status === "excellent"
       ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/50"
       : status === "good"
-      ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800/50"
-      : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/50";
+        ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800/50"
+        : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/50";
 
-  const chartColor =
-    status === "excellent" ? "#059669" : status === "good" ? "#16a34a" : "#dc2626";
+  const chartColor = status === "excellent" ? "#059669" : status === "good" ? "#16a34a" : "#dc2626";
 
   // Prepare chart data format
   const chartData = history.map((val, idx) => ({ id: idx, value: val }));

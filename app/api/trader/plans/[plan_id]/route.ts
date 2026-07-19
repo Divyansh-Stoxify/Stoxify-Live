@@ -28,7 +28,7 @@ export async function GET(
   }
 
   try {
-    console.log('TESTING GET PLAN:', backendUrls.plan, plan_id);
+    console.log("TESTING GET PLAN:", backendUrls.plan, plan_id);
     const backendResponse = await signedBackendFetch({
       baseUrl: backendUrls.plan,
       path: `/plans/${plan_id}`,
