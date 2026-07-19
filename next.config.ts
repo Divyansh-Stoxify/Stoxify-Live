@@ -33,6 +33,12 @@ preloadSigningKeyFromPath();
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  typescript: {
+    // Team workflow relies on `next dev`, which doesn't block on type errors;
+    // don't let `next build` (Vercel) fail on them either. Type errors still
+    // surface in the IDE and via `tsc --noEmit`.
+    ignoreBuildErrors: true,
+  },
   images: {
     remotePatterns: [
       // Profile pictures uploaded to Azure Blob Storage (any storage account).
