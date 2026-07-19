@@ -47,7 +47,7 @@ function OnboardingSidebar({ formStep }: { formStep: number }) {
   ];
 
   return (
-    <aside className="hidden lg:flex w-[280px] shrink-0 flex-col border-r border-[var(--line)] bg-white">
+    <aside className="hidden lg:flex w-[280px] shrink-0 flex-col border-r border-[var(--line)] bg-white sticky top-0 h-screen">
       {/* Logo */}
       <div className="flex h-[66px] items-center px-6 border-b border-[var(--line)]">
         <Link
@@ -388,15 +388,15 @@ function AnalystOnboardingForm() {
   if (!token || !phone) return null;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--surface)] font-sans">
+    <div className="flex min-h-screen bg-[var(--surface)] font-sans">
       {/* ─── Desktop Sidebar ─── */}
       <OnboardingSidebar formStep={formStep} />
 
       {/* ─── Main Content Area ─── */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col">
         <MobileTopBar formStep={formStep} />
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1">
           <div className="mx-auto w-full max-w-[580px] px-5 py-8 md:py-12">
             {/* Page Header */}
             <div className="mb-8 animate-[fadeUp_0.4s_ease_both]">
