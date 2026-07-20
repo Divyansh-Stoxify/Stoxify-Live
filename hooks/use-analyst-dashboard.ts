@@ -7,6 +7,7 @@ import type {
   Subscriber,
   AnalystProfile,
   SubscriptionPlan,
+  PlanStatus,
 } from "@/lib/types/analyst";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

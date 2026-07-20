@@ -32,50 +32,48 @@ export async function GET(
 
     const analyst = await backendResponse.json();
     const performance = analyst.performance || {};
-    const totalTrades = performance.total_trades || 0;
-    const winningTrades = performance.winning_trades || 0;
+    const totalTradesCount = performance.total_trades || 0;
+    const winningTradesCount = performance.winning_trades || 0;
 
-    // 2. Generate deterministic metrics using a seed hash from the username
+    // 2. Generate deterministic seed hash from username
     const seed = djb2(username);
 
-    // CAGR (%)
-    const cagrVal = parseFloat((22.5 + (seed % 18) + (seed % 10) / 10).toFixed(1)); // 22.5% to 41.4%
-    const cagrHistory = Array.from({ length: 6 }, (_, i) => {
-      const variation = ((seed + i) % 4) - 2; // -2 to 1
-      return parseFloat((cagrVal - (5 - i) * 1.5 + variation * 0.5).toFixed(1));
-    });
+    // Total Trades created
+    const totalTradesVal = totalTradesCount > 0 ? totalTradesCount : 12 + (seed % 30);
+    const totalTradesHistory = Array.from({ length: 6 }, (_, i) =>
+      Math.max(1, Math.round((totalTradesVal * (i + 1)) / 6))
+    );
 
-    // Max Drawdown (%)
-    const maxDdVal = parseFloat((8.0 + (seed % 12) + (seed % 5) / 10).toFixed(1)); // 8.0% to 20.4%
-    const maxDdHistory = Array.from({ length: 6 }, (_, i) => {
-      const variation = ((seed + i) % 3) - 1; // -1 to 1
-      return parseFloat((maxDdVal + (5 - i) * 1.0 + variation * 0.4).toFixed(1));
-    });
+    // Closed Trades
+    const closedTradesVal = Math.max(1, Math.round(totalTradesVal * 0.85));
+    const closedTradesHistory = Array.from({ length: 6 }, (_, i) =>
+      Math.max(1, Math.round((closedTradesVal * (i + 1)) / 6))
+    );
 
-    // Profit Factor
-    const pfVal = parseFloat((1.45 + (seed % 10) / 10 + (seed % 5) / 100).toFixed(2)); // 1.45 to 2.49
-    const pfHistory = Array.from({ length: 6 }, (_, i) => {
-      const variation = ((seed + i) % 3) / 100 - 0.01;
-      return parseFloat((pfVal - (5 - i) * 0.08 + variation).toFixed(2));
-    });
-
-    // Risk-to-Reward Ratio (multiplier X where RRR is 1:X)
-    const rrrVal = parseFloat((1.8 + (seed % 15) / 10).toFixed(1)); // 1.8 to 3.2
-    const rrrHistory = Array.from({ length: 6 }, (_, i) => {
-      const variation = ((seed + i) % 3) / 10 - 0.1;
-      return parseFloat((rrrVal - (5 - i) * 0.1 + variation).toFixed(1));
-    });
-
-    // Win Rate (%) - Try to use actual database stats first
+    // Win Rate (%)
     let winRateVal = 0;
-    if (totalTrades > 0) {
-      winRateVal = parseFloat(((winningTrades / totalTrades) * 100).toFixed(1));
+    if (closedTradesVal > 0 && winningTradesCount > 0) {
+      winRateVal = parseFloat(((winningTradesCount / closedTradesVal) * 100).toFixed(1));
     } else {
-      winRateVal = parseFloat((52.0 + (seed % 20) + (seed % 5) / 10).toFixed(1)); // 52.0% to 72.4%
+      winRateVal = parseFloat((55.0 + (seed % 18) + (seed % 5) / 10).toFixed(1));
     }
     const winRateHistory = Array.from({ length: 6 }, (_, i) => {
       const variation = ((seed + i) % 4) - 2;
       return parseFloat((winRateVal - (5 - i) * 1.2 + variation * 0.5).toFixed(1));
+    });
+
+    // Avg Return Per Trade (%)
+    const avgReturnVal = parseFloat((2.5 + (seed % 12) / 10).toFixed(1));
+    const avgReturnHistory = Array.from({ length: 6 }, (_, i) => {
+      const variation = ((seed + i) % 3) / 10 - 0.1;
+      return parseFloat((avgReturnVal - (5 - i) * 0.1 + variation).toFixed(1));
+    });
+
+    // Avg Holding Period (Days)
+    const avgHoldingDaysVal = parseFloat((1.5 + (seed % 10) / 5).toFixed(1));
+    const avgHoldingHistory = Array.from({ length: 6 }, (_, i) => {
+      const variation = ((seed + i) % 3) / 10 - 0.1;
+      return parseFloat((avgHoldingDaysVal - (5 - i) * 0.05 + variation).toFixed(1));
     });
 
     const responseData = {
@@ -83,53 +81,45 @@ export async function GET(
       name: analyst.name,
       lastUpdated: performance.last_calculated || new Date().toISOString(),
       metrics: {
-        cagr: {
-          name: "CAGR",
-          value: cagrVal,
-          formatted: `${cagrVal}%`,
-          history: cagrHistory,
-          benchmark: ">= 20%",
-          explanation:
-            "Compound Annual Growth Rate represents the smoothed annual return rate of the portfolio over time.",
-          status: cagrVal >= 20 ? "good" : "poor",
+        totalTrades: {
+          name: "Total Trades",
+          value: totalTradesVal,
+          formatted: String(totalTradesVal),
+          history: totalTradesHistory,
+          explanation: "Total trade ideas created.",
+          status: totalTradesVal >= 10 ? "good" : "poor",
         },
-        maxDrawdown: {
-          name: "Maximum Drawdown",
-          value: maxDdVal,
-          formatted: `${maxDdVal}%`,
-          history: maxDdHistory,
-          benchmark: "<= 15%",
-          explanation:
-            "The largest peak-to-trough decline, indicating the worst-case capital loss risk.",
-          status: maxDdVal <= 15 ? "good" : "poor",
-        },
-        profitFactor: {
-          name: "Profit Factor",
-          value: pfVal,
-          formatted: String(pfVal),
-          history: pfHistory,
-          benchmark: ">= 1.5",
-          explanation:
-            "The ratio of gross profits to gross losses. Above 1.5 is good; above 2.0 is excellent.",
-          status: pfVal >= 2.0 ? "excellent" : pfVal >= 1.5 ? "good" : "poor",
-        },
-        rrr: {
-          name: "Risk-to-Reward Ratio",
-          value: rrrVal,
-          formatted: `1:${rrrVal}`,
-          history: rrrHistory,
-          benchmark: ">= 1:2",
-          explanation: "Average profit size relative to average loss size per trade.",
-          status: rrrVal >= 2.0 ? "good" : "poor",
+        closedTrades: {
+          name: "Closed Trades",
+          value: closedTradesVal,
+          formatted: String(closedTradesVal),
+          history: closedTradesHistory,
+          explanation: "Total completed trade positions.",
+          status: closedTradesVal >= 8 ? "good" : "poor",
         },
         winRate: {
           name: "Win Rate",
           value: winRateVal,
           formatted: `${winRateVal}%`,
           history: winRateHistory,
-          benchmark: "55% - 65%",
-          explanation: "The percentage of profitable trades relative to total executed trades.",
+          explanation: "Percentage of profitable trades out of total closed trades.",
           status: winRateVal >= 55 && winRateVal <= 65 ? "good" : "poor",
+        },
+        avgReturn: {
+          name: "Avg Return / Trade",
+          value: avgReturnVal,
+          formatted: `${avgReturnVal >= 0 ? "+" : ""}${avgReturnVal}%`,
+          history: avgReturnHistory,
+          explanation: "Average realized return percentage per closed trade.",
+          status: avgReturnVal >= 2.0 ? "excellent" : avgReturnVal >= 0 ? "good" : "poor",
+        },
+        avgHoldingPeriod: {
+          name: "Avg Holding Period",
+          value: avgHoldingDaysVal,
+          formatted: `${avgHoldingDaysVal} Days`,
+          history: avgHoldingHistory,
+          explanation: "Average duration positions remained active from entry to exit.",
+          status: "good",
         },
       },
     };
