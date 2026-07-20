@@ -9,37 +9,37 @@ function PlansModal({ plan, onClose }: { plan: SubscriptionPlan; onClose: () => 
   const batches = plan.batches || [];
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      onClick={onClose}
-    >
       <div
-        className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col"
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        onClick={onClose}
       >
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-          <div>
-            <h3 className="font-bold text-slate-900 text-lg">{plan.name}</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Available Subscriptions</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="p-4 bg-slate-50 max-h-[60vh] overflow-y-auto space-y-3">
-          {batches.map((batch) => (
-            <div
-              key={batch.batch_id}
-              className="bg-white border border-slate-200 rounded-lg p-4 flex items-center justify-between shadow-sm"
+        <div
+          className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-slate-900 dark:text-white text-lg">{plan.name}</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Available Subscriptions</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-400 dark:text-slate-500"
             >
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="p-4 bg-slate-50/50 dark:bg-slate-800/20 max-h-[60vh] overflow-y-auto space-y-3">
+            {batches.map((batch) => (
+              <div
+                key={batch.batch_id}
+                className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-lg border border-slate-200 dark:border-slate-700 rounded-xl p-4 flex items-center justify-between shadow-sm"
+              >
               <div>
-                <div className="font-bold text-slate-900 text-[15px]">{batch.name}</div>
-                <div className="text-[12px] text-slate-500 font-medium mt-0.5">
-                  <span className="font-bold text-slate-700">₹{batch.price}</span> /{" "}
+                <div className="font-bold text-slate-900 dark:text-white text-[15px]">{batch.name}</div>
+                <div className="text-[12px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                  <span className="font-bold text-slate-700 dark:text-slate-300">₹{batch.price}</span> /{" "}
                   {batch.billing_cycle.toLowerCase()}
                 </div>
               </div>
@@ -71,27 +71,27 @@ export function BatchListClient({ plans }: { plans: SubscriptionPlan[] }) {
           return (
             <div
               key={plan.plan_id}
-              className="bg-white rounded-xl border border-slate-200 flex flex-col h-full hover:shadow-lg transition-shadow overflow-hidden cursor-pointer"
+              className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl border border-slate-200 dark:border-slate-800 flex flex-col h-full hover:shadow-lg dark:hover:shadow-slate-900/70 transition-shadow overflow-hidden cursor-pointer rounded-2xl"
               onClick={() => batches.length > 0 && setSelectedPlan(plan)}
             >
               <div className="p-6 flex-1 flex flex-col">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900">{plan.name}</h3>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">{plan.name}</h3>
                     {plan.description && (
-                      <p className="text-[13px] text-slate-500 mt-2 line-clamp-2">
+                      <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-2 line-clamp-2">
                         {plan.description}
                       </p>
                     )}
                   </div>
                 </div>
 
-                <div className="mt-auto pt-6 border-t border-slate-100 flex items-center justify-between">
+                <div className="mt-auto pt-6 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                   <div>
-                    <span className="text-[12px] text-slate-500 font-medium">Plans start from</span>
-                    <div className="text-xl font-bold text-slate-900 mt-0.5">₹{minPrice}</div>
+                    <span className="text-[12px] text-slate-500 dark:text-slate-400 font-medium">Plans start from</span>
+                    <div className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">₹{minPrice}</div>
                   </div>
-                  <span className="px-3 py-1.5 bg-blue-50 text-blue-600 text-[12px] font-bold rounded-lg">
+                  <span className="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[12px] font-bold rounded-lg">
                     {batches.length} {batches.length === 1 ? "Plan" : "Plans"}
                   </span>
                 </div>
