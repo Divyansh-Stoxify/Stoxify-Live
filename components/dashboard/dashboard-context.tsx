@@ -67,8 +67,8 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (latestNotification) {
-      toast.success(latestNotification.title, {
-        description: latestNotification.message,
+      toast.success(String(latestNotification.title ?? ""), {
+        description: String(latestNotification.message ?? ""),
         duration: 5000,
       });
       setHasUnreadNotifications(true);

@@ -60,8 +60,8 @@ export function TraderShell({ user, children }: { user: TraderUser; children: Re
   useEffect(() => {
     if (latestNotification) {
       mutateUnread();
-      toast.success(latestNotification.title, {
-        description: latestNotification.message,
+      toast.success(String(latestNotification.title ?? ""), {
+        description: String(latestNotification.message ?? ""),
         duration: 5000,
       });
     }

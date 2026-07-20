@@ -133,7 +133,7 @@ export function cleanErrorMessage(
   }
 
   // 2. Fallback check: sanitize message if it has raw technical details
-  const fallbackMsg = message || data.error || "";
+  const fallbackMsg = String(message || data.error || "");
   if (fallbackMsg) {
     const technicalJargon = [
       /database/i,

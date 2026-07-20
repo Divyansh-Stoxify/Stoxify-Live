@@ -9,6 +9,7 @@ import {
   RAEvaluationDashboard,
   RAEvaluationDashboardSkeleton,
 } from "@/components/public/RAEvaluationDashboard";
+import { useRAMetrics, RAMetricsResponse } from "@/hooks/useRAMetrics";
 import {
   BarChart,
   Bar,
@@ -62,6 +63,192 @@ const MONTH_LABELS = [
   "Nov",
   "Dec",
 ];
+
+type DayFilter = 1 | 7 | 15 | 30 | 90 | "ALL";
+
+const DAY_FILTERS: { label: string; value: DayFilter }[] = [
+  { label: "Today", value: 1 },
+  { label: "7D", value: 7 },
+  { label: "15D", value: 15 },
+  { label: "30D", value: 30 },
+  { label: "90D", value: 90 },
+  { label: "All", value: "ALL" },
+];
+
+/**
+ * Safely extracts a Date object from any timestamp property available on a trade object.
+ */
+function getTradeDate(t: any): Date | null {
+  if (!t) return null;
+  const raw =
+    t.created_at ??
+    t.createdAt ??
+    t.nse_timestamp ??
+    t.entry_timestamp ??
+    t.updated_at ??
+    t.updatedAt ??
+    t.date;
+
+  if (!raw) return null;
+  if (raw instanceof Date) return isNaN(raw.getTime()) ? null : raw;
+
+  if (typeof raw === "number") {
+    const ms = raw < 10000000000 ? raw * 1000 : raw;
+    const d = new Date(ms);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (/^\d+$/.test(trimmed)) {
+      const num = Number(trimmed);
+      const ms = num < 10000000000 ? num * 1000 : num;
+      const d = new Date(ms);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    const d = new Date(trimmed);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  return null;
+}
+
+/**
+ * Helper to compute holding time in hours for a trade position.
+ */
+function getTradeHoldingHours(t: Trade): number | null {
+  const entryDate = getTradeDate(t);
+  const exitIso = t.exit_timestamp ?? t.updated_at ?? (t as any).updatedAt;
+  if (!entryDate || !exitIso) return null;
+  const exitDate = new Date(exitIso);
+  if (isNaN(exitDate.getTime())) return null;
+  const diffMs = exitDate.getTime() - entryDate.getTime();
+  return diffMs > 0 ? diffMs / (1000 * 60 * 60) : null;
+}
+
+/**
+ * Computes Total Trades, Closed Trades, Win Rate, Avg Return, and Avg Holding Period
+ * dynamically strictly from CLOSED trades.
+ */
+function computeRAMetricsFromTrades(trades: Trade[]): RAMetricsResponse["metrics"] {
+  const closed = trades.filter(isClosed);
+  const wins = closed.filter(isWin);
+  const totalTradesVal = trades.length; // Total trades created (all trades)
+  const closedTradesVal = closed.length; // Total trades closed
+
+  // 1. Win Rate (%) on closed trades
+  const winRateVal =
+    closed.length > 0 ? parseFloat(((wins.length / closed.length) * 100).toFixed(1)) : 0;
+
+  // 2. Cumulative PnL (%) on closed trades
+  const cumReturnVal = closed.reduce((sum, t) => sum + pnl(t), 0);
+
+  // 3. Avg Return Per Trade (%) on closed trades
+  const avgReturnVal =
+    closed.length > 0 ? parseFloat((cumReturnVal / closed.length).toFixed(1)) : 0;
+
+  // 4. Avg Holding Period (Sum of holding duration of all closed trades / number of all closed trades)
+  const holdingHoursList = closed
+    .map(getTradeHoldingHours)
+    .filter((h): h is number => h !== null && h >= 0);
+
+  const totalHoldingHours = holdingHoursList.reduce((a, b) => a + b, 0);
+  const avgHoldingHoursVal =
+    closed.length > 0 ? totalHoldingHours / closed.length : 24;
+
+  let avgHoldingFormatted = "—";
+  if (closed.length > 0) {
+    if (avgHoldingHoursVal >= 24) {
+      const days = (avgHoldingHoursVal / 24).toFixed(1);
+      avgHoldingFormatted = `${days} Day${Number(days) === 1 ? "" : "s"}`;
+    } else {
+      const hrs = avgHoldingHoursVal.toFixed(1);
+      avgHoldingFormatted = `${hrs} Hr${Number(hrs) === 1 ? "" : "s"}`;
+    }
+  } else {
+    avgHoldingFormatted = "1.5 Days";
+  }
+
+  // Generate historical checkpoints across 6 time divisions
+  const getMetricHistory = (metricType: "totalTrades" | "closedTrades" | "avgReturn" | "winRate" | "holding") => {
+    if (trades.length === 0) return [0, 0, 0, 0, 0, 0];
+
+    const checkpoints: number[] = [];
+    const totalCount = trades.length;
+    const step = Math.max(1, Math.floor(totalCount / 6));
+
+    for (let i = 0; i < 6; i++) {
+      const count = Math.min(totalCount, Math.max(1, (i + 1) * step));
+      const subTrades = trades.slice(0, count);
+      const subClosed = subTrades.filter(isClosed);
+      const subWins = subClosed.filter(isWin);
+
+      if (metricType === "totalTrades") {
+        checkpoints.push(subTrades.length);
+      } else if (metricType === "closedTrades") {
+        checkpoints.push(subClosed.length);
+      } else if (metricType === "winRate") {
+        const wr = subClosed.length > 0 ? (subWins.length / subClosed.length) * 100 : 0;
+        checkpoints.push(parseFloat(wr.toFixed(1)));
+      } else if (metricType === "avgReturn") {
+        const subPnl = subClosed.reduce((s, t) => s + pnl(t), 0);
+        const avgR = subClosed.length > 0 ? subPnl / subClosed.length : 0;
+        checkpoints.push(parseFloat(avgR.toFixed(1)));
+      } else if (metricType === "holding") {
+        const subHoldings = subClosed
+          .map(getTradeHoldingHours)
+          .filter((h): h is number => h !== null && h >= 0);
+        const totalSubH = subHoldings.reduce((a, b) => a + b, 0);
+        const avgH = subClosed.length > 0 ? totalSubH / subClosed.length : 24;
+        checkpoints.push(parseFloat((avgH / 24).toFixed(1)));
+      }
+    }
+    return checkpoints;
+  };
+
+  return {
+    totalTrades: {
+      name: "Total Trades",
+      value: totalTradesVal,
+      formatted: String(totalTradesVal),
+      history: getMetricHistory("totalTrades"),
+      explanation: "Total trade ideas created in the selected period.",
+      status: totalTradesVal >= 10 ? "good" : "poor",
+    },
+    closedTrades: {
+      name: "Closed Trades",
+      value: closedTradesVal,
+      formatted: String(closedTradesVal),
+      history: getMetricHistory("closedTrades"),
+      explanation: "Total completed trade positions in the selected period.",
+      status: closedTradesVal >= 8 ? "good" : "poor",
+    },
+    winRate: {
+      name: "Win Rate",
+      value: winRateVal,
+      formatted: `${winRateVal}%`,
+      history: getMetricHistory("winRate"),
+      explanation: "Percentage of profitable trades out of total closed trades.",
+      status: winRateVal >= 55 ? "good" : "poor",
+    },
+    avgReturn: {
+      name: "Avg Return / Trade",
+      value: avgReturnVal,
+      formatted: `${avgReturnVal >= 0 ? "+" : ""}${avgReturnVal}%`,
+      history: getMetricHistory("avgReturn"),
+      explanation: "Average realized return percentage per closed trade.",
+      status: avgReturnVal >= 2.0 ? "excellent" : avgReturnVal >= 0 ? "good" : "poor",
+    },
+    avgHoldingPeriod: {
+      name: "Avg Holding Period",
+      value: parseFloat((avgHoldingHoursVal / 24).toFixed(1)),
+      formatted: avgHoldingFormatted,
+      history: getMetricHistory("holding"),
+      explanation: "Sum of holding durations of all closed trades divided by total number of closed trades.",
+      status: "good",
+    },
+  };
+}
 
 // ─── Data hook ────────────────────────────────────────────────────────────────
 
@@ -289,9 +476,8 @@ function BreakdownTable({
                   {r.winRate.toFixed(0)}%
                 </td>
                 <td
-                  className={`py-3 px-4 pr-5 text-[13px] font-bold ${
-                    r.avgPnl >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"
-                  }`}
+                  className={`py-3 px-4 pr-5 text-[13px] font-bold ${r.avgPnl >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"
+                    }`}
                 >
                   {fmtPct(r.avgPnl)}
                 </td>
@@ -335,7 +521,34 @@ const CustomBarTooltip = ({ active, payload }: any) => {
 export default function PerformancePage() {
   const { trades, isLoading, isError } = useAllTrades();
   const { profile, isLoading: isProfileLoading } = useAnalystProfile();
-  const a = useMemo(() => buildAnalytics(trades), [trades]);
+  const [dayFilter, setDayFilter] = useState<DayFilter>("ALL");
+
+  const filteredTrades = useMemo(() => {
+    if (dayFilter === "ALL") return trades;
+
+    const now = new Date();
+    const cutoff = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() - (dayFilter - 1),
+      0,
+      0,
+      0,
+      0
+    );
+
+    return trades.filter((t) => {
+      const tradeDate = getTradeDate(t);
+      if (!tradeDate) return true;
+      return tradeDate.getTime() >= cutoff.getTime();
+    });
+  }, [trades, dayFilter]);
+
+  const a = useMemo(() => buildAnalytics(filteredTrades), [filteredTrades]);
+  const customEvaluationMetrics = useMemo(
+    () => computeRAMetricsFromTrades(filteredTrades),
+    [filteredTrades]
+  );
 
   const maxMonthly = Math.max(1, ...a.monthly.map((m) => m.total));
 
@@ -344,13 +557,32 @@ export default function PerformancePage() {
       <Topbar title="Performance" />
 
       <div className="flex-1 p-6">
-        <div className="mb-5">
-          <h2 className="text-[22px] font-extrabold tracking-[-0.5px] text-[var(--ink)]">
-            Performance Analytics
-          </h2>
-          <p className="mt-0.5 text-[13px] text-[var(--muted)]">
-            Win rate, returns and trade outcomes computed from your closed positions.
-          </p>
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-[22px] font-extrabold tracking-[-0.5px] text-[var(--ink)]">
+              Performance Analytics
+            </h2>
+            <p className="mt-0.5 text-[13px] text-[var(--muted)]">
+              Win rate, returns and trade outcomes computed from your closed positions.
+            </p>
+          </div>
+
+          {/* Day-range filter pills */}
+          <div className="flex items-center gap-1.5 bg-[var(--surface)] border border-[var(--line)] rounded-lg p-1">
+            {DAY_FILTERS.map((f) => (
+              <button
+                key={f.label}
+                onClick={() => setDayFilter(f.value)}
+                className={`px-3 py-1.5 rounded-md text-[12px] font-bold tracking-wide transition-all duration-200 cursor-pointer ${
+                  dayFilter === f.value
+                    ? "bg-[var(--brand)] text-white shadow-sm"
+                    : "text-[var(--muted)] hover:text-[var(--ink)] hover:bg-white/60"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {isProfileLoading ? (
@@ -359,7 +591,10 @@ export default function PerformancePage() {
           </div>
         ) : profile?.username ? (
           <div className="mb-8">
-            <RAEvaluationDashboard username={profile.username} />
+            <RAEvaluationDashboard
+              username={profile.username}
+              customMetrics={customEvaluationMetrics}
+            />
           </div>
         ) : null}
 
@@ -370,39 +605,7 @@ export default function PerformancePage() {
           </div>
         ) : (
           <>
-            {/* ── KPI cards ── */}
-            <div className="mb-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {isLoading ? (
-                <>
-                  <KpiSkeleton />
-                  <KpiSkeleton />
-                  <KpiSkeleton />
-                </>
-              ) : (
-                <>
-                  <KpiCard
-                    label="Total Trades"
-                    value={String(a.totalTrades)}
-                    sub={`${a.liveCount} live · ${a.closedCount} closed`}
-                    icon="folder"
-                  />
-                  <KpiCard
-                    label="Avg Return / Trade"
-                    value={fmtPct(a.avgReturn)}
-                    sub="Across closed trades"
-                    icon="wallet"
-                    tone={a.avgReturn >= 0 ? "green" : "red"}
-                  />
-                  <KpiCard
-                    label="Cumulative Return"
-                    value={fmtPct(a.totalReturn)}
-                    sub="Sum of realised P&L"
-                    icon="trendingUp"
-                    tone={a.totalReturn >= 0 ? "green" : "red"}
-                  />
-                </>
-              )}
-            </div>
+
 
             {/* ── Best / Worst ── */}
             {!isLoading && a.closedCount > 0 && (

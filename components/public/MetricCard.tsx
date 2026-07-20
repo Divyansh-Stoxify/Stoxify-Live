@@ -2,12 +2,11 @@
 
 import React from "react";
 import { ResponsiveContainer, LineChart, Line, YAxis } from "recharts";
-import { ArrowUpRight, ArrowDownRight, Info } from "lucide-react";
+import { Info } from "lucide-react";
 
 interface MetricCardProps {
   name: string;
   value: string;
-  benchmark: string;
   explanation: string;
   status: "good" | "excellent" | "poor";
   history?: number[];
@@ -16,7 +15,6 @@ interface MetricCardProps {
 export function MetricCard({
   name,
   value,
-  benchmark,
   explanation,
   status,
   history = [],
@@ -49,7 +47,7 @@ export function MetricCard({
           <span
             className={`text-xs font-bold px-2 py-0.5 rounded-full border ${statusColor} capitalize tracking-wide`}
           >
-            {status === "excellent" ? "Excellent" : isPositive ? "Healthy" : "Below Bench"}
+            {status === "excellent" ? "Excellent" : isPositive ? "Healthy" : "Needs Attention"}
           </span>
         </div>
 
@@ -58,9 +56,6 @@ export function MetricCard({
           <div className="flex flex-col">
             <span className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               {value}
-            </span>
-            <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 mt-1">
-              Benchmark: {benchmark}
             </span>
           </div>
 
