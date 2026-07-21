@@ -26,7 +26,7 @@ export function BroadcastNotificationDialog({ refresh, trigger }: Props) {
   const [body, setBody] = useState("");
   const [audienceType, setAudienceType] = useState<string>("ALL");
   const [audienceValue, setAudienceValue] = useState("");
-  const [channels, setChannels] = useState<string[]>(["PUSH"]);
+  const [channels, setChannels] = useState<string[]>(["PUSH", "WS"]);
   const [confirmInput, setConfirmInput] = useState("");
 
   function toggleChannel(ch: string) {
@@ -71,7 +71,9 @@ export function BroadcastNotificationDialog({ refresh, trigger }: Props) {
         setBody("");
         setAudienceType("ALL");
         setAudienceValue("");
-        setChannels(["PUSH"]);
+        // PUSH + WS by default: a broadcast should reach phones as an OS push
+        // *and* update the in-app inbox live for anyone with the app open.
+        setChannels(["PUSH", "WS"]);
         setConfirmInput("");
       }}
     >
