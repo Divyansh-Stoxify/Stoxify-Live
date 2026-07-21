@@ -278,12 +278,8 @@ export function useLiveTradesStats() {
               ? closedJson
               : [];
 
-        // Active Subscribers = unique people. A subscriber on multiple batches
-        // must count once, so dedupe on user_id (falling back to subscription_id
-        // for legacy rows that don't carry a user_id).
-        const uniqueSubscribers = new Set(
-          activeSubscriptions.map((s: any) => s.user_id ?? s.subscription_id).filter(Boolean)
-        ).size;
+        // Active Subscribers = total active subscriptions across all batches.
+        const uniqueSubscribers = activeSubscriptions.length;
 
         // Win rate for the *current calendar month*, with a real month-over-month
         // delta. A closed trade counts as a win if it hit target or booked a
