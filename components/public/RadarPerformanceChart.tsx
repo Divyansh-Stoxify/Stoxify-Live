@@ -10,23 +10,16 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import { MetricDetail } from "@/hooks/useRAMetrics";
+import { MetricDetail, RAMetricsResponse } from "@/hooks/useRAMetrics";
 
 interface RadarPerformanceChartProps {
-  metrics: {
-    cagr: MetricDetail;
-    maxDrawdown: MetricDetail;
-    profitFactor: MetricDetail;
-    rrr: MetricDetail;
-    winRate: MetricDetail;
-  };
+  metrics: RAMetricsResponse["metrics"];
 }
 
 interface ChartDataItem {
   subject: string;
   value: number;
   actual: string;
-  benchmark: string;
   explanation: string;
   status: string;
 }
@@ -49,8 +42,8 @@ function CustomTooltip({ active, payload }: any) {
         </h4>
         <div className="flex items-baseline gap-2 mb-2">
           <span className="text-2xl font-black">{data.actual}</span>
-          <span className={`text-[11px] font-bold ${statusColor}`}>
-            Benchmark: {data.benchmark}
+          <span className={`text-[11px] font-bold ${statusColor} capitalize`}>
+            {data.status}
           </span>
         </div>
         <p className="text-xs text-slate-300 leading-relaxed font-medium">{data.explanation}</p>
@@ -61,53 +54,93 @@ function CustomTooltip({ active, payload }: any) {
 }
 
 export function RadarPerformanceChart({ metrics }: RadarPerformanceChartProps) {
-  // 1. Normalization math
-  const getCagrScore = (val: number) => Math.max(0, Math.min(100, ((val - 10) / 40) * 100)); // 10% to 50%
-  const getMaxDdScore = (val: number) => Math.max(0, Math.min(100, ((25 - val) / 20) * 100)); // 5% to 25% (Inverse)
-  const getPfScore = (val: number) => Math.max(0, Math.min(100, ((val - 1.0) / 2.0) * 100)); // 1.0 to 3.0
-  const getRrrScore = (val: number) => Math.max(0, Math.min(100, ((val - 1.0) / 3.0) * 100)); // 1.0 to 4.0
-  const getWinRateScore = (val: number) => Math.max(0, Math.min(100, ((val - 35) / 50) * 100)); // 35% to 85%
+  // Score Normalizations (0 to 100 scale, clamped min 20 for clean visualization)
+  const getTotalTradesScore = (val: number) => Math.max(20, Math.min(100, Math.round((val / 50) * 100)));
+  const getClosedTradesScore = (val: number) => Math.max(20, Math.min(100, Math.round((val / 40) * 100)));
+  const getWinRateScore = (val: number) => Math.max(20, Math.min(100, Math.round(val * 1.25)));
+  const getAvgReturnScore = (val: number) => Math.max(20, Math.min(100, Math.round(50 + val * 10)));
+  const getAvgHoldingScore = (valInDays: number) => Math.max(20, Math.min(100, Math.round(50 + valInDays * 10)));
+
+  const totalTrades = metrics.totalTrades ?? {
+    name: "Total Trades",
+    value: 0,
+    formatted: "0",
+    history: [],
+    explanation: "Total trade ideas published.",
+    status: "good",
+  };
+
+  const closedTrades = metrics.closedTrades ?? {
+    name: "Closed Trades",
+    value: 0,
+    formatted: "0",
+    history: [],
+    explanation: "Total completed trade positions.",
+    status: "good",
+  };
+
+  const winRate = metrics.winRate ?? {
+    name: "Win Rate",
+    value: 0,
+    formatted: "0%",
+    history: [],
+    explanation: "Percentage of profitable closed trades.",
+    status: "good",
+  };
+
+  const avgReturn = metrics.avgReturn ?? {
+    name: "Avg Return",
+    value: 0,
+    formatted: "0%",
+    history: [],
+    explanation: "Average P&L per closed trade.",
+    status: "good",
+  };
+
+  const avgHoldingPeriod = metrics.avgHoldingPeriod ?? {
+    name: "Avg Holding Period",
+    value: 1,
+    formatted: "1 Day",
+    history: [],
+    explanation: "Sum of holding durations of all closed trades divided by number of closed trades.",
+    status: "good",
+  };
 
   const chartData: ChartDataItem[] = [
     {
-      subject: "CAGR",
-      value: getCagrScore(metrics.cagr.value),
-      actual: metrics.cagr.formatted,
-      benchmark: metrics.cagr.benchmark,
-      explanation: metrics.cagr.explanation,
-      status: metrics.cagr.status,
+      subject: "Total Trades",
+      value: getTotalTradesScore(totalTrades.value),
+      actual: totalTrades.formatted,
+      explanation: totalTrades.explanation,
+      status: totalTrades.status,
     },
     {
-      subject: "Max Drawdown",
-      value: getMaxDdScore(metrics.maxDrawdown.value),
-      actual: metrics.maxDrawdown.formatted,
-      benchmark: metrics.maxDrawdown.benchmark,
-      explanation: metrics.maxDrawdown.explanation,
-      status: metrics.maxDrawdown.status,
-    },
-    {
-      subject: "Profit Factor",
-      value: getPfScore(metrics.profitFactor.value),
-      actual: metrics.profitFactor.formatted,
-      benchmark: metrics.profitFactor.benchmark,
-      explanation: metrics.profitFactor.explanation,
-      status: metrics.profitFactor.status,
-    },
-    {
-      subject: "Risk-Reward",
-      value: getRrrScore(metrics.rrr.value),
-      actual: metrics.rrr.formatted,
-      benchmark: metrics.rrr.benchmark,
-      explanation: metrics.rrr.explanation,
-      status: metrics.rrr.status,
+      subject: "Closed Trades",
+      value: getClosedTradesScore(closedTrades.value),
+      actual: closedTrades.formatted,
+      explanation: closedTrades.explanation,
+      status: closedTrades.status,
     },
     {
       subject: "Win Rate",
-      value: getWinRateScore(metrics.winRate.value),
-      actual: metrics.winRate.formatted,
-      benchmark: metrics.winRate.benchmark,
-      explanation: metrics.winRate.explanation,
-      status: metrics.winRate.status,
+      value: getWinRateScore(winRate.value),
+      actual: winRate.formatted,
+      explanation: winRate.explanation,
+      status: winRate.status,
+    },
+    {
+      subject: "Avg Return",
+      value: getAvgReturnScore(avgReturn.value),
+      actual: avgReturn.formatted,
+      explanation: avgReturn.explanation,
+      status: avgReturn.status,
+    },
+    {
+      subject: "Avg Holding Period",
+      value: getAvgHoldingScore(avgHoldingPeriod.value),
+      actual: avgHoldingPeriod.formatted,
+      explanation: avgHoldingPeriod.explanation,
+      status: avgHoldingPeriod.status,
     },
   ];
 

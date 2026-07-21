@@ -25,9 +25,11 @@ export interface SubscriptionPlan {
   price: number;
   billing_cycle: PlanBillingCycle;
   status: PlanStatus;
-  subscribers_count: number;
   is_active?: boolean;
   batches?: PlanBatch[];
+  // UI-calculated dashboard metrics
+  subscribers_count?: number;
+  est_monthly_revenue?: number;
 }
 
 export interface Trade {
@@ -117,6 +119,7 @@ export interface DashboardMetrics {
 }
 
 export interface AnalystProfile {
+  user_id?: string;
   username?: string;
   name: string;
   profile_pic_url?: string;

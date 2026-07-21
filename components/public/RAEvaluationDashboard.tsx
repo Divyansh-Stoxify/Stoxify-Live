@@ -1,59 +1,37 @@
 "use client";
 
 import React from "react";
-import { useRAMetrics } from "@/hooks/useRAMetrics";
-import { RadarPerformanceChart } from "./RadarPerformanceChart";
+import { TrendingUp, AlertCircle, RotateCcw } from "lucide-react";
+import { useRAMetrics, RAMetricsResponse } from "@/hooks/useRAMetrics";
 import { MetricCard } from "./MetricCard";
-import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, RotateCcw, TrendingUp } from "lucide-react";
+import { RadarPerformanceChart } from "./RadarPerformanceChart";
 
 interface RAEvaluationDashboardProps {
   username: string;
+  customMetrics?: RAMetricsResponse["metrics"];
 }
 
 // ─── Loading Skeleton Component ──────────────────────────────────────────────
 export function RAEvaluationDashboardSkeleton() {
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Chart Skeleton Container */}
-      <div className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 shadow-sm flex flex-col items-center">
-        <div className="w-full max-w-sm flex flex-col items-center gap-2 mb-6">
-          <Skeleton className="h-6 w-48 rounded" />
-          <Skeleton className="h-4 w-72 rounded" />
+    <div className="space-y-8 animate-pulse">
+      {/* Radar Map Container Skeleton */}
+      <div className="bg-white/40 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 min-h-[380px]">
+        <div className="space-y-3 w-full md:w-1/3">
+          <div className="h-6 w-3/4 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+          <div className="h-4 w-full bg-slate-200 dark:bg-slate-800 rounded-lg" />
+          <div className="h-4 w-2/3 bg-slate-200 dark:bg-slate-800 rounded-lg" />
         </div>
-        {/* Radar Map Circular Pulse */}
-        <div className="relative h-64 w-64 rounded-full border border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center">
-          <div className="h-48 w-48 rounded-full border border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center">
-            <div className="h-32 w-32 rounded-full border border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center">
-              <Skeleton className="h-12 w-12 rounded-full" />
-            </div>
-          </div>
-          <Skeleton className="absolute top-4 left-1/2 -translate-x-1/2 h-4 w-12" />
-          <Skeleton className="absolute bottom-4 left-1/2 -translate-x-1/2 h-4 w-12" />
-          <Skeleton className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-12" />
-          <Skeleton className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-12" />
-        </div>
+        <div className="h-64 w-64 rounded-full bg-slate-200 dark:bg-slate-800/60" />
       </div>
 
-      {/* KPI Cards Grid Skeletons */}
+      {/* Metric Cards Skeleton Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
-        {Array.from({ length: 5 }).map((_, i) => (
+        {[...Array(5)].map((_, i) => (
           <div
             key={i}
-            className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 space-y-4"
-          >
-            <div className="flex justify-between items-center">
-              <Skeleton className="h-4 w-16" />
-              <Skeleton className="h-5 w-16 rounded-full" />
-            </div>
-            <div className="space-y-2">
-              <Skeleton className="h-8 w-24" />
-              <Skeleton className="h-3.5 w-20" />
-            </div>
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80">
-              <Skeleton className="h-3 w-full" />
-            </div>
-          </div>
+            className="h-44 bg-white/40 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800/80 rounded-xl p-5"
+          />
         ))}
       </div>
     </div>
@@ -61,14 +39,16 @@ export function RAEvaluationDashboardSkeleton() {
 }
 
 // ─── Main Evaluation Dashboard Component ──────────────────────────────────────
-export function RAEvaluationDashboard({ username }: RAEvaluationDashboardProps) {
-  const { metrics, isLoading, isError, refetch } = useRAMetrics(username);
+export function RAEvaluationDashboard({ username, customMetrics }: RAEvaluationDashboardProps) {
+  const { metrics: apiMetrics, isLoading, isError, refetch } = useRAMetrics(
+    customMetrics ? "" : username
+  );
 
-  if (isLoading) {
+  if (!customMetrics && isLoading) {
     return <RAEvaluationDashboardSkeleton />;
   }
 
-  if (isError || !metrics) {
+  if (!customMetrics && (isError || !apiMetrics)) {
     return (
       <div className="bg-red-50/50 dark:bg-red-950/10 border border-red-200/60 dark:border-red-900/40 rounded-2xl p-8 text-center max-w-xl mx-auto flex flex-col items-center gap-4">
         <AlertCircle className="h-10 w-10 text-red-600 dark:text-red-400" />
@@ -90,7 +70,56 @@ export function RAEvaluationDashboard({ username }: RAEvaluationDashboardProps) 
     );
   }
 
-  const { cagr, maxDrawdown, profitFactor, rrr, winRate } = metrics.metrics;
+  const activeMetrics = customMetrics ?? apiMetrics?.metrics;
+  const name = apiMetrics?.name ?? "Analyst";
+
+  if (!activeMetrics) return null;
+
+  // Extract new metrics with safe fallbacks
+  const totalTrades = activeMetrics.totalTrades ?? {
+    name: "Total Trades",
+    value: 0,
+    formatted: "0",
+    history: [],
+    explanation: "Total trade ideas published.",
+    status: "good",
+  };
+
+  const closedTrades = activeMetrics.closedTrades ?? {
+    name: "Closed Trades",
+    value: 0,
+    formatted: "0",
+    history: [],
+    explanation: "Total completed trade positions.",
+    status: "good",
+  };
+
+  const winRate = activeMetrics.winRate ?? {
+    name: "Win Rate",
+    value: 0,
+    formatted: "0%",
+    history: [],
+    explanation: "Percentage of profitable closed trades.",
+    status: "good",
+  };
+
+  const avgReturn = activeMetrics.avgReturn ?? {
+    name: "Avg Return",
+    value: 0,
+    formatted: "0%",
+    history: [],
+    explanation: "Average P&L per closed trade.",
+    status: "good",
+  };
+
+  const avgHoldingPeriod = activeMetrics.avgHoldingPeriod ?? {
+    name: "Avg Holding Period",
+    value: 1,
+    formatted: "1 Day",
+    history: [],
+    explanation: "Sum of holding durations of all closed trades divided by number of closed trades.",
+    status: "good",
+  };
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -103,63 +132,57 @@ export function RAEvaluationDashboard({ username }: RAEvaluationDashboardProps) 
               Performance evaluation metrics
             </h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-              Comprehensive evaluation of the analyst's risk-adjusted returns & hit rates against
-              standard industry benchmarks.
+              Comprehensive evaluation of the analyst's total trades, closed trades, win rate, average return & holding period.
             </p>
           </div>
 
           {/* Custom Legend */}
           <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 px-3 py-1.5 rounded-lg text-xs font-semibold self-start">
             <span className="h-3.5 w-3.5 rounded-full bg-[var(--brand)] inline-block ring-2 ring-blue-100 dark:ring-blue-900/50" />
-            <span className="text-slate-700 dark:text-slate-300">Current RA: {metrics.name}</span>
+            <span className="text-slate-700 dark:text-slate-300">Current RA: {name}</span>
           </div>
         </div>
 
         {/* Recharts Radar Chart */}
-        <RadarPerformanceChart metrics={metrics.metrics} />
+        <RadarPerformanceChart metrics={activeMetrics} />
       </div>
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
         <MetricCard
-          name={cagr.name}
-          value={cagr.formatted}
-          benchmark={cagr.benchmark}
-          explanation={cagr.explanation}
-          status={cagr.status}
-          history={cagr.history}
+          name={totalTrades.name}
+          value={totalTrades.formatted}
+          explanation={totalTrades.explanation}
+          status={totalTrades.status as any}
+          history={totalTrades.history}
         />
         <MetricCard
-          name={maxDrawdown.name}
-          value={maxDrawdown.formatted}
-          benchmark={maxDrawdown.benchmark}
-          explanation={maxDrawdown.explanation}
-          status={maxDrawdown.status}
-          history={maxDrawdown.history}
-        />
-        <MetricCard
-          name={profitFactor.name}
-          value={profitFactor.formatted}
-          benchmark={profitFactor.benchmark}
-          explanation={profitFactor.explanation}
-          status={profitFactor.status}
-          history={profitFactor.history}
-        />
-        <MetricCard
-          name={rrr.name}
-          value={rrr.formatted}
-          benchmark={rrr.benchmark}
-          explanation={rrr.explanation}
-          status={rrr.status}
-          history={rrr.history}
+          name={closedTrades.name}
+          value={closedTrades.formatted}
+          explanation={closedTrades.explanation}
+          status={closedTrades.status as any}
+          history={closedTrades.history}
         />
         <MetricCard
           name={winRate.name}
           value={winRate.formatted}
-          benchmark={winRate.benchmark}
           explanation={winRate.explanation}
-          status={winRate.status}
+          status={winRate.status as any}
           history={winRate.history}
+        />
+        <MetricCard
+          name={avgReturn.name}
+          value={avgReturn.formatted}
+          explanation={avgReturn.explanation}
+          status={avgReturn.status as any}
+          history={avgReturn.history}
+        />
+        <MetricCard
+          name={avgHoldingPeriod.name}
+          value={avgHoldingPeriod.formatted}
+          explanation={avgHoldingPeriod.explanation}
+          status={avgHoldingPeriod.status as any}
+          history={avgHoldingPeriod.history}
         />
       </div>
     </div>

@@ -15,6 +15,9 @@ export function LogoutButton({ className, children }: LogoutButtonProps) {
   const handleLogout = async () => {
     setIsPending(true);
     try {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("stoxify_last_activity_timestamp");
+      }
       await fetch("/api/auth/logout", {
         method: "POST",
         credentials: "same-origin",

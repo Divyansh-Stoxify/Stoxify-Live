@@ -7,7 +7,7 @@ export interface MetricDetail {
   value: number;
   formatted: string;
   history: number[];
-  benchmark: string;
+  benchmark?: string;
   explanation: string;
   status: "good" | "excellent" | "poor";
 }
@@ -17,11 +17,11 @@ export interface RAMetricsResponse {
   name: string;
   lastUpdated: string;
   metrics: {
-    cagr: MetricDetail;
-    maxDrawdown: MetricDetail;
-    profitFactor: MetricDetail;
-    rrr: MetricDetail;
+    totalTrades: MetricDetail;
+    closedTrades: MetricDetail;
     winRate: MetricDetail;
+    avgReturn: MetricDetail;
+    avgHoldingPeriod: MetricDetail;
   };
 }
 
