@@ -4,6 +4,7 @@ import { AnalystFilters } from "@/components/analyst-filters";
 import { Icon, type IconName } from "@/components/stoxify-icon";
 import { RevealObserver } from "@/components/reveal-observer";
 import { StoxifyNav } from "@/components/stoxify-nav";
+import { Logo } from "@/components/logo";
 
 const buttonBase =
   "inline-flex items-center justify-center gap-2 rounded px-5 py-[9px] text-[13px] font-medium transition-all active:scale-[0.97]";
@@ -799,12 +800,9 @@ function Footer() {
       <div className="mx-auto max-w-[1200px]">
         <div className="mb-14 grid grid-cols-[1.8fr_1fr_1fr_1fr] gap-12 max-[860px]:grid-cols-2 max-[860px]:gap-8 max-[560px]:grid-cols-1">
           <div>
-            <Link
-              className="mb-3 flex items-center font-sans text-xl font-extrabold text-white"
-              href="/"
-            >
-              Stoxify
-            </Link>
+            <div className="mb-3">
+              <Logo asLink href="/" variant="reversed" size="md" />
+            </div>
             <p className="mb-5 text-sm leading-[1.7] text-white/40">
               India&apos;s first real-time trade idea marketplace - SEBI-registered Research
               Analysts, verified calls, instant delivery.
