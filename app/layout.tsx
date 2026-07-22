@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { Suspense } from "react";
 import { Toaster } from "sonner";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -31,7 +32,9 @@ export default function RootLayout({
       <body>
         <LenisProvider>
           <TooltipProvider>
-            <SessionTimeoutManager />
+            <Suspense fallback={null}>
+              <SessionTimeoutManager />
+            </Suspense>
             {children}
             <Toaster position="top-center" richColors />
           </TooltipProvider>
