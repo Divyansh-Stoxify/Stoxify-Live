@@ -104,12 +104,12 @@ export function cleanErrorMessage(
 
   if (code === "INVALID_PRICE_LEVELS") {
     if (/LONG|BUY/i.test(message)) {
-      return "Invalid price levels for a LONG trade. Required order: Stop Loss < Entry Price < Target(s).";
+      return "Invalid price levels for a LONG trade. Required order: Stop Loss < Entry/LTP < Target(s).";
     }
     if (/SHORT|SELL/i.test(message)) {
-      return "Invalid price levels for a SHORT trade. Required order: Stop Loss > Entry Price > Target(s).";
+      return "Invalid price levels for a SHORT trade. Required order: Stop Loss > Entry/LTP > Target(s).";
     }
-    return "Invalid price levels. Check that stop loss, entry and targets are in the correct order.";
+    return "Invalid price levels. Check that stop loss, entry/ltp and targets are in the correct order.";
   }
 
   if (code === "INVALID_DIRECTION") {
