@@ -9,7 +9,7 @@ import {
   RAEvaluationDashboard,
   RAEvaluationDashboardSkeleton,
 } from "@/components/public/RAEvaluationDashboard";
-import { useRAMetrics, RAMetricsResponse } from "@/hooks/useRAMetrics";
+import { useRAMetrics } from "@/hooks/useRAMetrics";
 import {
   BarChart,
   Bar,
