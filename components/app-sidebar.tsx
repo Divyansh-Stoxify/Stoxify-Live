@@ -16,6 +16,7 @@ import { useAdminPermissions } from "@/components/admin/admin-permissions-provid
 import { footerNavLinks, navGroups } from "@/components/app-shared";
 import { LatestChange } from "@/components/latest-change";
 import { NavGroup } from "@/components/nav-group";
+import { Logo } from "@/components/logo";
 import type { SidebarNavItem } from "@/components/app-shared";
 
 function normalizeHash(hash: string) {
@@ -109,7 +110,7 @@ export function AppSidebar() {
     >
       <SidebarHeader className="h-14 justify-center border-b px-2">
         <SidebarMenuButton render={<Link href="/admin" />}>
-          <span className="font-medium text-foreground!">Stoxify</span>
+          <Logo size="sm" />
         </SidebarMenuButton>
       </SidebarHeader>
       <SidebarContent data-lenis-prevent-wheel>

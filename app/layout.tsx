@@ -10,6 +10,19 @@ import { LenisProvider } from "@/components/lenis-provider";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./globals.css";
 import "lenis/dist/lenis.css";
+import { Manrope, Inter } from "next/font/google";
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
+  variable: "--font-manrope",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-inter",
+});
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -28,7 +41,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html className={plusJakartaSans.variable} data-scroll-behavior="smooth" lang="en">
+    <html className={`${manrope.variable} ${inter.variable} ${plusJakartaSans.variable}`} data-scroll-behavior="smooth" lang="en">
       <body>
         <LenisProvider>
           <TooltipProvider>

@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Icon } from "@/components/stoxify-icon";
+import { Logo } from "@/components/logo";
 import { cleanErrorMessage } from "@/lib/utils";
 
 interface FormErrors {
@@ -50,12 +51,7 @@ function OnboardingSidebar({ formStep }: { formStep: number }) {
     <aside className="hidden lg:flex w-[280px] shrink-0 flex-col border-r border-[var(--line)] bg-white sticky top-0 h-screen">
       {/* Logo */}
       <div className="flex h-[66px] items-center px-6 border-b border-[var(--line)]">
-        <Link
-          href="/"
-          className="flex items-center font-sans text-[21px] font-extrabold tracking-[-0.5px] text-[var(--ink)]"
-        >
-          Stoxify
-        </Link>
+        <Logo asLink href="/" size="md" />
       </div>
 
       {/* Steps */}
