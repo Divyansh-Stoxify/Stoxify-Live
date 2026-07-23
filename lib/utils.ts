@@ -86,6 +86,10 @@ export function cleanErrorMessage(
     return "Please select a subscription batch.";
   }
 
+  if (code === "BATCH_PLAN_MISMATCH") {
+    return "Selected subscription batches and plans do not match. Please re-select your subscription batches.";
+  }
+
   if (code === "SEGMENT_MISMATCH") {
     return "The selected batch does not support this market segment. Choose a compatible batch or change the instrument.";
   }
