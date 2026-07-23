@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+// @ts-ignore
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, Star, MessageSquare } from "lucide-react";
 import { Review } from "@/lib/types/review";

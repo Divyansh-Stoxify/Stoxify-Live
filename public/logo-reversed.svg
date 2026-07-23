@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" width="400" height="120">
+  <!-- StoXify Brand Guidelines 02 - Reversed (Totally Accent Blue X) -->
+  <rect width="100%" height="100%" fill="#0B192C" rx="16" />
+  <text x="20" y="82" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="70" font-weight="900" fill="#FFFFFF" letter-spacing="-2">Sto</text>
+  <!-- Accent Blue Capital X (#4F8CFF) -->
+  <g transform="translate(182, 28)">
+    <line x1="10" y1="10" x2="54" y2="54" stroke="#4F8CFF" stroke-width="14" stroke-linecap="square" />
+    <line x1="54" y1="10" x2="10" y2="54" stroke="#4F8CFF" stroke-width="14" stroke-linecap="square" />
+  </g>
+  <text x="252" y="82" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="70" font-weight="900" fill="#FFFFFF" letter-spacing="-2">ify</text>
+</svg>

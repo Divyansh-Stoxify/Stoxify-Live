@@ -1,6 +1,4 @@
-"use client";
-
-import Link from "next/link";
+import { Logo } from "@/components/logo";
 import { useEffect, useState } from "react";
 
 // Hardcoded premium testimonials to cycle through or display based on context
@@ -50,12 +48,7 @@ export function AuthPanel() {
 
       {/* 2. LOGO / BRANDING (Z-1 to stay above background) */}
       <div className="relative z-10">
-        <Link
-          className="inline-flex items-center font-sans text-[22px] font-extrabold tracking-[-0.5px] text-white"
-          href="/"
-        >
-          Stoxify
-        </Link>
+        <Logo asLink href="/" variant="reversed" size="md" />
       </div>
 
       {/* 3. TESTIMONIAL CARD

@@ -11,6 +11,7 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 import { useWebSocket } from "@/hooks/use-websocket";
 import { Icon, type IconName } from "@/components/stoxify-icon";
 import { LogoutButton } from "@/components/logout-button";
+import { Logo } from "@/components/logo";
 
 type TraderUser = {
   user_id: string;
@@ -26,13 +27,13 @@ const navItems: Array<{
   label: string;
   icon: IconName;
 }> = [
-  { href: "/trader/dashboard", label: "Dashboard", icon: "barChart" },
-  { href: "/trader/discover", label: "Discover", icon: "search" },
-  { href: "/trader/profile?tab=subscriptions", label: "Subscriptions", icon: "listChecks" },
-  { href: "/trader/notifications", label: "Notifications", icon: "bell" },
-  { href: "/trader/profile", label: "Profile", icon: "users" },
-  { href: "/trader/support", label: "Help & Support", icon: "helpCircle" },
-];
+    { href: "/trader/dashboard", label: "Dashboard", icon: "barChart" },
+    { href: "/trader/discover", label: "Discover", icon: "search" },
+    { href: "/trader/profile?tab=subscriptions", label: "Subscriptions", icon: "listChecks" },
+    { href: "/trader/notifications", label: "Notifications", icon: "bell" },
+    { href: "/trader/profile", label: "Profile", icon: "users" },
+    { href: "/trader/support", label: "Help & Support", icon: "helpCircle" },
+  ];
 
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -81,12 +82,7 @@ export function TraderShell({ user, children }: { user: TraderUser; children: Re
       <aside className="hidden w-[260px] shrink-0 flex-col border-r border-[var(--line)] bg-white lg:flex">
         {/* Logo */}
         <div className="flex h-[66px] items-center px-6 border-b border-[var(--line)]">
-          <Link
-            href="/"
-            className="flex items-center font-sans text-[21px] font-extrabold tracking-[-0.5px] text-[var(--ink)]"
-          >
-            Stoxify
-          </Link>
+          <Logo asLink href="/" size="md" />
         </div>
 
         {/* Nav Items */}
@@ -185,12 +181,7 @@ export function TraderShell({ user, children }: { user: TraderUser; children: Re
         ].join(" ")}
       >
         <div className="flex h-[60px] items-center justify-between px-5 border-b border-[var(--line)]">
-          <Link
-            href="/"
-            className="font-sans text-[20px] font-extrabold tracking-[-0.5px] text-[var(--ink)]"
-          >
-            Stoxify
-          </Link>
+          <Logo asLink href="/" size="md" />
           <button
             type="button"
             onClick={() => setSidebarOpen(false)}
@@ -296,12 +287,7 @@ export function TraderShell({ user, children }: { user: TraderUser; children: Re
               <span className="block h-[2px] w-[18px] rounded-full bg-[var(--ink)]" />
             </span>
           </button>
-          <Link
-            href="/"
-            className="font-sans text-[18px] font-extrabold tracking-[-0.5px] text-[var(--ink)]"
-          >
-            Stoxify
-          </Link>
+          <Logo asLink href="/" size="sm" />
           <Link
             href={user.user_type === "ANALYST" ? "/dashboard" : "/trader/profile"}
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--brand)] text-[10px] font-extrabold text-white select-none hover:opacity-90 transition-opacity"

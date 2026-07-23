@@ -1214,7 +1214,7 @@ export default function LiveTradesPage() {
     setOnTradeCreatedCallback,
   } = useDashboard();
 
-  const { stats, isLoading: statsLoading } = useLiveTradesStats();
+  const { stats, isLoading: statsLoading, refetch: refetchStats } = useLiveTradesStats();
   const {
     trades: activeTrades,
     isLoading: activeLoading,
@@ -1240,12 +1240,15 @@ export default function LiveTradesPage() {
     setOnTradeClosedCallback(() => {
       void refetchActive();
       void refetchClosed();
+      void refetchStats();
     });
     setOnTradeModifiedCallback(() => {
       void refetchActive();
+      void refetchStats();
     });
     setOnTradeCreatedCallback(() => {
       void refetchActive();
+      void refetchStats();
     });
     return () => {
       setOnTradeClosedCallback(null);
@@ -1258,6 +1261,7 @@ export default function LiveTradesPage() {
     setOnTradeCreatedCallback,
     refetchActive,
     refetchClosed,
+    refetchStats,
   ]);
 
   // WS-driven refetch (backend-triggered closures)
@@ -1265,14 +1269,16 @@ export default function LiveTradesPage() {
     if (tradeClosedEvent) {
       void refetchActive();
       void refetchClosed();
+      void refetchStats();
     }
-  }, [tradeClosedEvent, refetchActive, refetchClosed]);
+  }, [tradeClosedEvent, refetchActive, refetchClosed, refetchStats]);
 
   useEffect(() => {
     if (tradeModifiedEvent) {
       void refetchActive();
+      void refetchStats();
     }
-  }, [tradeModifiedEvent, refetchActive]);
+  }, [tradeModifiedEvent, refetchActive, refetchStats]);
 
   const TAB_OPTIONS: { id: TabId; label: string; count?: number }[] = [
     { id: "active", label: "Active", count: activeTotal },

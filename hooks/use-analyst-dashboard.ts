@@ -26,6 +26,29 @@ async function fetchJSON<T>(url: string): Promise<{ data: T | null; ok: boolean;
   }
 }
 
+/** Helper function to determine if a trade is a winning trade */
+function isWinTrade(t: Trade): boolean {
+  if (t.status === "TARGET_HIT" || t.status === "CLOSED_BY_TARGET") return true;
+  if (t.status === "SL_HIT" || t.status === "CLOSED_BY_SL") return false;
+
+  const pnlVal =
+    (t as any).combined_pnl_percent ??
+    t.pnl_percent ??
+    t.pnl_pct ??
+    ((t as any).pnl_amount !== undefined ? (t as any).pnl_amount : undefined);
+
+  if (pnlVal !== undefined && pnlVal !== null) {
+    return pnlVal > 0;
+  }
+
+  if (t.entry_price && t.exit_price) {
+    const isShort = t.direction === "SHORT" || t.direction === "SELL";
+    return isShort ? t.exit_price < t.entry_price : t.exit_price > t.entry_price;
+  }
+
+  return false;
+}
+
 // ─── Hooks ──────────────────────────────────────────────────────────────────
 
 /**
@@ -228,58 +251,54 @@ export function useLiveTradesStats() {
   const [stats, setStats] = useState<LiveTradesStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
+  const fetchStats = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [tradesRes, closedRes, subscribersRes] = await Promise.all([
+        fetch("/api/analyst/trades?status=LIVE&limit=100", {
+          credentials: "same-origin",
+          cache: "no-store",
+        }),
+        fetch("/api/analyst/trades?status=CLOSED&limit=100", {
+          credentials: "same-origin",
+          cache: "no-store",
+        }),
+        fetch("/api/analyst/subscribers?status=ACTIVE&limit=1000", {
+          credentials: "same-origin",
+          cache: "no-store",
+        }),
+      ]);
 
-    async function load() {
-      try {
-        const [tradesRes, closedRes, subscribersRes] = await Promise.all([
-          fetch("/api/analyst/trades?status=LIVE&limit=100", {
-            credentials: "same-origin",
-            cache: "no-store",
-          }),
-          fetch("/api/analyst/trades?status=CLOSED&limit=100", {
-            credentials: "same-origin",
-            cache: "no-store",
-          }),
-          fetch("/api/analyst/subscribers?status=ACTIVE&limit=1000", {
-            credentials: "same-origin",
-            cache: "no-store",
-          }),
-        ]);
+      const tradesJson = tradesRes.ok ? await tradesRes.json().catch(() => ({})) : {};
+      const closedJson = closedRes.ok ? await closedRes.json().catch(() => ({})) : {};
+      const subsJson = subscribersRes.ok ? await subscribersRes.json().catch(() => ({})) : {};
 
-        if (cancelled) return;
+      const tradeList: Trade[] = Array.isArray(tradesJson.trades)
+        ? tradesJson.trades
+        : Array.isArray(tradesJson.data)
+          ? tradesJson.data
+          : Array.isArray(tradesJson)
+            ? tradesJson
+            : [];
 
-        const tradesJson = tradesRes.ok ? await tradesRes.json().catch(() => ({})) : {};
-        const closedJson = closedRes.ok ? await closedRes.json().catch(() => ({})) : {};
-        const subsJson = subscribersRes.ok ? await subscribersRes.json().catch(() => ({})) : {};
+      const activeSubscriptions = Array.isArray(subsJson.subscriptions)
+        ? subsJson.subscriptions
+        : Array.isArray(subsJson.data)
+          ? subsJson.data
+          : Array.isArray(subsJson)
+            ? subsJson
+            : [];
 
-        const tradeList: Trade[] = Array.isArray(tradesJson.trades)
-          ? tradesJson.trades
-          : Array.isArray(tradesJson.data)
-            ? tradesJson.data
-            : Array.isArray(tradesJson)
-              ? tradesJson
-              : [];
-
-        const activeSubscriptions = Array.isArray(subsJson.subscriptions)
-          ? subsJson.subscriptions
-          : Array.isArray(subsJson.data)
-            ? subsJson.data
-            : Array.isArray(subsJson)
-              ? subsJson
-              : [];
-
-        const closedList: Trade[] = Array.isArray(closedJson.trades)
-          ? closedJson.trades
-          : Array.isArray(closedJson.data)
-            ? closedJson.data
-            : Array.isArray(closedJson)
-              ? closedJson
-              : [];
+      const closedList: Trade[] = Array.isArray(closedJson.trades)
+        ? closedJson.trades
+        : Array.isArray(closedJson.data)
+          ? closedJson.data
+          : Array.isArray(closedJson)
+            ? closedJson
+            : [];
 
         // Active Subscribers = total active subscriptions across all batches.
-        const uniqueSubscribers = activeSubscriptions.length;
+      const uniqueSubscribers = activeSubscriptions.length;
 
         // Win rate for the *current calendar month*, with a real month-over-month
         // delta. A closed trade counts as a win if it hit target or booked a
@@ -287,44 +306,48 @@ export function useLiveTradesStats() {
         // falling back to updated_at/created_at).
         const isWin = (t: Trade) =>
           t.status === "TARGET_HIT" || (t.pnl_pct !== undefined && t.pnl_pct > 0);
-        const closedMonth = (t: Trade): number | null => {
-          const iso = t.exit_timestamp ?? t.updated_at ?? t.created_at;
-          if (!iso) return null;
-          const d = new Date(iso);
-          return isNaN(d.getTime()) ? null : d.getFullYear() * 12 + d.getMonth();
-        };
-        const winRateOf = (list: Trade[]) =>
-          list.length > 0 ? Math.round((list.filter(isWin).length / list.length) * 1000) / 10 : 0;
+      const closedMonth = (t: Trade): number | null => {
+        const iso =
+          t.exit_timestamp ??
+          t.updated_at ??
+          (t as any).updatedAt ??
+          t.created_at ??
+          (t as any).createdAt;
+        if (!iso) return null;
+        const d = new Date(iso);
+        return isNaN(d.getTime()) ? null : d.getFullYear() * 12 + d.getMonth();
+      };
 
-        const nowMonth = new Date().getFullYear() * 12 + new Date().getMonth();
-        const thisMonthClosed = closedList.filter((t) => closedMonth(t) === nowMonth);
-        const lastMonthClosed = closedList.filter((t) => closedMonth(t) === nowMonth - 1);
-        const thisRate = winRateOf(thisMonthClosed);
-        const lastRate = winRateOf(lastMonthClosed);
+      const winRateOf = (list: Trade[]) =>
+        list.length > 0 ? Math.round((list.filter(isWinTrade).length / list.length) * 1000) / 10 : 0;
 
-        if (!cancelled) {
-          setStats({
-            total_active: tradeList.length,
-            win_rate_monthly: thisRate,
-            win_rate_change_pct: Math.round((thisRate - lastRate) * 10) / 10,
-            has_win_rate_comparison: lastMonthClosed.length > 0,
-            active_subscribers: uniqueSubscribers,
-          });
-        }
-      } catch {
-        // leave stats null — UI should handle gracefully
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
+      const nowMonth = new Date().getFullYear() * 12 + new Date().getMonth();
+      const thisMonthClosed = closedList.filter((t) => closedMonth(t) === nowMonth);
+      const lastMonthClosed = closedList.filter((t) => closedMonth(t) === nowMonth - 1);
+      
+      const overallRate = winRateOf(closedList);
+      const thisRate = thisMonthClosed.length > 0 ? winRateOf(thisMonthClosed) : overallRate;
+      const lastRate = winRateOf(lastMonthClosed);
+
+      setStats({
+        total_active: tradeList.length,
+        win_rate_monthly: thisRate,
+        win_rate_change_pct: Math.round((thisRate - lastRate) * 10) / 10,
+        has_win_rate_comparison: lastMonthClosed.length > 0,
+        active_subscribers: uniqueSubscribers,
+      });
+    } catch {
+      // leave stats null — UI should handle gracefully
+    } finally {
+      setIsLoading(false);
     }
-
-    void load();
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
-  return { stats, isLoading };
+  useEffect(() => {
+    void fetchStats();
+  }, [fetchStats]);
+
+  return { stats, isLoading, refetch: fetchStats };
 }
 
 export function useRecentSubscribers(limit: number = 5) {
