@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { ReactNode } from "react";
 
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { FormDialog } from "./_form-dialog";
+import { FormDialog, readFormResult } from "./_form-dialog";
+import { CONSOLE_ENTRY_POWER, POWER_PRESETS, PowerPicker, usePowerCatalog } from "./_power-picker";
 import { adminFetch } from "@/lib/admin/client-api";
-
-type Power = { power_id: string; power_name?: string };
 
 type Props = {
   mode: "create" | "edit";
@@ -23,7 +22,7 @@ type Props = {
 
 export function CreateEditRoleDialog({
   mode,
-  roleId: initialRoleId = "",
+  roleId = "",
   currentName = "",
   currentDescription = "",
   currentPowerIds = [],
@@ -31,127 +30,128 @@ export function CreateEditRoleDialog({
   refresh,
   trigger,
 }: Props) {
-  const [roleId, setRoleId] = useState(initialRoleId);
   const [name, setName] = useState(currentName);
   const [description, setDescription] = useState(currentDescription);
-  const [selectedPowers, setSelectedPowers] = useState<string[]>(currentPowerIds);
-  const [powers, setPowers] = useState<Power[]>([]);
+  const [selectedPowers, setSelectedPowers] = useState<string[]>(
+    mode === "create" ? [CONSOLE_ENTRY_POWER] : currentPowerIds
+  );
 
-  useEffect(() => {
-    adminFetch("/api/admin/rbac/powers")
-      .then((r) => r.json())
-      .then((d: unknown) => {
-        const data = d as Record<string, unknown>;
-        const list = Array.isArray(data.powers) ? (data.powers as Power[]) : [];
-        setPowers(list);
-      })
-      .catch(() => {});
-  }, []);
-
-  function togglePower(pid: string) {
-    setSelectedPowers((prev) =>
-      prev.includes(pid) ? prev.filter((p) => p !== pid) : [...prev, pid]
-    );
-  }
+  const { powers, error: catalogError } = usePowerCatalog();
 
   return (
     <FormDialog
       trigger={trigger}
       title={mode === "create" ? "Create role" : "Edit role"}
-      description={isSystemRole ? undefined : "Configure role ID, name, and assigned powers."}
+      description={
+        isSystemRole
+          ? undefined
+          : "Name the role and pick the permissions everyone holding it gets."
+      }
       submitLabel={mode === "create" ? "Create role" : "Save changes"}
       disabled={isSystemRole}
       onSubmit={async () => {
-        if (!roleId.trim())
-          return { ok: false, message: "Role ID is required", code: "VALIDATION_ERROR" };
         if (!name.trim())
-          return { ok: false, message: "Name is required", code: "VALIDATION_ERROR" };
-        const body = { role_id: roleId, name, description, power_ids: selectedPowers };
-        const res =
+          return { ok: false, message: "Role name is required", code: "VALIDATION_ERROR" };
+        if (selectedPowers.length === 0)
+          return { ok: false, message: "Select at least one permission", code: "VALIDATION_ERROR" };
+
+        const body = {
+          role_name: name,
+          description: description || name,
+          power_ids: selectedPowers,
+        };
+
+        const response =
           mode === "create"
             ? await adminFetch("/api/admin/rbac/roles", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body),
               })
-            : await adminFetch(`/api/admin/rbac/roles/${encodeURIComponent(initialRoleId)}`, {
+            : await adminFetch(`/api/admin/rbac/roles/${encodeURIComponent(roleId)}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body),
               });
-        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-        return {
-          ok: res.ok,
-          message: data.message as string | undefined,
-          code: data.code as string | undefined,
-        };
+
+        return readFormResult(response);
       }}
       onSuccess={refresh}
       onClose={() => {
-        setRoleId(initialRoleId);
         setName(currentName);
         setDescription(currentDescription);
-        setSelectedPowers(currentPowerIds);
+        setSelectedPowers(mode === "create" ? [CONSOLE_ENTRY_POWER] : currentPowerIds);
       }}
       wide
     >
       {isSystemRole && (
         <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-          System role — read only. Fields cannot be edited.
+          System role — read only. Create a custom role instead to grant a narrower set of
+          permissions.
         </p>
       )}
+
+      {mode === "create" && !isSystemRole && (
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium">Start from a template</label>
+          <div className="flex flex-wrap gap-1.5">
+            {POWER_PRESETS.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                title={preset.hint}
+                onClick={() => {
+                  setSelectedPowers(preset.powers);
+                  if (!name.trim()) setName(preset.label.toUpperCase().replace(/[\s-]+/g, "_"));
+                  if (!description.trim()) setDescription(preset.hint);
+                }}
+                className="rounded-full border border-input px-3 py-1 text-xs hover:bg-muted"
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium">Role ID</label>
-        <Input
-          value={roleId}
-          onChange={(e) => setRoleId(e.target.value)}
-          placeholder="ROLE_ID"
-          disabled={mode === "edit" || isSystemRole}
-        />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium">Name</label>
+        <label className="text-sm font-medium">Role name</label>
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Role name"
+          placeholder="SUPPORT_L1"
           disabled={isSystemRole}
         />
+        <p className="text-xs text-muted-foreground">
+          {mode === "edit" ? (
+            <>
+              Role ID <span className="font-mono">{roleId}</span> stays the same — existing
+              assignments are unaffected.
+            </>
+          ) : (
+            "Uppercased automatically; spaces become underscores."
+          )}
+        </p>
       </div>
+
       <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium">Description</label>
         <Textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Role description..."
+          placeholder="What this role is responsible for..."
           rows={2}
           disabled={isSystemRole}
         />
       </div>
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium">Powers ({selectedPowers.length} selected)</label>
-        <div className="max-h-48 overflow-y-auto rounded-lg border border-input p-2 space-y-1">
-          {powers.map((p) => (
-            <label
-              key={p.power_id}
-              className="flex items-center gap-2 text-sm cursor-pointer py-0.5"
-            >
-              <input
-                type="checkbox"
-                checked={selectedPowers.includes(p.power_id)}
-                onChange={() => togglePower(p.power_id)}
-                disabled={isSystemRole}
-                className="h-4 w-4 rounded border-input"
-              />
-              <span className="font-mono text-xs">{p.power_id}</span>
-              {p.power_name && <span className="text-muted-foreground">{p.power_name}</span>}
-            </label>
-          ))}
-          {powers.length === 0 && (
-            <p className="text-xs text-muted-foreground">Loading powers...</p>
-          )}
-        </div>
-      </div>
+
+      <PowerPicker
+        powers={powers}
+        selected={selectedPowers}
+        onChange={setSelectedPowers}
+        disabled={isSystemRole}
+      />
+      {catalogError && <p className="text-xs text-destructive">{catalogError}</p>}
     </FormDialog>
   );
 }

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Icon } from "@/components/stoxify-icon";
 import type { Trade } from "@/lib/types/analyst";
-import { formatBatch } from "@/lib/utils";
+import { formatBatch, formatStatus } from "@/lib/utils";
 
 interface TradeDetailsModalProps {
   trade: Trade | null;
@@ -360,7 +360,7 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
                     <span
                       className={`font-extrabold text-[11px] uppercase ${isClosed ? (pnlPositive ? "text-[var(--green)]" : "text-[var(--red)]") : "text-emerald-500 animate-pulse"}`}
                     >
-                      {trade.status}
+                      {formatStatus(trade.status)}
                     </span>
                   </div>
 
@@ -424,7 +424,13 @@ export function TradeDetailsModal({ trade, onClose, liveLtp }: TradeDetailsModal
                       <div className="flex justify-between">
                         <div>
                           <div className="text-[13px] text-gray-700">Action</div>
-                          <div className="text-[14px] font-bold text-gray-900 mt-1">{isProfit ? 'Target hit' : 'Stop loss hit'}</div>
+                          <div className="text-[14px] font-bold text-gray-900 mt-1">
+                            {String(trade.status) === "MANUALLY_CLOSED" || String(trade.status) === "CLOSED_MANUALLY"
+                              ? "Manually closed"
+                              : isProfit
+                                ? "Target hit"
+                                : "Stop loss hit"}
+                          </div>
                           <div className="text-[11px] text-gray-500 mt-2">Updated at</div>
                         </div>
                         <div className="text-right">
