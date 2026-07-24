@@ -50,6 +50,12 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // A batch with no active plan has nothing to subscribe to, so the backend
+  // forces it inactive on save and refuses to activate it. Mirror that here:
+  // the status control is locked to Inactive until a plan is switched on.
+  const hasActiveTier = pricingTiers.some((t) => t.is_active !== false);
+  const effectiveStatus: PlanStatus = hasActiveTier ? status : "INACTIVE";
+
   useEffect(() => {
     fetch(`/api/analyst/plans/${plan_id}`, { credentials: "same-origin" })
       .then((res) => res.json())
@@ -256,18 +262,24 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
         return;
       }
 
-      const statusRes = await fetch(`/api/analyst/plans/${plan_id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ is_active: status === "ACTIVE" }),
-      });
-
-      if (!statusRes.ok) {
-        const data = await statusRes.json().catch(() => ({}));
-        setErrors({
-          form: data.error ?? "Batch details were saved, but the status change failed.",
+      // With no active plan left, the PATCH above has already forced the batch
+      // inactive. Calling the status endpoint too would be redundant, and it
+      // rejects deactivating a batch that still has subscribers — surfacing an
+      // error for a state change that has, in fact, already happened.
+      if (hasActiveTier) {
+        const statusRes = await fetch(`/api/analyst/plans/${plan_id}/status`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ is_active: effectiveStatus === "ACTIVE" }),
         });
-        return;
+
+        if (!statusRes.ok) {
+          const data = await statusRes.json().catch(() => ({}));
+          setErrors({
+            form: data.error ?? "Batch details were saved, but the status change failed.",
+          });
+          return;
+        }
       }
 
       showSuccessToast("Batch Updated", `"${name.trim()}" batch has been successfully modified.`);
@@ -656,8 +668,9 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
                         <label className="text-[13px] font-bold text-[var(--ink)]">Status</label>
                         <div className="relative">
                           <select
-                            className="w-full appearance-none rounded-2xl border border-[var(--line)] bg-[#fafafa] px-5 py-3.5 text-[14px] font-bold text-[var(--ink)] outline-none focus:border-[var(--brand)] focus:bg-white focus:ring-4 focus:ring-[var(--brand)]/10 transition-all cursor-pointer"
-                            value={status}
+                            className={`w-full appearance-none rounded-2xl border border-[var(--line)] bg-[#fafafa] px-5 py-3.5 text-[14px] font-bold text-[var(--ink)] outline-none focus:border-[var(--brand)] focus:bg-white focus:ring-4 focus:ring-[var(--brand)]/10 transition-all ${hasActiveTier ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}
+                            disabled={!hasActiveTier}
+                            value={effectiveStatus}
                             onChange={(e) => setStatus(e.target.value as PlanStatus)}
                           >
                             <option value="ACTIVE">Active (Visible)</option>
@@ -671,6 +684,12 @@ export default function EditPlanPage({ params }: { params: Promise<{ plan_id: st
                             />
                           </div>
                         </div>
+                        {!hasActiveTier && (
+                          <p className="text-[12px] font-semibold text-[var(--muted)] leading-snug">
+                            Add at least one active plan to this batch before you can activate it.
+                            While inactive it stays hidden and you can&apos;t publish trades to it.
+                          </p>
+                        )}
                       </div>
                       <div className="pt-2">
                         <button

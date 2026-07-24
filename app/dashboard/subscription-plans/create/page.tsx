@@ -108,6 +108,13 @@ export default function CreatePlanPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showNoPlanDialog, setShowNoPlanDialog] = useState(false);
+
+  // A batch with no active plan has nothing to subscribe to, so the backend
+  // saves it as an inactive draft regardless of what's picked here. Mirror that
+  // in the status control rather than promising an "Active" it won't honour.
+  const hasActiveTier = pricingTiers.some((t) => t.is_active !== false);
+  const effectiveStatus: PlanStatus = hasActiveTier ? status : "INACTIVE";
 
   const toggleSelection = (
     item: string,
@@ -259,10 +266,18 @@ export default function CreatePlanPage() {
     if (!name.trim()) newErrors.name = "Batch name is required";
     if (segments.length === 0) newErrors.segments = "Select at least one segment";
     if (horizons.length === 0) newErrors.horizons = "Select at least one horizon";
-    // if (pricingTiers.length === 0) newErrors.form = "At least one pricing tier is mandatory while creating a batch.";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      return;
+    }
+
+    // A batch with no plan can't be sold or published to, and the backend
+    // rejects it. The "Plans and Pricing" section sits far below the Publish
+    // button, so an inline error there would scroll out of sight — explain it
+    // in a dialog that also offers the fix.
+    if (pricingTiers.length === 0) {
+      setShowNoPlanDialog(true);
       return;
     }
 
@@ -282,7 +297,7 @@ export default function CreatePlanPage() {
           features,
           days: pricingTiers.length > 0 ? pricingTiers[0].days : 30, // root fallback
           price: pricingTiers.length > 0 ? pricingTiers[0].price : 0, // root fallback
-          is_active: status === "ACTIVE",
+          is_active: effectiveStatus === "ACTIVE",
           batches: pricingTiers,
         }),
       });
@@ -759,7 +774,7 @@ export default function CreatePlanPage() {
 
                   {/* Visitor View Card */}
                   <div className="group relative flex flex-col rounded-2xl border border-[var(--line)] bg-white/95 backdrop-blur-md p-5 shadow-[0_4px_16px_rgba(0,0,0,0.02)] overflow-hidden transition-all duration-300">
-                    {status === "ACTIVE" && (
+                    {effectiveStatus === "ACTIVE" && (
                       <div className="absolute top-0 left-0 right-0 h-[5px] bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-500 animate-[fadeIn_0.3s_ease]" />
                     )}
 
@@ -775,12 +790,12 @@ export default function CreatePlanPage() {
                       </div>
                       <span
                         className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-bold tracking-wide uppercase ${
-                          status === "ACTIVE"
+                          effectiveStatus === "ACTIVE"
                             ? "bg-[var(--green-light)] text-[var(--green)] border border-[var(--green)]/15"
                             : "bg-slate-100 text-slate-400 border border-slate-200"
                         }`}
                       >
-                        {status === "ACTIVE" ? (
+                        {effectiveStatus === "ACTIVE" ? (
                           <>
                             <span className="h-1.5 w-1.5 rounded-full bg-[var(--green)] animate-pulse" />
                             Active
@@ -961,8 +976,9 @@ export default function CreatePlanPage() {
                       </label>
                       <div className="relative">
                         <select
-                          className="w-full appearance-none rounded-2xl border border-[var(--line)] bg-[#fafafa] px-5 py-3.5 text-[14px] font-bold text-[var(--ink)] outline-none focus:border-[var(--brand)] focus:bg-white focus:ring-4 focus:ring-[var(--brand)]/10 transition-all cursor-pointer"
-                          value={status}
+                          className={`w-full appearance-none rounded-2xl border border-[var(--line)] bg-[#fafafa] px-5 py-3.5 text-[14px] font-bold text-[var(--ink)] outline-none focus:border-[var(--brand)] focus:bg-white focus:ring-4 focus:ring-[var(--brand)]/10 transition-all ${hasActiveTier ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}
+                          disabled={!hasActiveTier}
+                          value={effectiveStatus}
                           onChange={(e) => setStatus(e.target.value as PlanStatus)}
                         >
                           <option value="ACTIVE">Active (Visible)</option>
@@ -976,6 +992,13 @@ export default function CreatePlanPage() {
                           />
                         </div>
                       </div>
+                      {!hasActiveTier && (
+                        <p className="text-[12px] font-semibold text-[var(--muted)] leading-snug">
+                          Add at least one active plan below to publish this batch as active.
+                          Without one it is saved as a hidden draft you can&apos;t publish trades
+                          to.
+                        </p>
+                      )}
                     </div>
 
                     <div className="pt-2">
@@ -1001,6 +1024,74 @@ export default function CreatePlanPage() {
           </form>
         </div>
       </div>
+
+      {/* "Batch needs a plan" dialog — blocks publishing an unsellable batch */}
+      <AnimatePresence>
+        {showNoPlanDialog && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-[3px] cursor-pointer"
+              onClick={() => setShowNoPlanDialog(false)}
+            />
+            <motion.div
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="no-plan-title"
+              aria-describedby="no-plan-desc"
+              initial={{ opacity: 0, scale: 0.95, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 8 }}
+              transition={{ type: "spring", damping: 26, stiffness: 400 }}
+              className="relative z-10 w-full max-w-[440px] rounded-3xl bg-white p-7 shadow-2xl flex flex-col gap-5"
+            >
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+                  <Icon name="ticket" className="h-6 w-6" />
+                </div>
+                <div className="flex flex-col gap-1.5 pt-0.5">
+                  <h2
+                    id="no-plan-title"
+                    className="text-[17px] font-black text-[var(--ink)] leading-tight"
+                  >
+                    This batch needs at least one plan
+                  </h2>
+                  <p
+                    id="no-plan-desc"
+                    className="text-[13.5px] font-medium text-[var(--muted)] leading-relaxed"
+                  >
+                    A batch with no plan has no price, so traders can&apos;t subscribe to it and
+                    you can&apos;t publish trades to it. Add a plan option — for example Monthly or
+                    Lifetime — and then publish the batch.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowNoPlanDialog(false)}
+                  className="rounded-2xl px-5 py-3 text-[13.5px] font-bold text-[var(--muted)] hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  Back to batch
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowNoPlanDialog(false);
+                    openSlideOver();
+                  }}
+                  className="flex items-center gap-2 rounded-2xl bg-black px-5 py-3 text-[13.5px] font-bold text-white hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer"
+                >
+                  <Icon name="plus" className="h-4 w-4" />
+                  Add Plan Option
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Slide-over Panel for Plan/Pricing */}
       <AnimatePresence>

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useSWRConfig } from "swr";
 import { Icon } from "@/components/stoxify-icon";
-import type { TradeDirection } from "@/lib/types/analyst";
+import type { SubscriptionPlan, TradeDirection } from "@/lib/types/analyst";
 import { useSubscriptionPlans, useAnalystProfile } from "@/hooks/use-analyst-dashboard";
 import { cleanErrorMessage } from "@/lib/utils";
 
@@ -108,6 +108,18 @@ function isPlanSegmentCompatible(plan: { segments?: string[] }, currentSegment: 
   });
 }
 
+/**
+ * A batch can only be published to while it is active and carries at least one
+ * active plan (pricing tier) — an inactive batch is closed for business, so a
+ * trade there would reach a group nobody can join. The backend rejects these
+ * with BATCH_INACTIVE; mirroring the rule here keeps them out of the picker
+ * instead of failing the analyst after they've filled the whole form.
+ */
+function isBatchPublishable(plan: SubscriptionPlan): boolean {
+  if (plan.is_active === false || plan.status === "INACTIVE") return false;
+  return (plan.batches ?? []).some((b) => b.is_active !== false);
+}
+
 interface SearchResult {
   symbol: string;
   token: string;
@@ -147,13 +159,14 @@ export function CreateTradeModal({
   const { profile } = useAnalystProfile();
   const [publishToTelegram, setPublishToTelegram] = useState(false);
 
-  // Auto-deselect batches that are incompatible with the current trade segment
+  // Auto-deselect batches that are incompatible with the current trade segment,
+  // or that went inactive while the modal was open
   useEffect(() => {
     if (!plans || plans.length === 0) return;
     setSelectedPlanIds((prev) =>
       prev.filter((id) => {
         const plan = plans.find((p) => p.plan_id === id);
-        return !plan || isPlanSegmentCompatible(plan, segment);
+        return !plan || (isPlanSegmentCompatible(plan, segment) && isBatchPublishable(plan));
       })
     );
   }, [segment, plans]);
@@ -255,14 +268,16 @@ export function CreateTradeModal({
       nextErrors.stopLoss = "Enter a valid stop loss (> 0)";
     }
 
-    // Batch is required (min 1) & must support trade segment
+    // Batch is required (min 1), must be active & must support trade segment
     if (selectedPlanIds.length === 0) {
       nextErrors.batch = "Select at least one batch";
     } else {
-      const incompatiblePlan = plans
-        .filter((p) => selectedPlanIds.includes(p.plan_id))
-        .find((p) => !isPlanSegmentCompatible(p, segment));
-      if (incompatiblePlan) {
+      const selected = plans.filter((p) => selectedPlanIds.includes(p.plan_id));
+      const inactivePlan = selected.find((p) => !isBatchPublishable(p));
+      const incompatiblePlan = selected.find((p) => !isPlanSegmentCompatible(p, segment));
+      if (inactivePlan) {
+        nextErrors.batch = `Batch "${inactivePlan.name}" is inactive. Activate it (and give it at least one active plan) before publishing to it.`;
+      } else if (incompatiblePlan) {
         nextErrors.batch = `Batch "${incompatiblePlan.name}" does not support ${segment} trades. Choose a compatible batch.`;
       }
     }
@@ -1033,19 +1048,21 @@ export function CreateTradeModal({
                   )}
                   {plans.map((p) => {
                     const isCompatible = isPlanSegmentCompatible(p, segment);
+                    const isActive = isBatchPublishable(p);
+                    const selectable = isCompatible && isActive;
                     const checked = selectedPlanIds.includes(p.plan_id);
                     return (
                       <button
                         key={p.plan_id}
                         type="button"
-                        disabled={!isCompatible}
+                        disabled={!selectable}
                         className={`w-full px-3.5 py-2 text-left text-[12.5px] transition-colors flex items-center justify-between gap-2.5 ${
-                          !isCompatible
+                          !selectable
                             ? "opacity-50 cursor-not-allowed bg-slate-50 text-[var(--muted-2)]"
                             : "text-[var(--ink)] hover:bg-[var(--surface)]"
                         }`}
                         onClick={() => {
-                          if (!isCompatible) return;
+                          if (!selectable) return;
                           setSelectedPlanIds((prev) =>
                             checked ? prev.filter((id) => id !== p.plan_id) : [...prev, p.plan_id]
                           );
@@ -1065,10 +1082,16 @@ export function CreateTradeModal({
                           </span>
                           <span className="font-semibold truncate">{p.name}</span>
                         </div>
-                        {!isCompatible && (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 shrink-0">
-                            Incompatible ({p.segments?.join(", ") || "Other"})
+                        {!isActive ? (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 shrink-0">
+                            Inactive
                           </span>
+                        ) : (
+                          !isCompatible && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 shrink-0">
+                              Incompatible ({p.segments?.join(", ") || "Other"})
+                            </span>
+                          )
                         )}
                       </button>
                     );
