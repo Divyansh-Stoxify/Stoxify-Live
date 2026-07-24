@@ -25,6 +25,7 @@ export default function DiscountsPage() {
   const [sidebarType, setSidebarType] = useState<"PERCENTAGE" | "FLAT" | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
+  const [expandedCouponId, setExpandedCouponId] = useState<string | null>(null);
 
   const handleCreateCouponClick = () => {
     setIsTypeModalOpen(true);
@@ -74,30 +75,58 @@ export default function DiscountsPage() {
   };
 
   const filteredCoupons = coupons.filter((c) =>
-    c.code.toLowerCase().includes(searchQuery.toLowerCase())
+    (c.code || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Helper to resolve plan_ids to display names
-  const resolvePlanIds = (planIds: string[]) => {
+  const calculateDiscPrice = (price: number, coupon: Coupon) => {
+    if (coupon.type === "PERCENTAGE") {
+      const disc = price - (price * coupon.discount_value) / 100;
+      return Math.max(0, disc);
+    } else {
+      return Math.max(0, price - coupon.discount_value);
+    }
+  };
+
+  // Helper to resolve plan_ids to full batch details
+  const resolveBatchDetails = (coupon: Coupon) => {
+    const planIds = coupon.plan_ids || [];
+    const appliesToAll = planIds.length === 0;
+
     const batchNames: string[] = [];
     const pricingNames: string[] = [];
+    const resolvedBatches: Array<{ planName: string; batch: any }> = [];
+    const seenBatchIds = new Set<string>();
 
     for (const id of planIds) {
       if (id.startsWith("PLAN_")) {
         const plan = plans.find((p) => p.plan_id === id);
-        if (plan) batchNames.push(plan.name);
+        if (plan) {
+          batchNames.push(plan.name);
+          if (plan.batches) {
+            plan.batches.forEach((b: any) => {
+              if (!seenBatchIds.has(b.batch_id)) {
+                seenBatchIds.add(b.batch_id);
+                resolvedBatches.push({ planName: plan.name, batch: b });
+              }
+            });
+          }
+        }
       } else if (id.startsWith("batch_")) {
         for (const plan of plans) {
-          const batch = (plan.batches || []).find((b) => b.batch_id === id);
+          const batch = (plan.batches || []).find((b: any) => b.batch_id === id);
           if (batch) {
             pricingNames.push(`${batch.name} (${plan.name})`);
+            if (!seenBatchIds.has(id)) {
+              seenBatchIds.add(id);
+              resolvedBatches.push({ planName: plan.name, batch });
+            }
             break;
           }
         }
       }
     }
 
-    return { batchNames, pricingNames };
+    return { appliesToAll, batchNames, pricingNames, resolvedBatches };
   };
 
   return (
@@ -167,10 +196,19 @@ export default function DiscountsPage() {
                 </thead>
                 <tbody className="divide-y divide-[var(--line)] text-[13px] font-semibold text-[var(--ink)]">
                   {filteredCoupons.map((coupon) => {
-                    const { batchNames, pricingNames } = resolvePlanIds(coupon.plan_ids || []);
+                    const { appliesToAll, batchNames, pricingNames, resolvedBatches } = resolveBatchDetails(coupon);
+                    const isExpanded = expandedCouponId === coupon.coupon_id;
                     return (
-                      <tr key={coupon.coupon_id} className="hover:bg-slate-50/40 transition-colors">
-                        <td className="px-6 py-4 font-mono font-bold text-[var(--brand)]">
+                      <React.Fragment key={coupon.coupon_id}>
+                      <tr
+                        onClick={() => setExpandedCouponId(isExpanded ? null : coupon.coupon_id)}
+                        className="hover:bg-slate-50 cursor-pointer transition-colors"
+                      >
+                        <td className="px-6 py-4 font-mono font-bold text-[var(--brand)] flex items-center gap-2">
+                          <Icon
+                            name="chevronDown"
+                            className={`w-4 h-4 text-[var(--muted)] transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                          />
                           {coupon.code}
                         </td>
                         <td className="px-6 py-4">
@@ -226,9 +264,10 @@ export default function DiscountsPage() {
                         <td className="px-6 py-4">
                           <button
                             type="button"
-                            onClick={() =>
-                              handleToggleStatus(coupon.coupon_id, coupon.is_active, coupon.code)
-                            }
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleStatus(coupon.coupon_id, coupon.is_active, coupon.code);
+                            }}
                             className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide uppercase cursor-pointer hover:opacity-85 transition-opacity ${
                               coupon.is_active
                                 ? "bg-[var(--green-light)] text-[var(--green)] border border-[var(--green)]/15"
@@ -241,14 +280,14 @@ export default function DiscountsPage() {
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
-                              onClick={() => handleEditCoupon(coupon)}
+                              onClick={(e) => { e.stopPropagation(); handleEditCoupon(coupon); }}
                               className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-[var(--brand)] hover:border-[var(--brand)]/30 hover:bg-[var(--brand)]/5 transition-all cursor-pointer"
                               title="Edit Coupon"
                             >
                               <Icon className="h-3.5 w-3.5" name="edit" />
                             </button>
                             <button
-                              onClick={() => handleDeleteCoupon(coupon.coupon_id, coupon.code)}
+                              onClick={(e) => { e.stopPropagation(); handleDeleteCoupon(coupon.coupon_id, coupon.code); }}
                               className="p-1.5 rounded-lg border border-red-100 bg-white text-red-400 hover:text-red-600 hover:border-red-300 hover:bg-red-50/50 transition-all cursor-pointer"
                               title="Delete Coupon"
                             >
@@ -257,6 +296,97 @@ export default function DiscountsPage() {
                           </div>
                         </td>
                       </tr>
+                      {isExpanded && (
+                        <tr className="bg-slate-50/80 border-b border-[var(--line)]">
+                          <td colSpan={8} className="p-6">
+                            {/* Section A: Metadata Grid */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                              <div className="bg-white p-3 rounded-xl border border-[var(--line)] shadow-sm">
+                                <p className="text-[10px] uppercase font-extrabold text-[var(--muted)] mb-1">Valid Dates (IST)</p>
+                                <p className="text-[13px] font-bold text-[var(--ink)]">
+                                  {coupon.valid_from ? new Date(coupon.valid_from).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) : "Always"} -
+                                  {" "}{coupon.valid_to ? new Date(coupon.valid_to).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) : "Never Expires"}
+                                </p>
+                              </div>
+                              <div className="bg-white p-3 rounded-xl border border-[var(--line)] shadow-sm">
+                                <p className="text-[10px] uppercase font-extrabold text-[var(--muted)] mb-1">Availability & Limits</p>
+                                <p className="text-[13px] font-bold text-[var(--ink)]">
+                                  {coupon.availability.replace('_', ' ')} • Limit:
+                                  {" "}{coupon.quantity_total === null ? "Unlimited" : coupon.quantity_total}
+                                </p>
+                              </div>
+                              <div className="bg-white p-3 rounded-xl border border-[var(--line)] shadow-sm">
+                                <p className="text-[10px] uppercase font-extrabold text-[var(--muted)] mb-1">Stackable & Case</p>
+                                <p className="text-[13px] font-bold text-[var(--ink)]">
+                                  Case Insensitive: {coupon.is_case_insensitive ? "Yes" : "No"}
+                                </p>
+                              </div>
+                              <div className="bg-white p-3 rounded-xl border border-[var(--line)] shadow-sm">
+                                <p className="text-[10px] uppercase font-extrabold text-[var(--muted)] mb-1">Created At (IST)</p>
+                                <p className="text-[13px] font-bold text-[var(--ink)]">
+                                  {new Date(coupon.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Section B: Batches Table */}
+                            <div>
+                              <h4 className="text-[12px] font-extrabold text-[var(--ink)] uppercase mb-3 flex items-center gap-2">
+                                <Icon name="list" className="w-4 h-4 text-[var(--muted)]" />
+                                Associated Batches
+                              </h4>
+                              {appliesToAll ? (
+                                <div className="bg-white p-4 rounded-xl border border-[var(--line)] text-[13px] font-semibold text-[var(--muted-2)]">
+                                  Applies to all active batches.
+                                </div>
+                              ) : resolvedBatches.length === 0 ? (
+                                <div className="bg-white p-4 rounded-xl border border-[var(--line)] text-[13px] font-semibold text-[var(--muted-2)] text-red-500">
+                                  No valid active batches found.
+                                </div>
+                              ) : (
+                                <div className="bg-white border border-[var(--line)] rounded-xl overflow-x-auto max-h-64 overflow-y-auto">
+                                  <table className="w-full text-left border-collapse">
+                                    <thead className="sticky top-0 bg-slate-50 border-b border-[var(--line)]">
+                                      <tr className="text-[10px] font-extrabold text-[var(--muted)] uppercase tracking-wider">
+                                        <th className="px-4 py-3">Plan Name</th>
+                                        <th className="px-4 py-3">Batch Name</th>
+                                        <th className="px-4 py-3">Price</th>
+                                        <th className="px-4 py-3">Disc. Price (INR)</th>
+                                        <th className="px-4 py-3">Cycle</th>
+                                        <th className="px-4 py-3">Days</th>
+                                        <th className="px-4 py-3">Active</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-[var(--line)] text-[12px] font-semibold text-[var(--ink)]">
+                                      {resolvedBatches.map((b, idx) => {
+                                        const discPrice = calculateDiscPrice(b.batch.price, coupon);
+                                        return (
+                                          <tr key={idx} className="hover:bg-slate-50/50">
+                                            <td className="px-4 py-2.5">{b.planName}</td>
+                                            <td className="px-4 py-2.5">{b.batch.name}</td>
+                                            <td className="px-4 py-2.5 line-through text-[var(--muted)]">
+                                              {formatCurrency(b.batch.price)}
+                                            </td>
+                                            <td className="px-4 py-2.5 text-[var(--green)] font-bold">
+                                              {formatCurrency(discPrice)}
+                                            </td>
+                                            <td className="px-4 py-2.5">{b.batch.billing_cycle}</td>
+                                            <td className="px-4 py-2.5">{b.batch.days}</td>
+                                            <td className="px-4 py-2.5">
+                                              {b.batch.is_active !== false ? "✅" : "❌"}
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      </React.Fragment>
                     );
                   })}
                 </tbody>

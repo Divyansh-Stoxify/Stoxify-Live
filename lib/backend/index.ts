@@ -99,14 +99,14 @@ export async function signedBackendFetch({
   timeoutMs?: number;
 }): Promise<Response> {
   const normalizedMethod = method.toUpperCase();
-  const qs = query
-    ? "?" +
-      new URLSearchParams(
+  const queryParamsStr = query
+    ? new URLSearchParams(
         Object.entries(query)
           .filter((entry): entry is [string, string | number] => entry[1] !== undefined)
           .map(([k, v]) => [k, String(v)])
       ).toString()
     : "";
+  const qs = queryParamsStr ? `?${queryParamsStr}` : "";
   const fullPath = `${path}${qs}`;
   const bodyText =
     normalizedMethod === "GET" || normalizedMethod === "HEAD" ? "{}" : JSON.stringify(body ?? {});
