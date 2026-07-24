@@ -1,6 +1,13 @@
 "use client";
 
-import { PencilIcon, PlusIcon, RefreshCwIcon, UserMinusIcon } from "lucide-react";
+import {
+  PencilIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  Trash2Icon,
+  UserMinusIcon,
+  UsersIcon,
+} from "lucide-react";
 
 import {
   ApiAdminPage,
@@ -13,7 +20,9 @@ import type { AdminRow } from "@/components/admin/admin-page-layout";
 import { Button } from "@/components/ui/button";
 import { Gated } from "@/components/admin/admin-permissions-provider";
 import { CreateEditRoleDialog } from "@/components/admin/dialogs/create-edit-role-dialog";
+import { DeleteRoleDialog } from "@/components/admin/dialogs/delete-role-dialog";
 import { RevokeRoleDialog } from "@/components/admin/dialogs/revoke-role-dialog";
+import { RoleMembersDialog } from "@/components/admin/dialogs/role-members-dialog";
 
 function mapRole(role: ApiRecord): AdminRow {
   const powers = Array.isArray(role.powers) ? role.powers.length : 0;
@@ -37,6 +46,18 @@ function RoleRowActions({ item, refresh }: { item: ApiRecord; refresh: () => voi
 
   return (
     <div className="flex items-center justify-end gap-1">
+      <Gated power="PWR_ADMIN_ROLE_MANAGE">
+        <RoleMembersDialog
+          roleId={roleId}
+          roleName={field(item, ["role_name"])}
+          refresh={refresh}
+          trigger={
+            <Button size="icon-sm" variant="ghost" aria-label="View members">
+              <UsersIcon />
+            </Button>
+          }
+        />
+      </Gated>
       <Gated power="PWR_ADMIN_ROLE_MANAGE">
         <CreateEditRoleDialog
           mode="edit"
@@ -65,6 +86,21 @@ function RoleRowActions({ item, refresh }: { item: ApiRecord; refresh: () => voi
           }
         />
       </Gated>
+      {/* System roles are backend-immutable, so don't offer a delete that will 403. */}
+      {!isSystem && (
+        <Gated power="PWR_ADMIN_ROLE_MANAGE">
+          <DeleteRoleDialog
+            roleId={roleId}
+            roleName={field(item, ["role_name"])}
+            refresh={refresh}
+            trigger={
+              <Button size="icon-sm" variant="ghost" aria-label="Delete role">
+                <Trash2Icon />
+              </Button>
+            }
+          />
+        </Gated>
+      )}
     </div>
   );
 }
@@ -76,7 +112,7 @@ export function RolesPage() {
       actionIcon={<RefreshCwIcon />}
       collectionKeys={["roles"]}
       columns={["Role", "Description", "Powers", "Type", "State"]}
-      description="Create roles, attach powers, and manage descriptions from rbac-service."
+      description="Custom sub-roles define what a sub-admin can do. System roles are read-only; create a custom role to grant a narrower slice of the console."
       emptyMessage="No roles returned by the backend."
       endpoint="/api/admin/rbac/roles"
       eyebrow="RBAC"

@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "./_confirm-dialog";
+import { readFormResult } from "./_form-dialog";
 import { adminFetch } from "@/lib/admin/client-api";
 
 type Props = {
@@ -27,17 +28,13 @@ export function RevokeRoleDialog({ roleId, roleName, refresh, trigger }: Props) 
       onConfirm={async () => {
         if (!userId.trim())
           return { ok: false, message: "User ID is required", code: "VALIDATION_ERROR" };
-        const res = await adminFetch("/api/admin/rbac/revoke-role", {
+        const response = await adminFetch("/api/admin/rbac/revoke-role", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user_id: userId, role_id: roleId }),
+          body: JSON.stringify({ user_id: userId.trim(), role_id: roleId }),
         });
-        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-        return {
-          ok: res.ok,
-          message: data.message as string | undefined,
-          code: data.code as string | undefined,
-        };
+        const result = await readFormResult(response);
+        return result.ok ? { ok: true, message: "Role revoked" } : result;
       }}
       onSuccess={refresh}
       onClose={() => setUserId("")}

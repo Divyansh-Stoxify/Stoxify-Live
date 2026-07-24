@@ -47,6 +47,19 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "images.unsplash.com" },
     ],
   },
+  // `/a/:username` is the short branded analyst link used in Telegram broadcasts
+  // and referral shares. It is rewritten (not redirected) onto the existing
+  // public profile page so the short URL survives in the address bar — App Links
+  // / Universal Links verify against the literal path, and a 3xx would break the
+  // hand-off to the app. Query params (?ref=tg) carry through automatically.
+  async rewrites() {
+    return [
+      {
+        source: "/a/:username",
+        destination: "/profiles/:username",
+      },
+    ];
+  },
   async headers() {
     return [
       {
