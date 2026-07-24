@@ -16,6 +16,20 @@ import { toastError, toastNetworkError, toastSuccess } from "./_action-toast";
 
 export type FormResult = { ok: boolean; message?: string; code?: string };
 
+/**
+ * Turn a backend response into a FormResult. Services reply with
+ * `{ error, code, details }` (see the shared Fastify errorHandler), so read
+ * `error` as well as `message` — otherwise failures surface as a bare code.
+ */
+export async function readFormResult(response: Response): Promise<FormResult> {
+  const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+  return {
+    ok: response.ok,
+    message: (data.message ?? data.error) as string | undefined,
+    code: data.code as string | undefined,
+  };
+}
+
 type Props = {
   trigger: ReactNode;
   title: string;

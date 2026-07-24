@@ -27,7 +27,12 @@ function resolveTradeError(data: BackendError): { field: string; message: string
 
   // Determine which field this error belongs to
   let field = "submit";
-  if (code === "BATCH_REQUIRED" || code === "SEGMENT_MISMATCH" || code === "INVALID_BATCH") {
+  if (
+    code === "BATCH_REQUIRED" ||
+    code === "SEGMENT_MISMATCH" ||
+    code === "INVALID_BATCH" ||
+    code === "BATCH_PLAN_MISMATCH"
+  ) {
     field = "batch";
   } else if (code === "MISSING_FIELDS") {
     field = "symbol";
@@ -88,6 +93,21 @@ function exchangeToSegment(exchange: string): string {
   }
 }
 
+/** Check if a subscription plan supports the specified trade segment */
+function isPlanSegmentCompatible(plan: { segments?: string[] }, currentSegment: string): boolean {
+  if (!plan || !plan.segments || !Array.isArray(plan.segments) || plan.segments.length === 0) {
+    return true; // No segment restriction specified on plan
+  }
+  const curSeg = currentSegment.toUpperCase();
+  return plan.segments.some((s) => {
+    const segUpper = s.toUpperCase();
+    if (segUpper === curSeg) return true;
+    if (curSeg === "FNO" && (segUpper === "F&O" || segUpper === "FUTURES" || segUpper === "OPTIONS")) return true;
+    if ((curSeg === "F&O" || curSeg === "FUTURES" || curSeg === "OPTIONS") && segUpper === "FNO") return true;
+    return false;
+  });
+}
+
 interface SearchResult {
   symbol: string;
   token: string;
@@ -126,6 +146,17 @@ export function CreateTradeModal({
   const { plans } = useSubscriptionPlans();
   const { profile } = useAnalystProfile();
   const [publishToTelegram, setPublishToTelegram] = useState(false);
+
+  // Auto-deselect batches that are incompatible with the current trade segment
+  useEffect(() => {
+    if (!plans || plans.length === 0) return;
+    setSelectedPlanIds((prev) =>
+      prev.filter((id) => {
+        const plan = plans.find((p) => p.plan_id === id);
+        return !plan || isPlanSegmentCompatible(plan, segment);
+      })
+    );
+  }, [segment, plans]);
 
   // Auto-detect FNO details from symbol string
   useEffect(() => {
@@ -224,9 +255,16 @@ export function CreateTradeModal({
       nextErrors.stopLoss = "Enter a valid stop loss (> 0)";
     }
 
-    // Batch is required (min 1)
+    // Batch is required (min 1) & must support trade segment
     if (selectedPlanIds.length === 0) {
       nextErrors.batch = "Select at least one batch";
+    } else {
+      const incompatiblePlan = plans
+        .filter((p) => selectedPlanIds.includes(p.plan_id))
+        .find((p) => !isPlanSegmentCompatible(p, segment));
+      if (incompatiblePlan) {
+        nextErrors.batch = `Batch "${incompatiblePlan.name}" does not support ${segment} trades. Choose a compatible batch.`;
+      }
     }
 
     // F&O contract expiry is required
@@ -534,7 +572,7 @@ export function CreateTradeModal({
         body: JSON.stringify({
           ...basePayload,
           batch: selectedPlans.map((p) => p.name),
-          plan_id: selectedPlans[0]?.plan_id,
+          plan_id: selectedPlans.map((p) => p.plan_id),
           publish_to_telegram: publishToTelegram,
         }),
       });
@@ -994,13 +1032,20 @@ export function CreateTradeModal({
                     </div>
                   )}
                   {plans.map((p) => {
+                    const isCompatible = isPlanSegmentCompatible(p, segment);
                     const checked = selectedPlanIds.includes(p.plan_id);
                     return (
                       <button
                         key={p.plan_id}
                         type="button"
-                        className="w-full px-3.5 py-2 text-left text-[12.5px] text-[var(--ink)] hover:bg-[var(--surface)] transition-colors flex items-center gap-2.5"
+                        disabled={!isCompatible}
+                        className={`w-full px-3.5 py-2 text-left text-[12.5px] transition-colors flex items-center justify-between gap-2.5 ${
+                          !isCompatible
+                            ? "opacity-50 cursor-not-allowed bg-slate-50 text-[var(--muted-2)]"
+                            : "text-[var(--ink)] hover:bg-[var(--surface)]"
+                        }`}
                         onClick={() => {
+                          if (!isCompatible) return;
                           setSelectedPlanIds((prev) =>
                             checked ? prev.filter((id) => id !== p.plan_id) : [...prev, p.plan_id]
                           );
@@ -1008,16 +1053,23 @@ export function CreateTradeModal({
                           if (errors.batch) setErrors((prev) => ({ ...prev, batch: "" }));
                         }}
                       >
-                        <span
-                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
-                            checked
-                              ? "bg-[var(--brand)] border-[var(--brand)] text-white"
-                              : "border-[var(--line)] bg-white"
-                          }`}
-                        >
-                          {checked && <Icon name="check" className="h-3 w-3" />}
-                        </span>
-                        <span className="font-semibold">{p.name}</span>
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span
+                            className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
+                              checked
+                                ? "bg-[var(--brand)] border-[var(--brand)] text-white"
+                                : "border-[var(--line)] bg-white"
+                            }`}
+                          >
+                            {checked && <Icon name="check" className="h-3 w-3" />}
+                          </span>
+                          <span className="font-semibold truncate">{p.name}</span>
+                        </div>
+                        {!isCompatible && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 shrink-0">
+                            Incompatible ({p.segments?.join(", ") || "Other"})
+                          </span>
+                        )}
                       </button>
                     );
                   })}

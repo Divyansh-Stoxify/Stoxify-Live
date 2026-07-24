@@ -4,6 +4,7 @@ import Link from "next/link";
 import { BadgeCheck, Globe, Box, Target, TrendingUp, Users, Activity } from "lucide-react";
 import { BatchListClient } from "@/components/public/BatchListClient";
 import { ThemeToggle } from "@/components/public/ThemeToggle";
+import { OpenInAppBanner } from "@/components/public/OpenInAppBanner";
 import { RAEvaluationDashboard } from "@/components/public/RAEvaluationDashboard";
 import { ReviewsSection } from "@/components/public/ReviewsSection";
 
@@ -91,6 +92,11 @@ export default async function AnalystLandingPage({ params }: PageProps) {
           </div>
         </div>
       </header>
+
+      {/* Mobile-only hand-off to the app. Renders nothing on desktop, and is
+          only load-bearing inside in-app browsers (Telegram) where App Links /
+          Universal Links never fire. */}
+      <OpenInAppBanner username={resolvedParams.username} />
 
       {/* Hero Section */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 pt-32 pb-12 transition-colors duration-300">

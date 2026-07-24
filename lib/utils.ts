@@ -12,6 +12,49 @@ export function formatBatch(batch: string | string[] | undefined | null): string
   return batch ?? "";
 }
 
+/**
+ * Formats a raw status string (e.g. "MANUALLY_CLOSED") into a clean, human-readable label
+ * (e.g. "Manually Closed").
+ */
+export function formatStatus(status?: string | null): string {
+  if (!status) return "";
+  const upper = status.trim().toUpperCase();
+  switch (upper) {
+    case "LIVE":
+    case "ACTIVE":
+      return "Live";
+    case "MANUALLY_CLOSED":
+    case "CLOSED_MANUALLY":
+      return "Manually Closed";
+    case "TARGET_HIT":
+    case "CLOSED_BY_TARGET":
+      return "Target Hit";
+    case "SL_HIT":
+    case "CLOSED_BY_SL":
+    case "STOP_LOSS_HIT":
+      return "Stop Loss Hit";
+    case "PARTIAL_BOOKED":
+    case "PARTIAL_TARGET":
+    case "PARTIAL_HIT":
+      return "Partial Target Hit";
+    case "CLOSED":
+      return "Closed";
+    case "EXPIRED":
+      return "Expired";
+    case "CANCELLED":
+      return "Cancelled";
+    case "PENDING":
+      return "Pending";
+    case "INACTIVE":
+      return "Inactive";
+    default:
+      return upper
+        .split("_")
+        .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+        .join(" ");
+  }
+}
+
 export function cleanErrorMessage(
   data:
     | {
@@ -84,6 +127,10 @@ export function cleanErrorMessage(
 
   if (code === "BATCH_REQUIRED") {
     return "Please select a subscription batch.";
+  }
+
+  if (code === "BATCH_PLAN_MISMATCH") {
+    return "Selected subscription batches and plans do not match. Please re-select your subscription batches.";
   }
 
   if (code === "SEGMENT_MISMATCH") {

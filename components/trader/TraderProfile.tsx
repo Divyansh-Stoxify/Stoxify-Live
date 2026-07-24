@@ -6,7 +6,7 @@ import { Toaster, toast } from "sonner";
 
 import { Icon } from "@/components/stoxify-icon";
 import { LogoutButton } from "@/components/logout-button";
-import { cleanErrorMessage } from "@/lib/utils";
+import { cleanErrorMessage, formatStatus } from "@/lib/utils";
 
 type ProfileUser = {
   user_id: string;
@@ -149,7 +149,7 @@ function SubscriptionCard({ sub }: { sub: Subscription }) {
                 : "bg-[var(--red-light)] text-[var(--red)]",
           ].join(" ")}
         >
-          {sub.status}
+          {formatStatus(sub.status)}
         </span>
       </div>
 

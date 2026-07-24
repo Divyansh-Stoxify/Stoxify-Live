@@ -1,6 +1,6 @@
 "use client";
 
-import { RefreshCwIcon } from "lucide-react";
+import { PlusIcon, RefreshCwIcon, ShieldIcon, UserCogIcon } from "lucide-react";
 
 import {
   ApiAdminPage,
@@ -14,6 +14,11 @@ import {
   type FilterDef,
 } from "@/components/admin/api-admin-page";
 import type { AdminRow } from "@/components/admin/admin-page-layout";
+import { Button } from "@/components/ui/button";
+import { Gated } from "@/components/admin/admin-permissions-provider";
+import { ChangeMemberRoleDialog } from "@/components/admin/dialogs/change-member-role-dialog";
+import { ChangeUserStateDialog } from "@/components/admin/dialogs/change-user-state-dialog";
+import { CreateSubAdminDialog } from "@/components/admin/dialogs/create-sub-admin-dialog";
 
 const FILTERS: FilterDef[] = [
   {
@@ -37,14 +42,49 @@ function mapMember(member: ApiRecord): AdminRow {
   };
 }
 
+function MemberRowActions({ item, refresh }: { item: ApiRecord; refresh: () => void }) {
+  const userId = field(item, ["user_id", "_id"]);
+  const label = field(item, ["name", "email", "user_id"]);
+
+  return (
+    <div className="flex items-center justify-end gap-1">
+      <Gated power="PWR_ADMIN_USER_ROLE_ASSIGN">
+        <ChangeMemberRoleDialog
+          userId={userId}
+          userLabel={label}
+          currentRole={field(item, ["assigned_role", "role_id"])}
+          refresh={refresh}
+          trigger={
+            <Button size="icon-sm" variant="ghost" aria-label="Change role">
+              <ShieldIcon />
+            </Button>
+          }
+        />
+      </Gated>
+      <Gated power="PWR_USER_STATE_CHANGE">
+        <ChangeUserStateDialog
+          userId={userId}
+          currentState={field(item, ["state"])}
+          refresh={refresh}
+          trigger={
+            <Button size="icon-sm" variant="ghost" aria-label="Change state">
+              <UserCogIcon />
+            </Button>
+          }
+        />
+      </Gated>
+    </div>
+  );
+}
+
 export function InternalTeamPage() {
   return (
     <ApiAdminPage
       action="Refresh"
       actionIcon={<RefreshCwIcon />}
-      collectionKeys={["members"]}
+      collectionKeys={["members", "users"]}
       columns={["Member", "Role", "State", "Phone", "Created"]}
-      description="Internal team accounts, assigned admin role, and lifecycle state from user-service."
+      description="Internal team accounts and sub-admins. A member's role decides which parts of the console they can reach."
       emptyMessage="No internal team members returned by the backend."
       endpoint="/api/admin/internal-team"
       eyebrow="Internal access"
@@ -69,6 +109,20 @@ export function InternalTeamPage() {
         { label: "Loaded", value: formatNumber(rows.length), detail: "Visible rows" },
       ]}
       paginated
+      primaryAction={(refresh) => (
+        <Gated power="PWR_ADMIN_USER_ROLE_ASSIGN">
+          <CreateSubAdminDialog
+            refresh={refresh}
+            trigger={
+              <Button>
+                <PlusIcon />
+                New sub-admin
+              </Button>
+            }
+          />
+        </Gated>
+      )}
+      rowActions={(item, refresh) => <MemberRowActions item={item} refresh={refresh} />}
       title="Internal Team"
       variant="people"
     />
