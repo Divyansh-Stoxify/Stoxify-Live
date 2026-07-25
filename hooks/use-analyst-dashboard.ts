@@ -630,7 +630,7 @@ export function useAnalystCoupons(planId?: string) {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      setCoupons(Array.isArray(json) ? json : (json.data ?? []));
+      setCoupons(Array.isArray(json) ? json : (json.coupons ?? json.data ?? []));
       setIsError(false);
     } catch {
       setCoupons([]);

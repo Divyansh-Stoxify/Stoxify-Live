@@ -4,6 +4,8 @@ type AdminFetchOptions = RequestInit & {
   retryOnUnauthorized?: boolean;
 };
 
+let refreshPromise: Promise<Response> | null = null;
+
 export async function adminFetch(input: RequestInfo | URL, init: AdminFetchOptions = {}) {
   const { retryOnUnauthorized = true, ...requestInit } = init;
   const response = await fetch(input, {
@@ -16,11 +18,17 @@ export async function adminFetch(input: RequestInfo | URL, init: AdminFetchOptio
     return response;
   }
 
-  const refreshResponse = await fetch("/api/admin/refresh", {
-    method: "POST",
-    cache: "no-store",
-    credentials: "same-origin",
-  });
+  if (!refreshPromise) {
+    refreshPromise = fetch("/api/admin/refresh", {
+      method: "POST",
+      cache: "no-store",
+      credentials: "same-origin",
+    }).finally(() => {
+      refreshPromise = null;
+    });
+  }
+
+  const refreshResponse = await refreshPromise;
 
   if (!refreshResponse.ok) {
     return response;
