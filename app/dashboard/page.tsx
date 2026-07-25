@@ -10,11 +10,13 @@ import {
   useDashboardMetrics,
   useActiveTrades,
   useRecentSubscribers,
+  useAnalystProfile,
 } from "@/hooks/use-analyst-dashboard";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { useDashboard } from "@/components/dashboard/dashboard-context";
 import type { Trade, Subscriber } from "@/lib/types/analyst";
 import { TradeDetailsModal } from "@/components/trade-details-modal";
+import { VerificationBanner } from "@/components/dashboard/verification-banner";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -295,6 +297,7 @@ export default function DashboardPage() {
     removeTradeLocally,
   } = useActiveTrades(5);
   const { subscribers, isLoading: subsLoading } = useRecentSubscribers(5);
+  const { profile, isLoading: profileLoading, mutate: refetchProfile } = useAnalystProfile();
   const {
     prices: livePrices,
     tradeClosedEvent,
@@ -349,6 +352,11 @@ export default function DashboardPage() {
 
       {/* ── Page body ── */}
       <div className="flex-1 p-6">
+        {/* ── Verification Pending Banner Note ── */}
+        {!profileLoading && profile?.state !== "ACTIVE" && (
+          <VerificationBanner profile={profile} onRefreshProfile={refetchProfile} />
+        )}
+
         {/* ── KPI Cards Row ── */}
         <div className="mb-6 grid grid-cols-4 gap-4 max-[1100px]:grid-cols-2 max-[640px]:grid-cols-1">
           {metricsLoading || !metrics ? (
