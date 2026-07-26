@@ -39,11 +39,6 @@ export const navGroups: SidebarNavGroup[] = [
         icon: <LayoutDashboardIcon />,
         isActive: true,
       },
-      {
-        title: "Analytics",
-        path: "#analytics",
-        icon: <BarChart3Icon />,
-      },
     ],
   },
   {
