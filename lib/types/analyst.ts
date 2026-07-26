@@ -134,6 +134,8 @@ export interface AnalystProfile {
   sebi_registration_number?: string; // legacy field name (kept for compat)
   sebi_license_number?: string; // canonical field from the DB
   sebi_license_doc_url?: string;
+  aadhar_doc_url?: string;
+  pan_doc_url?: string;
   registration_type?: "research_analyst" | "investment_advisors" | string;
   verification?: {
     submitted_at?: string;

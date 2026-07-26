@@ -597,54 +597,18 @@ export default function ProfilePage() {
   const [username, setUsername] = useState("");
 
 
-  // SEBI Document Upload State
+  // Document Upload States
   const [sebiDocFile, setSebiDocFile] = useState<File | null>(null);
-  const [isDraggingDoc, setIsDraggingDoc] = useState(false);
+  const [aadharDocFile, setAadharDocFile] = useState<File | null>(null);
+  const [panDocFile, setPanDocFile] = useState<File | null>(null);
+
+  const [removedSebiDoc, setRemovedSebiDoc] = useState(false);
+  const [removedAadharDoc, setRemovedAadharDoc] = useState(false);
+  const [removedPanDoc, setRemovedPanDoc] = useState(false);
+
   const sebiDocInputRef = useRef<HTMLInputElement>(null);
-  const [removedExistingDoc, setRemovedExistingDoc] = useState(false);
-
-  // Check if existing document is a mock/placeholder
-  const hasExistingDoc = React.useMemo(() => {
-    const docUrl = profile?.sebi_license_doc_url;
-    if (!docUrl) return false;
-    return !docUrl.includes("placeholder-doc.pdf") && !docUrl.includes("example.com");
-  }, [profile?.sebi_license_doc_url]);
-
-  const handleSebiDocChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        showSuccessToast("File Too Large", "Please upload a document smaller than 10MB.");
-        return;
-      }
-      setSebiDocFile(file);
-      showSuccessToast("Document Added", "Your SEBI document has been selected successfully.");
-    }
-  };
-
-  const handleDragOverDoc = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDraggingDoc(true);
-  };
-
-  const handleDragLeaveDoc = () => {
-    setIsDraggingDoc(false);
-  };
-
-  const handleDropDoc = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDraggingDoc(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        showSuccessToast("File Too Large", "Please upload a document smaller than 10MB.");
-        return;
-      }
-      setSebiDocFile(file);
-      showSuccessToast("Document Added", "Your SEBI document has been selected successfully.");
-    }
-  };
+  const aadharDocInputRef = useRef<HTMLInputElement>(null);
+  const panDocInputRef = useRef<HTMLInputElement>(null);
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">(
     "idle"
   );
@@ -1300,129 +1264,225 @@ export default function ProfilePage() {
               <hr className="border-slate-100 mt-2" />
 
               {/* Uploaded Documents */}
-              <div>
-                <h3 className="text-[14px] font-bold text-slate-800">Uploaded Documents</h3>
-                <p className="text-[12px] text-slate-400 mt-0.5">
-                  Copies of your official registration certificates on file.
-                </p>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-[14px] font-bold text-slate-800">Verification Documents (3 Required)</h3>
+                  <p className="text-[12px] text-slate-400 mt-0.5">
+                    Copies of your Aadhaar Card, PAN Card, and official SEBI registration certificates on file.
+                  </p>
+                </div>
 
-                {sebiDocFile ? (
-                  <div className="border border-slate-100 rounded-lg p-4 bg-[#f8fafc] flex items-center justify-between mt-3 animate-fade-in">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">
-                        <Icon className="h-5 w-5" name="fileText" />
-                      </div>
-                      <div>
-                        <div className="text-[13.5px] font-bold text-slate-800 leading-tight truncate max-w-[200px] sm:max-w-[320px]">
-                          {sebiDocFile.name}
-                        </div>
-                        <div className="text-[11.5px] text-slate-400 mt-0.5">
-                          {(sebiDocFile.size / 1024).toFixed(1)} KB • Selected to upload
-                        </div>
-                      </div>
+                <div className="grid grid-cols-1 gap-4">
+                  {/* 1. Aadhaar Card */}
+                  <div className="border border-slate-100 rounded-xl p-4 bg-[#f8fafc]">
+                    <div className="text-[13px] font-bold text-slate-700 mb-2 flex items-center justify-between">
+                      <span>1. Aadhaar Card Document</span>
+                      {(aadharDocFile || (profile?.aadhar_doc_url && !removedAadharDoc)) && (
+                        <span className="text-[11px] font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          Uploaded
+                        </span>
+                      )}
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          const url = URL.createObjectURL(sebiDocFile);
-                          const a = document.createElement("a");
-                          a.href = url;
-                          a.download = sebiDocFile.name;
-                          a.click();
-                          URL.revokeObjectURL(url);
-                        }}
-                        className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 rounded-lg text-[12.5px] font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
-                        type="button"
+                    {aadharDocFile ? (
+                      <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
+                        <div className="flex items-center gap-2.5 truncate">
+                          <Icon name="fileText" className="h-5 w-5 text-amber-600 shrink-0" />
+                          <span className="text-[13px] font-bold text-slate-800 truncate">{aadharDocFile.name}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setAadharDocFile(null)}
+                          className="text-red-500 hover:text-red-700 p-1"
+                        >
+                          <Icon name="trash" className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : profile?.aadhar_doc_url && !removedAadharDoc ? (
+                      <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
+                        <div className="flex items-center gap-2.5 truncate">
+                          <Icon name="fileText" className="h-5 w-5 text-emerald-600 shrink-0" />
+                          <span className="text-[13px] font-bold text-slate-800 truncate">Aadhaar Card Document</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={profile.aadhar_doc_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2.5 py-1 text-[12px] font-bold text-amber-700 bg-amber-50 rounded-md hover:bg-amber-100 transition-colors"
+                          >
+                            View
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => setRemovedAadharDoc(true)}
+                            className="text-slate-400 hover:text-red-600 p-1"
+                          >
+                            <Icon name="trash" className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => aadharDocInputRef.current?.click()}
+                        className="border-2 border-dashed border-slate-200 hover:border-amber-400 bg-white rounded-lg p-4 flex items-center justify-between cursor-pointer transition-colors"
                       >
-                        <Icon className="h-3.5 w-3.5" name="download" />
-                        Download
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSebiDocFile(null);
-                          showSuccessToast("File Removed", "Selected document has been removed.");
-                        }}
-                        className="flex items-center justify-center w-8 h-8 border border-red-100 rounded-lg text-red-500 bg-white hover:bg-red-50 hover:border-red-200 transition-colors shadow-sm cursor-pointer"
-                        type="button"
-                        title="Remove file"
-                      >
-                        <Icon className="h-4 w-4" name="trash" />
-                      </button>
-                    </div>
+                        <input
+                          ref={aadharDocInputRef}
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) setAadharDocFile(f);
+                          }}
+                          className="hidden"
+                        />
+                        <span className="text-[12.5px] font-bold text-slate-600">Select Aadhaar Card (PDF, PNG, JPG)</span>
+                        <span className="text-[12px] font-bold text-amber-600 hover:underline">Browse</span>
+                      </div>
+                    )}
                   </div>
-                ) : hasExistingDoc && !removedExistingDoc && profile?.sebi_license_doc_url ? (
-                  <div className="border border-slate-100 rounded-lg p-4 bg-[#f8fafc] flex items-center justify-between mt-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">
-                        <Icon className="h-5 w-5" name="fileText" />
-                      </div>
-                      <div>
-                        <div className="text-[13.5px] font-bold text-slate-800 leading-tight">
-                          SEBI Registration Document
-                        </div>
-                        <div className="text-[11.5px] text-slate-400 mt-0.5">
-                          {profile.verification?.submitted_at
-                            ? `Uploaded on ${new Date(profile.verification.submitted_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}`
-                            : "Uploaded"}
-                        </div>
-                      </div>
+
+                  {/* 2. PAN Card */}
+                  <div className="border border-slate-100 rounded-xl p-4 bg-[#f8fafc]">
+                    <div className="text-[13px] font-bold text-slate-700 mb-2 flex items-center justify-between">
+                      <span>2. PAN Card Document</span>
+                      {(panDocFile || (profile?.pan_doc_url && !removedPanDoc)) && (
+                        <span className="text-[11px] font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          Uploaded
+                        </span>
+                      )}
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <a
-                        href={profile.sebi_license_doc_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 rounded-lg text-[12.5px] font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+                    {panDocFile ? (
+                      <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
+                        <div className="flex items-center gap-2.5 truncate">
+                          <Icon name="fileText" className="h-5 w-5 text-amber-600 shrink-0" />
+                          <span className="text-[13px] font-bold text-slate-800 truncate">{panDocFile.name}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setPanDocFile(null)}
+                          className="text-red-500 hover:text-red-700 p-1"
+                        >
+                          <Icon name="trash" className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : profile?.pan_doc_url && !removedPanDoc ? (
+                      <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
+                        <div className="flex items-center gap-2.5 truncate">
+                          <Icon name="fileText" className="h-5 w-5 text-emerald-600 shrink-0" />
+                          <span className="text-[13px] font-bold text-slate-800 truncate">PAN Card Document</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={profile.pan_doc_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2.5 py-1 text-[12px] font-bold text-amber-700 bg-amber-50 rounded-md hover:bg-amber-100 transition-colors"
+                          >
+                            View
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => setRemovedPanDoc(true)}
+                            className="text-slate-400 hover:text-red-600 p-1"
+                          >
+                            <Icon name="trash" className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => panDocInputRef.current?.click()}
+                        className="border-2 border-dashed border-slate-200 hover:border-amber-400 bg-white rounded-lg p-4 flex items-center justify-between cursor-pointer transition-colors"
                       >
-                        <Icon className="h-3.5 w-3.5" name="download" />
-                        View / Download
-                      </a>
-                      <button
-                        onClick={() => {
-                          setRemovedExistingDoc(true);
-                          showSuccessToast("File Removed", "Existing document removed.");
-                        }}
-                        className="flex items-center justify-center w-8 h-8 border border-red-100 rounded-lg text-red-500 bg-white hover:bg-red-50 hover:border-red-200 transition-colors shadow-sm cursor-pointer"
-                        type="button"
-                        title="Remove file"
+                        <input
+                          ref={panDocInputRef}
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) setPanDocFile(f);
+                          }}
+                          className="hidden"
+                        />
+                        <span className="text-[12.5px] font-bold text-slate-600">Select PAN Card (PDF, PNG, JPG)</span>
+                        <span className="text-[12px] font-bold text-amber-600 hover:underline">Browse</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 3. SEBI Certificate */}
+                  <div className="border border-slate-100 rounded-xl p-4 bg-[#f8fafc]">
+                    <div className="text-[13px] font-bold text-slate-700 mb-2 flex items-center justify-between">
+                      <span>3. SEBI Registration Certificate</span>
+                      {(sebiDocFile || (profile?.sebi_license_doc_url && !removedSebiDoc)) && (
+                        <span className="text-[11px] font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          Uploaded
+                        </span>
+                      )}
+                    </div>
+
+                    {sebiDocFile ? (
+                      <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
+                        <div className="flex items-center gap-2.5 truncate">
+                          <Icon name="fileText" className="h-5 w-5 text-amber-600 shrink-0" />
+                          <span className="text-[13px] font-bold text-slate-800 truncate">{sebiDocFile.name}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSebiDocFile(null)}
+                          className="text-red-500 hover:text-red-700 p-1"
+                        >
+                          <Icon name="trash" className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : profile?.sebi_license_doc_url && !removedSebiDoc ? (
+                      <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
+                        <div className="flex items-center gap-2.5 truncate">
+                          <Icon name="fileText" className="h-5 w-5 text-emerald-600 shrink-0" />
+                          <span className="text-[13px] font-bold text-slate-800 truncate">SEBI Registration Certificate</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={profile.sebi_license_doc_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2.5 py-1 text-[12px] font-bold text-amber-700 bg-amber-50 rounded-md hover:bg-amber-100 transition-colors"
+                          >
+                            View
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => setRemovedSebiDoc(true)}
+                            className="text-slate-400 hover:text-red-600 p-1"
+                          >
+                            <Icon name="trash" className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => sebiDocInputRef.current?.click()}
+                        className="border-2 border-dashed border-slate-200 hover:border-amber-400 bg-white rounded-lg p-4 flex items-center justify-between cursor-pointer transition-colors"
                       >
-                        <Icon className="h-4 w-4" name="trash" />
-                      </button>
-                    </div>
+                        <input
+                          ref={sebiDocInputRef}
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) setSebiDocFile(f);
+                          }}
+                          className="hidden"
+                        />
+                        <span className="text-[12.5px] font-bold text-slate-600">Select SEBI Certificate (PDF, PNG, JPG)</span>
+                        <span className="text-[12px] font-bold text-amber-600 hover:underline">Browse</span>
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div
-                    onDragOver={handleDragOverDoc}
-                    onDragLeave={handleDragLeaveDoc}
-                    onDrop={handleDropDoc}
-                    onClick={() => sebiDocInputRef.current?.click()}
-                    className={`border-2 border-dashed rounded-xl p-8 mt-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 ${
-                      isDraggingDoc
-                        ? "border-[var(--brand)] bg-[var(--brand)]/5 scale-[0.99]"
-                        : "border-slate-200 hover:border-slate-300 hover:bg-slate-50/50 bg-[#f8fafc]"
-                    }`}
-                  >
-                    <input
-                      ref={sebiDocInputRef}
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={handleSebiDocChange}
-                      className="hidden"
-                    />
-                    <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-3 transition-transform duration-200">
-                      <Icon className="h-6 w-6 text-slate-400" name="plus" />
-                    </div>
-                    <div className="text-[13.5px] font-bold text-slate-700 text-center">
-                      Drag & drop your SEBI document here, or{" "}
-                      <span className="text-[var(--brand)] hover:underline">browse</span>
-                    </div>
-                    <div className="text-[11.5px] text-slate-400 mt-1 text-center">
-                      Supports PDF, JPEG, or PNG (Max 10MB)
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
 
               {/* Bottom Actions */}
