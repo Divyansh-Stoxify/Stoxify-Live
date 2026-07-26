@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BadgeIndianRupeeIcon,
   CheckCircle2Icon,
@@ -12,7 +12,9 @@ import {
   RefreshCwIcon,
   SearchIcon,
   Trash2Icon,
+  UserCheckIcon,
   UsersIcon,
+  XIcon,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +29,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { adminFetch } from "@/lib/admin/client-api";
+import { AnalystSearchFilter } from "@/components/admin/analyst-search-filter";
 import { Gated } from "@/components/admin/admin-permissions-provider";
 import { ConfirmActionDialog } from "@/components/admin/dialogs/confirm-action-dialog";
 import { EditPlanDialog } from "@/components/admin/dialogs/edit-plan-dialog";
@@ -49,22 +53,36 @@ export function PlansPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterSegment, setFilterSegment] = useState("all");
+  const [filterAnalyst, setFilterAnalyst] = useState("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const handleRefresh = () => {
+  const fetchPlans = useCallback(async () => {
     setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
+    try {
+      const res = await adminFetch("/api/admin/plans");
+      if (res.ok) {
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        const list = Array.isArray(data.plans)
+          ? (data.plans as PlanRecord[])
+          : Array.isArray(data.items)
+          ? (data.items as PlanRecord[])
+          : Array.isArray(data)
+          ? (data as PlanRecord[])
+          : [];
+        setPlans(list);
+      } else {
+        setPlans([]);
+      }
+    } catch {
+      setPlans([]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
 
-  const handleAddPlan = (newPlan: Omit<PlanRecord, "plan_id" | "subscribers_count">) => {
-    const plan: PlanRecord = {
-      ...newPlan,
-      plan_id: `PLN_${Math.floor(1000 + Math.random() * 9000)}`,
-      subscribers_count: 0,
-      created_at: new Date().toISOString(),
-    };
-    setPlans((prev) => [plan, ...prev]);
-  };
+  useEffect(() => {
+    void fetchPlans();
+  }, [fetchPlans]);
 
   const handleDeletePlan = (planId: string) => {
     setPlans((prev) => prev.filter((p) => p.plan_id !== planId));
@@ -76,16 +94,25 @@ export function PlansPage() {
     );
   };
 
-  // Filtered Plans List
+  // Derive unique analyst names for top dropdown
+  const analystList = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of plans) {
+      if (p.analyst_name) set.add(p.analyst_name);
+    }
+    return Array.from(set);
+  }, [plans]);
+
+  // Filtered Plans List according to search, analyst, segment, status
   const filteredPlans = useMemo(() => {
     return plans.filter((p) => {
       const q = search.toLowerCase();
       const matchesSearch =
         !search ||
-        p.name.toLowerCase().includes(q) ||
-        p.analyst_name.toLowerCase().includes(q) ||
-        p.segment.toLowerCase().includes(q) ||
-        p.plan_id.toLowerCase().includes(q);
+        (p.name && p.name.toLowerCase().includes(q)) ||
+        (p.analyst_name && p.analyst_name.toLowerCase().includes(q)) ||
+        (p.segment && p.segment.toLowerCase().includes(q)) ||
+        (p.plan_id && p.plan_id.toLowerCase().includes(q));
 
       const matchesStatus =
         filterStatus === "all" ||
@@ -93,17 +120,21 @@ export function PlansPage() {
         (filterStatus === "inactive" && !p.is_active);
 
       const matchesSegment =
-        filterSegment === "all" || p.segment.toLowerCase() === filterSegment.toLowerCase();
+        filterSegment === "all" || (p.segment && p.segment.toLowerCase() === filterSegment.toLowerCase());
 
-      return matchesSearch && matchesStatus && matchesSegment;
+      const matchesAnalyst =
+        filterAnalyst === "all" || (p.analyst_name && p.analyst_name.toLowerCase() === filterAnalyst.toLowerCase());
+
+      return matchesSearch && matchesStatus && matchesSegment && matchesAnalyst;
     });
-  }, [plans, search, filterStatus, filterSegment]);
+  }, [plans, search, filterStatus, filterSegment, filterAnalyst]);
 
-  const hasPlans = plans.length > 0;
-  const activeCount = hasPlans ? plans.filter((p) => p.is_active).length : "—";
-  const inactiveCount = hasPlans ? plans.filter((p) => !p.is_active).length : "—";
+  // Derive OVERALL Page Summary Metrics strictly from filteredPlans
+  const hasPlans = filteredPlans.length > 0;
+  const activeCount = hasPlans ? filteredPlans.filter((p) => p.is_active).length : "—";
+  const inactiveCount = hasPlans ? filteredPlans.filter((p) => !p.is_active).length : "—";
   const totalSubscribers = hasPlans
-    ? plans.reduce((sum, p) => sum + (p.subscribers_count || 0), 0)
+    ? filteredPlans.reduce((sum, p) => sum + (p.subscribers_count || 0), 0)
     : "—";
 
   return (
@@ -120,11 +151,18 @@ export function PlansPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Top Searchable Analyst Filter Component */}
+          <AnalystSearchFilter
+            selectedAnalyst={filterAnalyst}
+            onSelectAnalyst={setFilterAnalyst}
+            analysts={analystList}
+          />
+
           <Gated power="PWR_PLAN_MODIFY_ALL">
             <EditPlanDialog
               planId="NEW_PLAN"
-              refresh={handleRefresh}
+              refresh={fetchPlans}
               trigger={
                 <Button size="sm" className="gap-1.5 bg-primary hover:bg-primary/90">
                   <PlusIcon className="size-4" /> Add Plan
@@ -136,7 +174,7 @@ export function PlansPage() {
           <Button
             size="sm"
             variant="outline"
-            onClick={handleRefresh}
+            onClick={fetchPlans}
             disabled={isRefreshing}
             className="gap-1.5"
           >
@@ -146,50 +184,74 @@ export function PlansPage() {
         </div>
       </div>
 
-      {/* ── Metric Summary Tiles Grid (Placeholders) ──────────────────────── */}
+      {/* Active Analyst Filter Notification Banner */}
+      {filterAnalyst !== "all" && (
+        <div className="flex items-center justify-between rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+          <div className="flex items-center gap-2">
+            <UserCheckIcon className="size-4 text-emerald-600" />
+            <span>
+              Overall page metrics & table filtered for Research Analyst: <strong>{filterAnalyst}</strong>
+            </span>
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setFilterAnalyst("all")}
+            className="h-6 text-[11px] gap-1 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold"
+          >
+            <XIcon className="size-3" /> Reset Overall Filter
+          </Button>
+        </div>
+      )}
+
+      {/* ── Dynamic Metric Summary Tiles Grid (Filtered by Selected Analyst) ── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Plans</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-foreground/70">Total Plans</span>
             <BadgeIndianRupeeIcon className="size-4 text-emerald-500" />
           </div>
-          <div className="mt-3 text-2xl font-extrabold tracking-tight text-muted-foreground/80">{hasPlans ? plans.length : "—"}</div>
-          <p className="mt-1 text-xs text-muted-foreground">Active catalog plans</p>
+          <div className="mt-3 text-2xl font-extrabold tracking-tight text-foreground">{hasPlans ? filteredPlans.length : "—"}</div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {filterAnalyst !== "all" ? `Plans for ${filterAnalyst}` : "Active catalog plans"}
+          </p>
         </Card>
 
         <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Active Plans</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-foreground/70">Active Plans</span>
             <CheckCircle2Icon className="size-4 text-emerald-500" />
           </div>
-          <div className="mt-3 text-2xl font-extrabold tracking-tight text-muted-foreground/80">{activeCount}</div>
+          <div className="mt-3 text-2xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400">{activeCount}</div>
           <p className="mt-1 text-xs text-muted-foreground">Available for subscription</p>
         </Card>
 
         <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Inactive Plans</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-foreground/70">Inactive Plans</span>
             <PowerIcon className="size-4 text-amber-500" />
           </div>
-          <div className="mt-3 text-2xl font-extrabold tracking-tight text-muted-foreground/80">{inactiveCount}</div>
+          <div className="mt-3 text-2xl font-extrabold tracking-tight text-amber-600 dark:text-amber-400">{inactiveCount}</div>
           <p className="mt-1 text-xs text-muted-foreground">Archived plans</p>
         </Card>
 
         <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Subscribers</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-foreground/70">Total Subscribers</span>
             <UsersIcon className="size-4 text-blue-500" />
           </div>
-          <div className="mt-3 text-2xl font-extrabold tracking-tight text-muted-foreground/80">{totalSubscribers}</div>
+          <div className="mt-3 text-2xl font-extrabold tracking-tight text-blue-600 dark:text-blue-400">{totalSubscribers}</div>
           <p className="mt-1 text-xs text-muted-foreground">Subscribed traders</p>
         </Card>
       </div>
 
       {/* ── Main Data Table Card ──────────────────────────────────────────── */}
       <Card className="rounded-xl border bg-card text-card-foreground shadow-xs overflow-hidden">
-        <CardHeader className="gap-3 border-b bg-muted/20 px-6 py-4 md:flex-row md:items-center md:justify-between">
+        <CardHeader className="gap-3 border-b bg-card px-6 py-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <CardTitle className="text-base font-bold tracking-tight text-foreground">Subscription Plan Catalog</CardTitle>
+            <CardTitle className="text-base font-bold tracking-tight text-foreground">
+              {filterAnalyst !== "all" ? `Plan Catalog (${filterAnalyst})` : "Subscription Plan Catalog"}
+            </CardTitle>
             <p className="mt-0.5 text-xs text-muted-foreground">Catalog plans, segment categorization, pricing, and availability</p>
           </div>
 
@@ -239,7 +301,7 @@ export function PlansPage() {
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/30 hover:bg-muted/30">
+              <TableRow className="bg-card hover:bg-card border-b">
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">PLAN</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">ANALYST</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">SEGMENT</TableHead>
@@ -254,16 +316,20 @@ export function PlansPage() {
                   <TableCell colSpan={6} className="h-36 text-center text-xs text-muted-foreground">
                     <div className="flex flex-col items-center justify-center gap-2 py-4">
                       <BadgeIndianRupeeIcon className="size-8 text-muted-foreground/50" />
-                      <p className="font-semibold text-muted-foreground">No subscription plans to display</p>
+                      <p className="font-semibold text-muted-foreground">
+                        {filterAnalyst !== "all"
+                          ? `No subscription plans found for analyst "${filterAnalyst}"`
+                          : "No subscription plans returned from backend"}
+                      </p>
                       <p className="text-[11px] text-muted-foreground/80 max-w-sm">
-                        Use the &ldquo;+ Add Plan&rdquo; button above to create a new plan entry or connect backend routes to load catalog items.
+                        Use the &ldquo;+ Add Plan&rdquo; button above to create a new plan entry or reset filters.
                       </p>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredPlans.map((plan) => (
-                  <TableRow key={plan.plan_id} className="transition-colors hover:bg-muted/40">
+                  <TableRow key={plan.plan_id} className="transition-colors hover:bg-accent/40 border-b border-border/40">
                     {/* PLAN */}
                     <TableCell className="py-3 text-xs">
                       <div>
@@ -277,19 +343,25 @@ export function PlansPage() {
 
                     {/* ANALYST */}
                     <TableCell className="py-3 text-xs font-medium">
-                      {plan.analyst_name}
+                      <span
+                        onClick={() => setFilterAnalyst(plan.analyst_name)}
+                        className="cursor-pointer hover:underline text-emerald-600 dark:text-emerald-400 font-semibold"
+                        title="Filter entire page by this analyst"
+                      >
+                        {plan.analyst_name || "Analyst"}
+                      </span>
                     </TableCell>
 
                     {/* SEGMENT */}
                     <TableCell className="py-3 text-xs">
                       <Badge variant="outline" className="text-[10px] font-mono">
-                        {plan.segment}
+                        {plan.segment || "EQUITY"}
                       </Badge>
                     </TableCell>
 
                     {/* PRICE */}
                     <TableCell className="py-3 text-xs font-bold text-foreground">
-                      ₹{plan.price.toLocaleString("en-IN")}
+                      ₹{(plan.price || 0).toLocaleString("en-IN")}
                     </TableCell>
 
                     {/* STATUS */}
@@ -309,7 +381,7 @@ export function PlansPage() {
                           <PlanStatusDialog
                             planId={plan.plan_id}
                             isActive={plan.is_active}
-                            refresh={handleRefresh}
+                            refresh={fetchPlans}
                             trigger={
                               <Button
                                 size="icon-sm"
@@ -330,7 +402,7 @@ export function PlansPage() {
                             currentPrice={plan.price}
                             currentSegment={plan.segment}
                             currentDescription={plan.description}
-                            refresh={handleRefresh}
+                            refresh={fetchPlans}
                             trigger={
                               <Button size="icon-sm" variant="ghost" title="Edit Plan">
                                 <PencilIcon className="size-3.5 text-muted-foreground" />
@@ -368,7 +440,7 @@ export function PlansPage() {
           </Table>
 
           {/* Table Footer */}
-          <div className="flex items-center justify-between border-t bg-muted/10 px-6 py-3 text-xs text-muted-foreground">
+          <div className="flex items-center justify-between border-t bg-card px-6 py-3 text-xs text-muted-foreground">
             <span>
               Showing {filteredPlans.length} of {plans.length} total plans
             </span>

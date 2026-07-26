@@ -66,7 +66,7 @@ export function BroadcastComposerDialog({ onSuccess, trigger }: Props) {
 
   return (
     <FormDialog
-      title="Compose Platform Broadcast"
+      title="Compose Platform Broadcast (API NEEDED FROM BACKEND)"
       description="Create a broadcast notification with target audience segmentation, live preview, and scheduling options."
       submitLabel="Submit for Approval"
       onSubmit={handleSubmit}

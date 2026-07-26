@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BellIcon,
   CheckCircle2Icon,
@@ -24,6 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { adminFetch } from "@/lib/admin/client-api";
 import { Gated } from "@/components/admin/admin-permissions-provider";
 import { BroadcastComposerDialog, type BroadcastData } from "@/components/admin/dialogs/broadcast-composer-dialog";
 
@@ -50,10 +51,33 @@ export function NotificationsPage() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const handleRefresh = () => {
+  const fetchBroadcasts = useCallback(async () => {
     setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
+    try {
+      const res = await adminFetch("/api/admin/notifications/history");
+      if (res.ok) {
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        const list = Array.isArray(data.notifications)
+          ? (data.notifications as BroadcastRecord[])
+          : Array.isArray(data.items)
+          ? (data.items as BroadcastRecord[])
+          : Array.isArray(data)
+          ? (data as BroadcastRecord[])
+          : [];
+        setBroadcasts(list);
+      } else {
+        setBroadcasts([]);
+      }
+    } catch {
+      setBroadcasts([]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchBroadcasts();
+  }, [fetchBroadcasts]);
 
   const handleAddBroadcast = (data: BroadcastData) => {
     const record: BroadcastRecord = {
@@ -74,12 +98,12 @@ export function NotificationsPage() {
       const q = search.toLowerCase();
       const matchesSearch =
         !search ||
-        b.title.toLowerCase().includes(q) ||
-        b.target_audience.toLowerCase().includes(q) ||
-        b.notification_id.toLowerCase().includes(q);
+        (b.title && b.title.toLowerCase().includes(q)) ||
+        (b.target_audience && b.target_audience.toLowerCase().includes(q)) ||
+        (b.notification_id && b.notification_id.toLowerCase().includes(q));
 
       const matchesStatus =
-        filterStatus === "all" || b.status.toLowerCase() === filterStatus.toLowerCase();
+        filterStatus === "all" || (b.status && b.status.toLowerCase() === filterStatus.toLowerCase());
 
       return matchesSearch && matchesStatus;
     });
@@ -112,7 +136,7 @@ export function NotificationsPage() {
           <Button
             size="sm"
             variant="outline"
-            onClick={handleRefresh}
+            onClick={fetchBroadcasts}
             disabled={isRefreshing}
             className="gap-1.5"
           >
@@ -122,7 +146,7 @@ export function NotificationsPage() {
         </div>
       </div>
 
-      {/* ── Metric Summary Tiles Grid (Placeholders) ──────────────────────── */}
+      {/* ── Metric Summary Tiles Grid ──────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
           <div className="flex items-center justify-between">
@@ -163,7 +187,7 @@ export function NotificationsPage() {
 
       {/* ── Main Data Table Card ──────────────────────────────────────────── */}
       <Card className="rounded-xl border bg-card text-card-foreground shadow-xs overflow-hidden">
-        <CardHeader className="gap-3 border-b bg-muted/20 px-6 py-4 md:flex-row md:items-center md:justify-between">
+        <CardHeader className="gap-3 border-b bg-card px-6 py-4 md:flex-row md:items-center md:justify-between">
           <div>
             <CardTitle className="text-base font-bold tracking-tight text-foreground">Notification History & Broadcast Log</CardTitle>
             <p className="mt-0.5 text-xs text-muted-foreground">Delivered broadcasts, target audience segment, reach, and review status</p>
@@ -202,7 +226,7 @@ export function NotificationsPage() {
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/30 hover:bg-muted/30">
+              <TableRow className="bg-card hover:bg-card border-b">
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">BROADCAST TITLE</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">AUDIENCE SEGMENT</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">EST. REACH</TableHead>
@@ -216,7 +240,7 @@ export function NotificationsPage() {
                   <TableCell colSpan={5} className="h-36 text-center text-xs text-muted-foreground">
                     <div className="flex flex-col items-center justify-center gap-2 py-4">
                       <BellIcon className="size-8 text-muted-foreground/50" />
-                      <p className="font-semibold text-muted-foreground">No broadcast notifications to display</p>
+                      <p className="font-semibold text-muted-foreground">No broadcast notifications returned from backend</p>
                       <p className="text-[11px] text-muted-foreground/80 max-w-sm">
                         Use the &ldquo;Compose Broadcast&rdquo; button above to create a notification draft or connect backend API routes.
                       </p>
@@ -225,7 +249,7 @@ export function NotificationsPage() {
                 </TableRow>
               ) : (
                 filteredBroadcasts.map((b) => (
-                  <TableRow key={b.notification_id} className="transition-colors hover:bg-muted/40">
+                  <TableRow key={b.notification_id} className="transition-colors hover:bg-accent/40 border-b border-border/40">
                     {/* BROADCAST TITLE */}
                     <TableCell className="py-3 text-xs">
                       <div>
@@ -239,19 +263,19 @@ export function NotificationsPage() {
                     {/* AUDIENCE SEGMENT */}
                     <TableCell className="py-3 text-xs">
                       <Badge variant="outline" className="text-[10px] font-mono">
-                        {b.target_audience}
+                        {b.target_audience || "ALL_USERS"}
                       </Badge>
                     </TableCell>
 
                     {/* EST. REACH */}
                     <TableCell className="py-3 text-xs font-semibold text-foreground">
-                      {b.audience_size.toLocaleString("en-IN")} users
+                      {(b.audience_size || 0).toLocaleString("en-IN")} users
                     </TableCell>
 
                     {/* STATUS */}
                     <TableCell className="py-3 text-xs">
-                      <Badge variant={statusVariant(b.status)} className="font-semibold text-[10px] tracking-wide px-2 py-0.5">
-                        {b.status}
+                      <Badge variant={statusVariant(b.status || "SENT")} className="font-semibold text-[10px] tracking-wide px-2 py-0.5">
+                        {b.status || "SENT"}
                       </Badge>
                     </TableCell>
 
@@ -266,7 +290,7 @@ export function NotificationsPage() {
           </Table>
 
           {/* Table Footer */}
-          <div className="flex items-center justify-between border-t bg-muted/10 px-6 py-3 text-xs text-muted-foreground">
+          <div className="flex items-center justify-between border-t bg-card px-6 py-3 text-xs text-muted-foreground">
             <span>
               Showing {filteredBroadcasts.length} of {broadcasts.length} total broadcasts
             </span>

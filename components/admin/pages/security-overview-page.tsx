@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangleIcon,
   CheckCircle2Icon,
@@ -24,6 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { adminFetch } from "@/lib/admin/client-api";
 
 export type SecurityIncidentRecord = {
   log_id: string;
@@ -47,10 +48,35 @@ export function SecurityOverviewPage() {
   const [filterSeverity, setFilterSeverity] = useState("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const handleRefresh = () => {
+  const fetchIncidents = useCallback(async () => {
     setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
+    try {
+      const res = await adminFetch("/api/admin/security/threats");
+      if (res.ok) {
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        const list = Array.isArray(data.incidents)
+          ? (data.incidents as SecurityIncidentRecord[])
+          : Array.isArray(data.recent)
+          ? (data.recent as SecurityIncidentRecord[])
+          : Array.isArray(data.items)
+          ? (data.items as SecurityIncidentRecord[])
+          : Array.isArray(data)
+          ? (data as SecurityIncidentRecord[])
+          : [];
+        setIncidents(list);
+      } else {
+        setIncidents([]);
+      }
+    } catch {
+      setIncidents([]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchIncidents();
+  }, [fetchIncidents]);
 
   // Filtered Incidents List
   const filteredIncidents = useMemo(() => {
@@ -58,13 +84,13 @@ export function SecurityOverviewPage() {
       const q = search.toLowerCase();
       const matchesSearch =
         !search ||
-        i.incident_type.toLowerCase().includes(q) ||
-        i.user_id.toLowerCase().includes(q) ||
-        i.ip_address.toLowerCase().includes(q) ||
-        i.request_url.toLowerCase().includes(q);
+        (i.incident_type && i.incident_type.toLowerCase().includes(q)) ||
+        (i.user_id && i.user_id.toLowerCase().includes(q)) ||
+        (i.ip_address && i.ip_address.toLowerCase().includes(q)) ||
+        (i.request_url && i.request_url.toLowerCase().includes(q));
 
       const matchesSeverity =
-        filterSeverity === "all" || i.severity.toLowerCase() === filterSeverity.toLowerCase();
+        filterSeverity === "all" || (i.severity && i.severity.toLowerCase() === filterSeverity.toLowerCase());
 
       return matchesSearch && matchesSeverity;
     });
@@ -73,7 +99,7 @@ export function SecurityOverviewPage() {
   const hasIncidents = incidents.length > 0;
   const criticalCount = hasIncidents ? incidents.filter((i) => i.severity === "CRITICAL").length : "—";
   const highCount = hasIncidents ? incidents.filter((i) => i.severity === "HIGH").length : "—";
-  const activeIpBlocks = hasIncidents ? incidents.filter((i) => /blocked/i.test(i.incident_type)).length : "—";
+  const activeIpBlocks = hasIncidents ? incidents.filter((i) => i.incident_type && /blocked/i.test(i.incident_type)).length : "—";
 
   return (
     <div className="space-y-6">
@@ -93,7 +119,7 @@ export function SecurityOverviewPage() {
           <Button
             size="sm"
             variant="outline"
-            onClick={handleRefresh}
+            onClick={fetchIncidents}
             disabled={isRefreshing}
             className="gap-1.5"
           >
@@ -103,7 +129,7 @@ export function SecurityOverviewPage() {
         </div>
       </div>
 
-      {/* ── Metric Summary Tiles Grid (Placeholders) ──────────────────────── */}
+      {/* ── Metric Summary Tiles Grid ──────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
           <div className="flex items-center justify-between">
@@ -144,7 +170,7 @@ export function SecurityOverviewPage() {
 
       {/* ── Main Data Table Card ──────────────────────────────────────────── */}
       <Card className="rounded-xl border bg-card text-card-foreground shadow-xs overflow-hidden">
-        <CardHeader className="gap-3 border-b bg-muted/20 px-6 py-4 md:flex-row md:items-center md:justify-between">
+        <CardHeader className="gap-3 border-b bg-card px-6 py-4 md:flex-row md:items-center md:justify-between">
           <div>
             <CardTitle className="text-base font-bold tracking-tight text-foreground">Recent Security Incidents Stream</CardTitle>
             <p className="mt-0.5 text-xs text-muted-foreground">Auth security signals, request URLs, IP addresses, and severity classification</p>
@@ -183,7 +209,7 @@ export function SecurityOverviewPage() {
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/30 hover:bg-muted/30">
+              <TableRow className="bg-card hover:bg-card border-b">
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">INCIDENT SIGNAL</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">SEVERITY</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">USER / TARGET</TableHead>
@@ -198,7 +224,7 @@ export function SecurityOverviewPage() {
                   <TableCell colSpan={6} className="h-36 text-center text-xs text-muted-foreground">
                     <div className="flex flex-col items-center justify-center gap-2 py-4">
                       <ShieldCheckIcon className="size-8 text-muted-foreground/50" />
-                      <p className="font-semibold text-muted-foreground">No recent security incidents returned</p>
+                      <p className="font-semibold text-muted-foreground">No recent security incidents returned from backend</p>
                       <p className="text-[11px] text-muted-foreground/80 max-w-sm">
                         Authentication and security incident logs will stream here automatically when reported by security microservices.
                       </p>
@@ -207,7 +233,7 @@ export function SecurityOverviewPage() {
                 </TableRow>
               ) : (
                 filteredIncidents.map((i) => (
-                  <TableRow key={i.log_id} className="transition-colors hover:bg-muted/40">
+                  <TableRow key={i.log_id} className="transition-colors hover:bg-accent/40 border-b border-border/40">
                     {/* INCIDENT SIGNAL */}
                     <TableCell className="py-3 text-xs">
                       <div>
@@ -218,24 +244,24 @@ export function SecurityOverviewPage() {
 
                     {/* SEVERITY */}
                     <TableCell className="py-3 text-xs">
-                      <Badge variant={severityVariant(i.severity)} className="font-semibold text-[10px] tracking-wide px-2 py-0.5">
-                        {i.severity}
+                      <Badge variant={severityVariant(i.severity || "LOW")} className="font-semibold text-[10px] tracking-wide px-2 py-0.5">
+                        {i.severity || "LOW"}
                       </Badge>
                     </TableCell>
 
                     {/* USER / TARGET */}
                     <TableCell className="py-3 text-xs font-medium">
-                      {i.user_id}
+                      {i.user_id || "ANONYMOUS"}
                     </TableCell>
 
                     {/* IP ADDRESS */}
                     <TableCell className="py-3 text-xs font-mono font-medium">
-                      {i.ip_address}
+                      {i.ip_address || "—"}
                     </TableCell>
 
                     {/* REQUEST URL */}
                     <TableCell className="py-3 text-xs font-mono text-muted-foreground">
-                      {i.request_url}
+                      {i.request_url || "—"}
                     </TableCell>
 
                     {/* TIMESTAMP */}
@@ -249,7 +275,7 @@ export function SecurityOverviewPage() {
           </Table>
 
           {/* Table Footer */}
-          <div className="flex items-center justify-between border-t bg-muted/10 px-6 py-3 text-xs text-muted-foreground">
+          <div className="flex items-center justify-between border-t bg-card px-6 py-3 text-xs text-muted-foreground">
             <span>
               Showing {filteredIncidents.length} of {incidents.length} total incidents
             </span>

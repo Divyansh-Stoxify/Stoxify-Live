@@ -1,11 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AwardIcon,
   CheckIcon,
   ClockIcon,
-  EyeIcon,
   FilterIcon,
   PencilIcon,
   PlusIcon,
@@ -30,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { adminFetch } from "@/lib/admin/client-api";
 import { BlockAnalystDialog } from "@/components/admin/dialogs/block-analyst-dialog";
 import { ChangeAnalystStateDialog } from "@/components/admin/dialogs/change-analyst-state-dialog";
 import { CreateAnalystDialog, type NewAnalystData } from "@/components/admin/dialogs/create-analyst-dialog";
@@ -50,12 +50,36 @@ export function AnalystsPage() {
   const [activeTab, setActiveTab] = useState<"all" | "pending">("all");
   const [search, setSearch] = useState("");
   const [filterState, setFilterState] = useState("all");
+  const [selectedAnalyst, setSelectedAnalyst] = useState<AnalystRecord | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const handleRefresh = () => {
+  const fetchAnalysts = useCallback(async () => {
     setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
+    try {
+      const res = await adminFetch("/api/admin/analysts");
+      if (res.ok) {
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        const list = Array.isArray(data.analysts)
+          ? (data.analysts as AnalystRecord[])
+          : Array.isArray(data.items)
+          ? (data.items as AnalystRecord[])
+          : Array.isArray(data)
+          ? (data as AnalystRecord[])
+          : [];
+        setAnalysts(list);
+      } else {
+        setAnalysts([]);
+      }
+    } catch {
+      setAnalysts([]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchAnalysts();
+  }, [fetchAnalysts]);
 
   const handleAddAnalyst = (newAnalystData: NewAnalystData) => {
     const newAnalyst: AnalystRecord = {
@@ -80,6 +104,7 @@ export function AnalystsPage() {
 
   const handleDeleteAnalyst = (analystId: string) => {
     setAnalysts((prev) => prev.filter((a) => a.user_id !== analystId));
+    setSelectedAnalyst(null);
   };
 
   const handleApproveAnalyst = (analystId: string) => {
@@ -96,7 +121,7 @@ export function AnalystsPage() {
 
   // Pending verification applications queue
   const pendingQueue = useMemo(() => {
-    return analysts.filter((a) => /PENDING|ONGOING/i.test(a.state));
+    return analysts.filter((a) => a.state && /PENDING|ONGOING/i.test(a.state));
   }, [analysts]);
 
   // Filtered Analysts List
@@ -106,25 +131,38 @@ export function AnalystsPage() {
       const q = search.toLowerCase();
       const matchesSearch =
         !search ||
-        a.name.toLowerCase().includes(q) ||
-        a.email.toLowerCase().includes(q) ||
-        a.user_id.toLowerCase().includes(q) ||
+        (a.name && a.name.toLowerCase().includes(q)) ||
+        (a.email && a.email.toLowerCase().includes(q)) ||
+        (a.user_id && a.user_id.toLowerCase().includes(q)) ||
         (a.sebi_license_number && a.sebi_license_number.toLowerCase().includes(q));
 
       const matchesState =
-        filterState === "all" || a.state.toLowerCase() === filterState.toLowerCase();
+        filterState === "all" || (a.state && a.state.toLowerCase() === filterState.toLowerCase());
 
       return matchesSearch && matchesState;
     });
   }, [analysts, pendingQueue, activeTab, search, filterState]);
 
   const hasAnalysts = analysts.length > 0;
-  const activeCount = hasAnalysts ? analysts.filter((a) => /ACTIVE/i.test(a.state)).length : "—";
+  const activeCount = hasAnalysts ? analysts.filter((a) => a.state && /ACTIVE/i.test(a.state)).length : "—";
   const pendingCount = hasAnalysts ? pendingQueue.length : "—";
-  const blockedCount = hasAnalysts ? analysts.filter((a) => /BLOCKED/i.test(a.state)).length : "—";
+  const blockedCount = hasAnalysts ? analysts.filter((a) => a.state && /BLOCKED/i.test(a.state)).length : "—";
 
   return (
     <div className="space-y-6">
+      {/* Centered Analyst Detail Card Modal Popup */}
+      {selectedAnalyst && (
+        <AnalystDetailCardDialog
+          analyst={selectedAnalyst}
+          open={!!selectedAnalyst}
+          onOpenChange={(open) => {
+            if (!open) setSelectedAnalyst(null);
+          }}
+          onRefresh={fetchAnalysts}
+          onDelete={handleDeleteAnalyst}
+        />
+      )}
+
       {/* ── Page Header ────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-4 border-b pb-5 md:flex-row md:items-end md:justify-between">
         <div>
@@ -133,7 +171,7 @@ export function AnalystsPage() {
           </p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">Analysts Panel</h1>
           <p className="mt-1 text-xs text-muted-foreground">
-            Review analyst profiles, approve pending SEBI verification applications, inspect performance cards, and execute CRUD controls.
+            Review analyst profiles, approve pending SEBI verification applications, inspect performance cards, and execute CRUD controls. Click any row to view full credentials popup.
           </p>
         </div>
 
@@ -144,7 +182,7 @@ export function AnalystsPage() {
           <Button
             size="sm"
             variant="outline"
-            onClick={handleRefresh}
+            onClick={fetchAnalysts}
             disabled={isRefreshing}
             className="gap-1.5"
           >
@@ -154,23 +192,23 @@ export function AnalystsPage() {
         </div>
       </div>
 
-      {/* ── Metric Summary Tiles Grid (Placeholders) ──────────────────────── */}
+      {/* ── Metric Summary Tiles Grid ──────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Analysts</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-foreground/70">Total Analysts</span>
             <UserCheckIcon className="size-4 text-emerald-500" />
           </div>
-          <div className="mt-3 text-2xl font-extrabold tracking-tight text-muted-foreground/80">{hasAnalysts ? analysts.length : "—"}</div>
+          <div className="mt-3 text-2xl font-extrabold tracking-tight text-foreground">{hasAnalysts ? analysts.length : "—"}</div>
           <p className="mt-1 text-xs text-muted-foreground">Platform registered analysts</p>
         </Card>
 
         <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">SEBI Verified</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-foreground/70">SEBI Verified</span>
             <ShieldCheckIcon className="size-4 text-emerald-500" />
           </div>
-          <div className="mt-3 text-2xl font-extrabold tracking-tight text-muted-foreground/80">{activeCount}</div>
+          <div className="mt-3 text-2xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400">{activeCount}</div>
           <p className="mt-1 text-xs text-muted-foreground">Active & verified analysts</p>
         </Card>
 
@@ -181,7 +219,7 @@ export function AnalystsPage() {
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pending Approvals</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-foreground/70">Pending Approvals</span>
             <ClockIcon className="size-4 text-amber-500" />
           </div>
           <div className="mt-3 text-2xl font-extrabold tracking-tight text-amber-600 dark:text-amber-400">
@@ -192,48 +230,59 @@ export function AnalystsPage() {
 
         <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Blocked Analysts</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-foreground/70">Blocked Analysts</span>
             <ShieldOffIcon className="size-4 text-destructive" />
           </div>
-          <div className="mt-3 text-2xl font-extrabold tracking-tight text-muted-foreground/80">{blockedCount}</div>
+          <div className="mt-3 text-2xl font-extrabold tracking-tight text-destructive">{blockedCount}</div>
           <p className="mt-1 text-xs text-muted-foreground">Blocked analyst accounts</p>
         </Card>
       </div>
 
-      {/* ── Integrated Navigation Tabs ──────────────────────────────────────── */}
-      <div className="flex items-center gap-2 border-b pb-1">
-        <button
-          type="button"
-          onClick={() => setActiveTab("all")}
-          className={`px-4 py-2 text-xs font-semibold rounded-t-lg transition-all ${
-            activeTab === "all"
-              ? "border-b-2 border-primary text-foreground bg-muted/40"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          All Analysts Directory
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("pending")}
-          className={`px-4 py-2 text-xs font-semibold rounded-t-lg flex items-center gap-2 transition-all ${
-            activeTab === "pending"
-              ? "border-b-2 border-amber-500 text-amber-600 dark:text-amber-400 bg-amber-500/10"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <span>Approve Analyst Reviews Queue</span>
-          {pendingQueue.length > 0 && (
-            <Badge variant="outline" className="bg-amber-500 text-white font-bold text-[10px] px-1.5 py-0">
-              {pendingQueue.length}
+      {/* ── View Segmented Filter Bar ──────────────────────────────────────── */}
+      <div className="flex items-center justify-between gap-4 border-b pb-4">
+        <div className="inline-flex items-center rounded-lg border bg-card p-1 text-xs">
+          <button
+            type="button"
+            onClick={() => setActiveTab("all")}
+            className={`flex items-center gap-1.5 rounded-md px-3.5 py-1.5 font-semibold transition-all ${
+              activeTab === "all"
+                ? "bg-primary/10 text-primary shadow-xs"
+                : "text-foreground/70 hover:text-foreground hover:bg-accent/50"
+            }`}
+          >
+            <span>All Analysts Directory</span>
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-mono">
+              {hasAnalysts ? analysts.length : "—"}
             </Badge>
-          )}
-        </button>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("pending")}
+            className={`flex items-center gap-1.5 rounded-md px-3.5 py-1.5 font-semibold transition-all ${
+              activeTab === "pending"
+                ? "bg-amber-500 text-white shadow-xs"
+                : "text-foreground/70 hover:text-foreground hover:bg-accent/50"
+            }`}
+          >
+            <span>Approve Reviews Queue</span>
+            <Badge
+              variant="outline"
+              className={`font-bold text-[10px] px-1.5 py-0 ${
+                activeTab === "pending"
+                  ? "border-white/40 text-white"
+                  : "bg-amber-500 text-white border-transparent"
+              }`}
+            >
+              {pendingCount}
+            </Badge>
+          </button>
+        </div>
       </div>
 
       {/* ── Main Data Table Card ──────────────────────────────────────────── */}
       <Card className="rounded-xl border bg-card text-card-foreground shadow-xs overflow-hidden">
-        <CardHeader className="gap-3 border-b bg-muted/20 px-6 py-4 md:flex-row md:items-center md:justify-between">
+        <CardHeader className="gap-3 border-b bg-card px-6 py-4 md:flex-row md:items-center md:justify-between">
           <div>
             <CardTitle className="text-base font-bold tracking-tight text-foreground">
               {activeTab === "pending" ? "Pending Analyst Approvals Queue" : "Analyst Directory & Performance"}
@@ -241,7 +290,7 @@ export function AnalystsPage() {
             <p className="mt-0.5 text-xs text-muted-foreground">
               {activeTab === "pending"
                 ? "Review pending SEBI license applications and approve or reject verification requests"
-                : "SEBI registered analysts, experience, average PnL %, and control tools"}
+                : "SEBI registered analysts, experience, average PnL %, and control tools. Click any row to inspect details."}
             </p>
           </div>
 
@@ -280,7 +329,7 @@ export function AnalystsPage() {
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/30 hover:bg-muted/30">
+              <TableRow className="bg-card hover:bg-card border-b">
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">ANALYST</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">STATE</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">SEBI LICENSE</TableHead>
@@ -298,32 +347,36 @@ export function AnalystsPage() {
                     <div className="flex flex-col items-center justify-center gap-2 py-4">
                       <UserCheckIcon className="size-8 text-muted-foreground/50" />
                       <p className="font-semibold text-muted-foreground">
-                        {activeTab === "pending" ? "No pending analyst applications waiting for review" : "No analyst records to display"}
+                        {activeTab === "pending" ? "No pending analyst applications waiting for review" : "No analyst records returned from backend"}
                       </p>
                       <p className="text-[11px] text-muted-foreground/80 max-w-sm">
-                        Use the &ldquo;+ Add Analyst&rdquo; button above to register analyst entries or connect backend routes to load records.
+                        Use the &ldquo;+ Add Analyst&rdquo; button above to register analyst entries or ensure backend database has active analyst records.
                       </p>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredAnalysts.map((analyst) => {
-                  const isPending = /PENDING|ONGOING/i.test(analyst.state);
+                  const isPending = /PENDING|ONGOING/i.test(analyst.state || "");
                   const specs = Array.isArray(analyst.specialization) ? analyst.specialization : [];
                   const pnl = analyst.performance?.average_pnl_percent;
 
                   return (
-                    <TableRow key={analyst.user_id} className="transition-colors hover:bg-muted/40">
+                    <TableRow
+                      key={analyst.user_id}
+                      onClick={() => setSelectedAnalyst(analyst)}
+                      className="cursor-pointer transition-colors hover:bg-accent/40 border-b border-border/40"
+                    >
                       {/* ANALYST Name & Email */}
                       <TableCell className="py-3 text-xs">
                         <div className="flex items-center gap-2.5">
                           <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
-                            {analyst.name.slice(0, 2).toUpperCase()}
+                            {(analyst.name || "AN").slice(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-semibold text-foreground">{analyst.name}</p>
+                            <p className="font-semibold text-foreground">{analyst.name || "Analyst"}</p>
                             <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                              <span>{analyst.email}</span>
+                              <span>{analyst.email || "—"}</span>
                               <span className="font-mono text-[10px] text-muted-foreground/70">• {analyst.user_id}</span>
                             </p>
                           </div>
@@ -332,8 +385,8 @@ export function AnalystsPage() {
 
                       {/* STATE */}
                       <TableCell className="py-3 text-xs">
-                        <Badge variant={statusVariant(analyst.state)} className="font-semibold text-[10px] tracking-wide px-2 py-0.5">
-                          {analyst.state}
+                        <Badge variant={statusVariant(analyst.state || "ACTIVE")} className="font-semibold text-[10px] tracking-wide px-2 py-0.5">
+                          {analyst.state || "ACTIVE"}
                         </Badge>
                       </TableCell>
 
@@ -357,6 +410,7 @@ export function AnalystsPage() {
                               +{specs.length - 2}
                             </Badge>
                           )}
+                          {specs.length === 0 && <span className="text-muted-foreground text-[11px]">—</span>}
                         </div>
                       </TableCell>
 
@@ -372,28 +426,18 @@ export function AnalystsPage() {
                       </TableCell>
 
                       {/* ACTIONS / APPROVAL BUTTONS */}
-                      <TableCell className="py-3 text-right">
+                      <TableCell className="py-3 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1.5">
-                          {/* View Card Detail Modal */}
-                          <AnalystDetailCardDialog
-                            analyst={analyst}
-                            onRefresh={handleRefresh}
-                            onDelete={handleDeleteAnalyst}
-                            trigger={
-                              <Button size="icon-sm" variant="ghost" title="View Analyst Details Card">
-                                <EyeIcon className="size-4 text-emerald-600 hover:text-emerald-700" />
-                              </Button>
-                            }
-                          />
-
                           {/* Approval / Verify Button */}
                           {isPending && (
                             <>
                               <VerifyAnalystDialog
                                 analystId={analyst.user_id}
+                                analystName={analyst.name}
+                                sebiLicenseNumber={analyst.sebi_license_number}
                                 refresh={() => {
                                   handleApproveAnalyst(analyst.user_id);
-                                  handleRefresh();
+                                  fetchAnalysts();
                                 }}
                                 trigger={
                                   <Button size="sm" variant="default" className="gap-1 h-7 text-xs bg-emerald-600 hover:bg-emerald-700">
@@ -406,7 +450,7 @@ export function AnalystsPage() {
                                 analystId={analyst.user_id}
                                 refresh={() => {
                                   handleRejectAnalyst(analyst.user_id);
-                                  handleRefresh();
+                                  fetchAnalysts();
                                 }}
                                 trigger={
                                   <Button size="sm" variant="destructive" className="gap-1 h-7 text-xs">
@@ -421,10 +465,10 @@ export function AnalystsPage() {
                             <>
                               <BlockAnalystDialog
                                 analystId={analyst.user_id}
-                                currentState={analyst.state}
-                                refresh={handleRefresh}
+                                currentState={analyst.state || "ACTIVE"}
+                                refresh={fetchAnalysts}
                                 trigger={
-                                  <Button size="icon-sm" variant="ghost" title={/BLOCKED/i.test(analyst.state) ? "Unblock" : "Block"}>
+                                  <Button size="icon-sm" variant="ghost" title={/BLOCKED/i.test(analyst.state || "") ? "Unblock" : "Block"}>
                                     <ShieldOffIcon className="size-4 text-muted-foreground" />
                                   </Button>
                                 }
@@ -432,8 +476,8 @@ export function AnalystsPage() {
 
                               <ChangeAnalystStateDialog
                                 analystId={analyst.user_id}
-                                currentState={analyst.state}
-                                refresh={handleRefresh}
+                                currentState={analyst.state || "ACTIVE"}
+                                refresh={fetchAnalysts}
                                 trigger={
                                   <Button size="icon-sm" variant="ghost" title="Change state">
                                     <SlidersHorizontalIcon className="size-4 text-muted-foreground" />
@@ -448,7 +492,7 @@ export function AnalystsPage() {
                                 currentProfilePicUrl={analyst.profile_pic_url}
                                 currentExperienceYears={analyst.experience_years}
                                 currentSpecialization={specs}
-                                refresh={handleRefresh}
+                                refresh={fetchAnalysts}
                                 trigger={
                                   <Button size="icon-sm" variant="ghost" title="Edit profile">
                                     <PencilIcon className="size-4 text-muted-foreground" />
@@ -467,7 +511,7 @@ export function AnalystsPage() {
           </Table>
 
           {/* Table Footer */}
-          <div className="flex items-center justify-between border-t bg-muted/10 px-6 py-3 text-xs text-muted-foreground">
+          <div className="flex items-center justify-between border-t bg-card px-6 py-3 text-xs text-muted-foreground">
             <span>
               Showing {filteredAnalysts.length} of {analysts.length} total analysts
             </span>

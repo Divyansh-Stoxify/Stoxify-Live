@@ -3,9 +3,11 @@
 import { useState, type ReactNode } from "react";
 import {
   CheckIcon,
+  CreditCardIcon,
   EyeIcon,
   FileTextIcon,
   ShieldCheckIcon,
+  UserCheckIcon,
   XIcon,
 } from "lucide-react";
 
@@ -13,12 +15,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toastSuccess } from "./_action-toast";
 
 type Props = {
@@ -32,7 +34,7 @@ type Props = {
 
 export function VerificationDocViewerDialog({
   applicantName,
-  sebiLicenseNumber = "INH000001234",
+  sebiLicenseNumber = "INH78236478311",
   submittedAt = "Recent",
   trigger,
   onApprove,
@@ -40,7 +42,7 @@ export function VerificationDocViewerDialog({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
-  const [activeDoc, setActiveDoc] = useState<"sebi" | "pan" | "identity">("sebi");
+  const [activeDoc, setActiveDoc] = useState<"sebi" | "pan" | "aadhaar">("sebi");
 
   const handleAction = (action: "approve" | "reject") => {
     if (!reason.trim()) {
@@ -69,125 +71,208 @@ export function VerificationDocViewerDialog({
       >
         {trigger || (
           <Button size="sm" variant="outline" className="gap-1 text-xs">
-            <EyeIcon className="size-3.5" /> Inspect Docs
+            <EyeIcon className="size-3.5" /> Inspect Submitted Docs
           </Button>
         )}
       </span>
 
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full max-w-2xl overflow-y-auto sm:max-w-2xl">
-          <SheetHeader className="border-b pb-4">
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="w-full max-w-2xl max-h-[90vh] overflow-y-auto sm:max-w-2xl rounded-xl p-6">
+          <DialogHeader className="border-b pb-4 pr-8">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <SheetTitle className="text-lg font-bold flex items-center gap-2">
-                  <span>Applicant Verification Viewer</span>
+                <DialogTitle className="text-lg font-bold flex items-center gap-2">
+                  <span>Submitted Documents & Verification Popup</span>
                   <Badge variant="outline" className="text-[10px] font-mono">
-                    SEBI Review
+                    SEBI & KYC Audit
                   </Badge>
-                </SheetTitle>
-                <SheetDescription className="text-xs text-muted-foreground mt-0.5">
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
                   Applicant: <strong>{applicantName}</strong> &bull; SEBI License: <code className="font-mono">{sebiLicenseNumber}</code>
-                </SheetDescription>
+                </DialogDescription>
               </div>
             </div>
-          </SheetHeader>
+          </DialogHeader>
 
-          <div className="space-y-6 py-6 text-sm">
-            {/* Document Switcher */}
+          <div className="space-y-5 py-4 text-sm">
+            {/* Document Navigation Tabs */}
             <div className="flex items-center gap-2 border-b pb-2">
               <button
                 type="button"
                 onClick={() => setActiveDoc("sebi")}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 ${
                   activeDoc === "sebi"
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "text-muted-foreground hover:text-foreground bg-muted/40"
                 }`}
               >
-                SEBI License Certificate
+                <FileTextIcon className="size-3.5" /> SEBI Certificate
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveDoc("aadhaar")}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 ${
+                  activeDoc === "aadhaar"
+                    ? "bg-blue-600 text-white shadow-xs"
+                    : "text-muted-foreground hover:text-foreground bg-muted/40"
+                }`}
+              >
+                <UserCheckIcon className="size-3.5" /> Aadhaar Card
               </button>
               <button
                 type="button"
                 onClick={() => setActiveDoc("pan")}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 ${
                   activeDoc === "pan"
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-purple-600 text-white shadow-xs"
+                    : "text-muted-foreground hover:text-foreground bg-muted/40"
                 }`}
               >
-                PAN & Identity Document
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveDoc("identity")}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                  activeDoc === "identity"
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Address Proof Document
+                <CreditCardIcon className="size-3.5" /> PAN Card
               </button>
             </div>
 
-            {/* Document Viewer Frame Placeholder */}
-            <div className="rounded-lg border bg-muted/20 p-8 text-center space-y-4">
-              <div className="size-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                <FileTextIcon className="size-8" />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-foreground capitalize">
-                  {activeDoc === "sebi" ? "SEBI Registration Certificate (PDF)" : activeDoc === "pan" ? "PAN Card Copy (JPG)" : "Aadhaar / Address Proof (PDF)"}
-                </h4>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Submitted on {submittedAt} &bull; Document Reference #{sebiLicenseNumber}_DOC
-                </p>
-              </div>
+            {/* Document Content View Pane */}
+            <div className="rounded-xl border bg-muted/20 p-5 space-y-4">
+              {activeDoc === "sebi" && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <div>
+                      <h4 className="text-sm font-bold text-foreground">SEBI Registration Certificate</h4>
+                      <p className="text-xs font-mono text-muted-foreground">Official SEBI Research Analyst License</p>
+                    </div>
+                    <Badge variant="default" className="bg-emerald-600 text-white text-[10px]">
+                      SEBI Certified
+                    </Badge>
+                  </div>
 
-              {/* Document Preview Box */}
-              <div className="mx-auto max-w-md rounded-md border border-dashed bg-background p-6 text-xs text-muted-foreground space-y-2">
-                <p className="font-semibold text-foreground">Document Document Preview Placeholder</p>
-                <p className="text-[11px] leading-relaxed">
-                  Verified against NSDL/SEBI public registry. License Number <span className="font-mono font-bold text-foreground">{sebiLicenseNumber}</span> matches applicant identity.
-                </p>
-              </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs bg-background p-3 rounded-lg border">
+                    <div>
+                      <span className="text-muted-foreground text-[10px] uppercase font-mono">SEBI Number</span>
+                      <p className="font-mono font-bold text-foreground">{sebiLicenseNumber}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-[10px] uppercase font-mono">Registration Category</span>
+                      <p className="font-medium text-foreground">Research Analyst (RA)</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-[10px] uppercase font-mono">Issuing Authority</span>
+                      <p className="font-medium text-foreground">Securities and Exchange Board of India</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-[10px] uppercase font-mono">Submission Timestamp</span>
+                      <p className="font-mono text-muted-foreground">{submittedAt}</p>
+                    </div>
+                  </div>
+
+                  {/* Visual Document Placeholder */}
+                  <div className="border-2 border-dashed border-emerald-500/30 rounded-lg p-6 text-center bg-emerald-500/5 space-y-2">
+                    <FileTextIcon className="size-10 mx-auto text-emerald-600 dark:text-emerald-400" />
+                    <p className="text-xs font-bold text-foreground">SEBI_Registration_Certificate_Document.pdf</p>
+                    <p className="text-[11px] text-muted-foreground">Verified SEBI credentials document copy for {applicantName}</p>
+                  </div>
+                </div>
+              )}
+
+              {activeDoc === "aadhaar" && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <div>
+                      <h4 className="text-sm font-bold text-foreground">Aadhaar Identity Proof</h4>
+                      <p className="text-xs font-mono text-muted-foreground">UIDAI Government Issued Identity Card</p>
+                    </div>
+                    <Badge variant="default" className="bg-blue-600 text-white text-[10px]">
+                      Aadhaar Verified
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs bg-background p-3 rounded-lg border">
+                    <div>
+                      <span className="text-muted-foreground text-[10px] uppercase font-mono">Aadhaar Number</span>
+                      <p className="font-mono font-bold text-foreground">XXXX-XXXX-8921</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-[10px] uppercase font-mono">Full Name on Aadhaar</span>
+                      <p className="font-medium text-foreground">{applicantName}</p>
+                    </div>
+                  </div>
+
+                  {/* Visual Document Placeholder */}
+                  <div className="border-2 border-dashed border-blue-500/30 rounded-lg p-6 text-center bg-blue-500/5 space-y-2">
+                    <UserCheckIcon className="size-10 mx-auto text-blue-600 dark:text-blue-400" />
+                    <p className="text-xs font-bold text-foreground">Aadhaar_Card_Front_Back_Copy.pdf</p>
+                    <p className="text-[11px] text-muted-foreground">Identity & address verification document for {applicantName}</p>
+                  </div>
+                </div>
+              )}
+
+              {activeDoc === "pan" && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <div>
+                      <h4 className="text-sm font-bold text-foreground">PAN Card Verification Document</h4>
+                      <p className="text-xs font-mono text-muted-foreground">Income Tax Department Permanent Account Number</p>
+                    </div>
+                    <Badge variant="default" className="bg-purple-600 text-white text-[10px]">
+                      PAN Verified
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs bg-background p-3 rounded-lg border">
+                    <div>
+                      <span className="text-muted-foreground text-[10px] uppercase font-mono">PAN Number</span>
+                      <p className="font-mono font-bold text-foreground">ABCDE1234F</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-[10px] uppercase font-mono">Name on PAN</span>
+                      <p className="font-medium text-foreground">{applicantName}</p>
+                    </div>
+                  </div>
+
+                  {/* Visual Document Placeholder */}
+                  <div className="border-2 border-dashed border-purple-500/30 rounded-lg p-6 text-center bg-purple-500/5 space-y-2">
+                    <CreditCardIcon className="size-10 mx-auto text-purple-600 dark:text-purple-400" />
+                    <p className="text-xs font-bold text-foreground">PAN_Card_Verification_Copy.jpg</p>
+                    <p className="text-[11px] text-muted-foreground">Tax identification document copy for {applicantName}</p>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Mandatory Reason Input */}
-            <div className="space-y-2 border-t pt-4">
-              <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                <span>Reviewer Decision Reason *</span>
-                <span className="text-[10px] font-normal text-muted-foreground">(Mandatory for audit log)</span>
+            {/* Mandatory Reviewer Notes & Action Buttons */}
+            <div className="space-y-3 pt-3 border-t">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Mandatory Reviewer Notes & Reason <span className="text-destructive">*</span>
               </label>
               <Input
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="e.g. SEBI License number verified against registry. All documents valid."
-                className="text-xs h-9"
+                placeholder="Enter mandatory reason for approval or rejection..."
+                className="text-xs"
               />
-            </div>
 
-            {/* Decision Buttons */}
-            <div className="flex items-center gap-3 border-t pt-4">
-              <Button
-                size="sm"
-                onClick={() => handleAction("approve")}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
-              >
-                <CheckIcon className="size-4" /> Approve Application
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => handleAction("reject")}
-                className="flex-1 gap-1.5"
-              >
-                <XIcon className="size-4" /> Reject Application
-              </Button>
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => handleAction("reject")}
+                  className="gap-1.5"
+                >
+                  <XIcon className="size-3.5" /> Reject Application
+                </Button>
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => handleAction("approve")}
+                  className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  <CheckIcon className="size-3.5" /> Approve Verification
+                </Button>
+              </div>
             </div>
           </div>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

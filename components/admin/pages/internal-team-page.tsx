@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2Icon,
   FilterIcon,
@@ -27,6 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { adminFetch } from "@/lib/admin/client-api";
 import { Gated } from "@/components/admin/admin-permissions-provider";
 import { ChangeMemberRoleDialog } from "@/components/admin/dialogs/change-member-role-dialog";
 import { ChangeUserStateDialog } from "@/components/admin/dialogs/change-user-state-dialog";
@@ -55,10 +56,35 @@ export function InternalTeamPage() {
   const [filterState, setFilterState] = useState("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const handleRefresh = () => {
+  const fetchMembers = useCallback(async () => {
     setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
+    try {
+      const res = await adminFetch("/api/admin/internal-team");
+      if (res.ok) {
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        const list = Array.isArray(data.members)
+          ? (data.members as InternalMemberRecord[])
+          : Array.isArray(data.users)
+          ? (data.users as InternalMemberRecord[])
+          : Array.isArray(data.items)
+          ? (data.items as InternalMemberRecord[])
+          : Array.isArray(data)
+          ? (data as InternalMemberRecord[])
+          : [];
+        setMembers(list);
+      } else {
+        setMembers([]);
+      }
+    } catch {
+      setMembers([]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchMembers();
+  }, [fetchMembers]);
 
   // Filtered Members List
   const filteredMembers = useMemo(() => {
@@ -66,13 +92,13 @@ export function InternalTeamPage() {
       const q = search.toLowerCase();
       const matchesSearch =
         !search ||
-        m.name.toLowerCase().includes(q) ||
-        m.email.toLowerCase().includes(q) ||
-        m.assigned_role.toLowerCase().includes(q) ||
-        m.user_id.toLowerCase().includes(q);
+        (m.name && m.name.toLowerCase().includes(q)) ||
+        (m.email && m.email.toLowerCase().includes(q)) ||
+        (m.assigned_role && m.assigned_role.toLowerCase().includes(q)) ||
+        (m.user_id && m.user_id.toLowerCase().includes(q));
 
       const matchesState =
-        filterState === "all" || m.state.toLowerCase() === filterState.toLowerCase();
+        filterState === "all" || (m.state && m.state.toLowerCase() === filterState.toLowerCase());
 
       return matchesSearch && matchesState;
     });
@@ -80,7 +106,7 @@ export function InternalTeamPage() {
 
   const hasMembers = members.length > 0;
   const activeCount = hasMembers ? members.filter((m) => m.state === "ACTIVE").length : "—";
-  const adminCount = hasMembers ? members.filter((m) => /admin|founder/i.test(m.assigned_role)).length : "—";
+  const adminCount = hasMembers ? members.filter((m) => m.assigned_role && /admin|founder/i.test(m.assigned_role)).length : "—";
   const blockedCount = hasMembers ? members.filter((m) => m.state === "BLOCKED").length : "—";
 
   return (
@@ -100,7 +126,7 @@ export function InternalTeamPage() {
         <div className="flex items-center gap-2">
           <Gated power="PWR_ADMIN_USER_ROLE_ASSIGN">
             <CreateSubAdminDialog
-              refresh={handleRefresh}
+              refresh={fetchMembers}
               trigger={
                 <Button size="sm" className="gap-1.5 bg-primary hover:bg-primary/90">
                   <PlusIcon className="size-4" /> New Sub-Admin
@@ -112,7 +138,7 @@ export function InternalTeamPage() {
           <Button
             size="sm"
             variant="outline"
-            onClick={handleRefresh}
+            onClick={fetchMembers}
             disabled={isRefreshing}
             className="gap-1.5"
           >
@@ -122,7 +148,7 @@ export function InternalTeamPage() {
         </div>
       </div>
 
-      {/* ── Metric Summary Tiles Grid (Placeholders) ──────────────────────── */}
+      {/* ── Metric Summary Tiles Grid ──────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
           <div className="flex items-center justify-between">
@@ -163,7 +189,7 @@ export function InternalTeamPage() {
 
       {/* ── Main Data Table Card ──────────────────────────────────────────── */}
       <Card className="rounded-xl border bg-card text-card-foreground shadow-xs overflow-hidden">
-        <CardHeader className="gap-3 border-b bg-muted/20 px-6 py-4 md:flex-row md:items-center md:justify-between">
+        <CardHeader className="gap-3 border-b bg-card px-6 py-4 md:flex-row md:items-center md:justify-between">
           <div>
             <CardTitle className="text-base font-bold tracking-tight text-foreground">Internal Team Directory</CardTitle>
             <p className="mt-0.5 text-xs text-muted-foreground">Internal team members, assigned role powers, account state, and contact details</p>
@@ -201,7 +227,7 @@ export function InternalTeamPage() {
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/30 hover:bg-muted/30">
+              <TableRow className="bg-card hover:bg-card border-b">
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">MEMBER</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">ROLE</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">STATE</TableHead>
@@ -216,7 +242,7 @@ export function InternalTeamPage() {
                   <TableCell colSpan={6} className="h-36 text-center text-xs text-muted-foreground">
                     <div className="flex flex-col items-center justify-center gap-2 py-4">
                       <UserCheckIcon className="size-8 text-muted-foreground/50" />
-                      <p className="font-semibold text-muted-foreground">No internal team members to display</p>
+                      <p className="font-semibold text-muted-foreground">No internal team members returned from backend</p>
                       <p className="text-[11px] text-muted-foreground/80 max-w-sm">
                         Use the &ldquo;+ New Sub-Admin&rdquo; button above to register a new team member or connect backend API routes.
                       </p>
@@ -225,14 +251,14 @@ export function InternalTeamPage() {
                 </TableRow>
               ) : (
                 filteredMembers.map((m) => (
-                  <TableRow key={m.user_id} className="transition-colors hover:bg-muted/40">
+                  <TableRow key={m.user_id} className="transition-colors hover:bg-accent/40 border-b border-border/40">
                     {/* MEMBER */}
                     <TableCell className="py-3 text-xs">
                       <div>
-                        <p className="font-semibold text-foreground">{m.name}</p>
+                        <p className="font-semibold text-foreground">{m.name || "Team Member"}</p>
                         <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                          <span>{m.email}</span>
-                          <span className="font-mono text-[10px] text-muted-foreground/70">• {m.user_id}</span>
+                          <span>{m.email || "—"}</span>
+                          {m.user_id && <span className="font-mono opacity-70">• {m.user_id}</span>}
                         </p>
                       </div>
                     </TableCell>
@@ -240,14 +266,14 @@ export function InternalTeamPage() {
                     {/* ROLE */}
                     <TableCell className="py-3 text-xs">
                       <Badge variant="outline" className="text-[10px] font-mono font-bold">
-                        {m.assigned_role}
+                        {m.assigned_role || "SUB_ADMIN"}
                       </Badge>
                     </TableCell>
 
                     {/* STATE */}
                     <TableCell className="py-3 text-xs">
-                      <Badge variant={statusVariant(m.state)} className="font-semibold text-[10px] tracking-wide px-2 py-0.5">
-                        {m.state}
+                      <Badge variant={statusVariant(m.state || "ACTIVE")} className="font-semibold text-[10px] tracking-wide px-2 py-0.5">
+                        {m.state || "ACTIVE"}
                       </Badge>
                     </TableCell>
 
@@ -269,7 +295,7 @@ export function InternalTeamPage() {
                             userId={m.user_id}
                             userLabel={m.name}
                             currentRole={m.assigned_role}
-                            refresh={handleRefresh}
+                            refresh={fetchMembers}
                             trigger={
                               <Button size="icon-sm" variant="ghost" title="Change Role">
                                 <ShieldIcon className="size-3.5 text-purple-600" />
@@ -281,8 +307,8 @@ export function InternalTeamPage() {
                         <Gated power="PWR_USER_STATE_CHANGE">
                           <ChangeUserStateDialog
                             userId={m.user_id}
-                            currentState={m.state}
-                            refresh={handleRefresh}
+                            currentState={m.state || "ACTIVE"}
+                            refresh={fetchMembers}
                             trigger={
                               <Button size="icon-sm" variant="ghost" title="Change State">
                                 <UserCogIcon className="size-3.5 text-muted-foreground" />

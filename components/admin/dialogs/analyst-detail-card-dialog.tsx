@@ -23,16 +23,17 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { BlockAnalystDialog } from "./block-analyst-dialog";
 import { ChangeAnalystStateDialog } from "./change-analyst-state-dialog";
 import { EditAnalystProfileDialog } from "./edit-analyst-profile-dialog";
 import { VerifyAnalystDialog } from "./verify-analyst-dialog";
+import { VerificationDocViewerDialog } from "./verification-doc-viewer-dialog";
 import { ConfirmDialog } from "./_confirm-dialog";
 
 export type AnalystRecord = {
@@ -102,33 +103,33 @@ export function AnalystDetailCardDialog({
           {trigger}
         </span>
       )}
-      <Sheet open={isOpen} onOpenChange={setOpen}>
-        <SheetContent className="w-full max-w-xl overflow-y-auto sm:max-w-xl">
-          <SheetHeader className="border-b pb-4">
+      <Dialog open={isOpen} onOpenChange={setOpen}>
+        <DialogContent className="w-full max-w-xl max-h-[90vh] overflow-y-auto sm:max-w-xl rounded-xl p-6">
+          <DialogHeader className="border-b pb-4 pr-8">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="flex size-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-lg">
+                <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-lg">
                   {analyst.name ? analyst.name.slice(0, 2).toUpperCase() : "AN"}
                 </div>
                 <div>
-                  <SheetTitle className="text-lg font-bold flex items-center gap-2">
+                  <DialogTitle className="text-lg font-bold flex items-center gap-2">
                     {analyst.name || "Analyst Details"}
                     <Badge variant="outline" className="text-[10px] font-mono">
                       {analyst.experience_years ? `${analyst.experience_years}Y Exp` : "Analyst"}
                     </Badge>
-                  </SheetTitle>
-                  <SheetDescription className="text-xs font-mono text-muted-foreground mt-0.5">
+                  </DialogTitle>
+                  <DialogDescription className="text-xs font-mono text-muted-foreground mt-0.5">
                     SEBI Reg: {analyst.sebi_license_number || "PENDING"}
-                  </SheetDescription>
+                  </DialogDescription>
                 </div>
               </div>
-              <Badge variant={stateVariant} className="uppercase text-[11px] font-semibold">
+              <Badge variant={stateVariant} className="uppercase text-[11px] font-semibold shrink-0">
                 {analyst.state || "PENDING"}
               </Badge>
             </div>
-          </SheetHeader>
+          </DialogHeader>
 
-          <div className="space-y-6 py-6 text-sm">
+          <div className="space-y-6 py-4 text-sm">
             {/* Quick Performance Grid */}
             <div className="grid grid-cols-3 gap-3 rounded-lg border bg-emerald-500/5 p-3 text-center text-xs">
               <div>
@@ -136,7 +137,7 @@ export function AnalystDetailCardDialog({
                 <p className="mt-0.5 text-base font-bold text-emerald-600 dark:text-emerald-400">
                   {typeof analyst.performance?.average_pnl_percent === "number"
                     ? `${analyst.performance.average_pnl_percent}%`
-                    : "—"}
+                    : "0%"}
                 </p>
               </div>
               <div>
@@ -171,9 +172,9 @@ export function AnalystDetailCardDialog({
                 </div>
                 <div className="flex items-center justify-between py-1 border-b border-border/50">
                   <span className="text-muted-foreground flex items-center gap-2">
-                    <AwardIcon className="size-3.5" /> Experience
+                    <BriefcaseIcon className="size-3.5" /> Experience
                   </span>
-                  <span className="font-medium text-foreground">
+                  <span className="font-semibold text-foreground">
                     {analyst.experience_years ? `${analyst.experience_years} Years` : "—"}
                   </span>
                 </div>
@@ -181,32 +182,43 @@ export function AnalystDetailCardDialog({
                   <span className="text-muted-foreground flex items-center gap-2">
                     <ShieldCheckIcon className="size-3.5" /> Verification State
                   </span>
-                  <Badge variant={isActive ? "default" : "outline"}>
-                    {isActive ? "SEBI Verified" : "Pending Verification"}
+                  <Badge variant={stateVariant} className="text-[10px]">
+                    {analyst.state || "Pending Verification"}
                   </Badge>
                 </div>
+                <VerificationDocViewerDialog
+                  applicantName={analyst.name}
+                  sebiLicenseNumber={analyst.sebi_license_number}
+                  trigger={
+                    <Button size="sm" variant="outline" className="gap-1.5 w-full text-xs font-semibold mt-2 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10">
+                      <FileTextIcon className="size-3.5" /> Inspect Submitted Documents (Aadhaar, PAN, SEBI Certificate)
+                    </Button>
+                  }
+                />
               </div>
             </div>
 
-            {/* Specialization Tags */}
+            {/* Specializations */}
             <div className="space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Market Specialization
               </h3>
-              <div className="flex flex-wrap gap-2 rounded-md border p-3.5">
+              <div className="flex flex-wrap gap-1.5 rounded-md border p-3.5 text-xs">
                 {specs.length > 0 ? (
                   specs.map((spec) => (
-                    <Badge key={spec} variant="secondary" className="text-xs font-medium">
+                    <Badge key={spec} variant="secondary" className="text-xs px-2 py-0.5">
                       {spec}
                     </Badge>
                   ))
                 ) : (
-                  <span className="text-xs text-muted-foreground">No specializations configured</span>
+                  <span className="text-muted-foreground text-xs italic">
+                    No specializations configured
+                  </span>
                 )}
               </div>
             </div>
 
-            {/* Contact Information */}
+            {/* Contact & Analyst Profile */}
             <div className="space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Contact & Analyst Profile
@@ -222,21 +234,23 @@ export function AnalystDetailCardDialog({
                   <span className="text-muted-foreground flex items-center gap-2">
                     <PhoneIcon className="size-3.5" /> Phone
                   </span>
-                  <span className="font-medium text-foreground">{analyst.phone || "—"}</span>
+                  <span className="font-mono text-foreground">{analyst.phone || "—"}</span>
                 </div>
                 <div className="flex items-center justify-between py-1">
                   <span className="text-muted-foreground flex items-center gap-2">
                     <CalendarIcon className="size-3.5" /> Registration Date
                   </span>
-                  <span className="font-medium text-foreground">
-                    {analyst.created_at ? new Date(analyst.created_at).toLocaleDateString("en-IN") : "Recent"}
+                  <span className="text-muted-foreground">
+                    {analyst.created_at
+                      ? new Date(analyst.created_at).toLocaleDateString("en-IN")
+                      : "—"}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* CRUD Operations Bar */}
-            <div className="border-t pt-4 space-y-3">
+            {/* Action Buttons */}
+            <div className="space-y-3 pt-2 border-t">
               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 CRUD Actions & Verification Controls
               </h3>
@@ -322,8 +336,8 @@ export function AnalystDetailCardDialog({
               </div>
             </div>
           </div>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

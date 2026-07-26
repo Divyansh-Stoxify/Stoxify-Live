@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2Icon,
   FilterIcon,
@@ -27,6 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { adminFetch } from "@/lib/admin/client-api";
 import { Gated } from "@/components/admin/admin-permissions-provider";
 import { CreateEditRoleDialog } from "@/components/admin/dialogs/create-edit-role-dialog";
 import { DeleteRoleDialog } from "@/components/admin/dialogs/delete-role-dialog";
@@ -47,10 +48,33 @@ export function RolesPage() {
   const [filterType, setFilterType] = useState("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const handleRefresh = () => {
+  const fetchRoles = useCallback(async () => {
     setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
+    try {
+      const res = await adminFetch("/api/admin/rbac/roles");
+      if (res.ok) {
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        const list = Array.isArray(data.roles)
+          ? (data.roles as RoleRecord[])
+          : Array.isArray(data.items)
+          ? (data.items as RoleRecord[])
+          : Array.isArray(data)
+          ? (data as RoleRecord[])
+          : [];
+        setRoles(list);
+      } else {
+        setRoles([]);
+      }
+    } catch {
+      setRoles([]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchRoles();
+  }, [fetchRoles]);
 
   const handleDeleteRole = (roleId: string) => {
     setRoles((prev) => prev.filter((r) => r.role_id !== roleId));
@@ -62,9 +86,9 @@ export function RolesPage() {
       const q = search.toLowerCase();
       const matchesSearch =
         !search ||
-        r.role_name.toLowerCase().includes(q) ||
-        r.description.toLowerCase().includes(q) ||
-        r.role_id.toLowerCase().includes(q);
+        (r.role_name && r.role_name.toLowerCase().includes(q)) ||
+        (r.description && r.description.toLowerCase().includes(q)) ||
+        (r.role_id && r.role_id.toLowerCase().includes(q));
 
       const matchesType =
         filterType === "all" ||
@@ -100,7 +124,7 @@ export function RolesPage() {
           <Gated power="PWR_ADMIN_ROLE_MANAGE">
             <CreateEditRoleDialog
               mode="create"
-              refresh={handleRefresh}
+              refresh={fetchRoles}
               trigger={
                 <Button size="sm" className="gap-1.5 bg-primary hover:bg-primary/90">
                   <PlusIcon className="size-4" /> Create Role
@@ -112,7 +136,7 @@ export function RolesPage() {
           <Button
             size="sm"
             variant="outline"
-            onClick={handleRefresh}
+            onClick={fetchRoles}
             disabled={isRefreshing}
             className="gap-1.5"
           >
@@ -122,7 +146,7 @@ export function RolesPage() {
         </div>
       </div>
 
-      {/* ── Metric Summary Tiles Grid (Placeholders) ──────────────────────── */}
+      {/* ── Metric Summary Tiles Grid ──────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
           <div className="flex items-center justify-between">
@@ -163,7 +187,7 @@ export function RolesPage() {
 
       {/* ── Main Data Table Card ──────────────────────────────────────────── */}
       <Card className="rounded-xl border bg-card text-card-foreground shadow-xs overflow-hidden">
-        <CardHeader className="gap-3 border-b bg-muted/20 px-6 py-4 md:flex-row md:items-center md:justify-between">
+        <CardHeader className="gap-3 border-b bg-card px-6 py-4 md:flex-row md:items-center md:justify-between">
           <div>
             <CardTitle className="text-base font-bold tracking-tight text-foreground">RBAC Role Registry</CardTitle>
             <p className="mt-0.5 text-xs text-muted-foreground">Role definitions, description, permission power count, and protection status</p>
@@ -200,7 +224,7 @@ export function RolesPage() {
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/30 hover:bg-muted/30">
+              <TableRow className="bg-card hover:bg-card border-b">
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">ROLE</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">DESCRIPTION</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">POWERS</TableHead>
@@ -214,16 +238,16 @@ export function RolesPage() {
                   <TableCell colSpan={5} className="h-36 text-center text-xs text-muted-foreground">
                     <div className="flex flex-col items-center justify-center gap-2 py-4">
                       <KeyRoundIcon className="size-8 text-muted-foreground/50" />
-                      <p className="font-semibold text-muted-foreground">No access roles to display</p>
+                      <p className="font-semibold text-muted-foreground">No access roles returned from backend</p>
                       <p className="text-[11px] text-muted-foreground/80 max-w-sm">
-                        Use the &ldquo;Create Role&rdquo; button above to define a new custom sub-admin role or connect backend API routes.
+                        Use the &ldquo;Create Role&rdquo; button above to define a new custom sub-admin role or ensure backend RBAC service is active.
                       </p>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredRoles.map((r) => (
-                  <TableRow key={r.role_id} className="transition-colors hover:bg-muted/40">
+                  <TableRow key={r.role_id} className="transition-colors hover:bg-accent/40 border-b border-border/40">
                     {/* ROLE */}
                     <TableCell className="py-3 text-xs">
                       <div>
@@ -234,12 +258,12 @@ export function RolesPage() {
 
                     {/* DESCRIPTION */}
                     <TableCell className="py-3 text-xs text-muted-foreground">
-                      {r.description || "System permission role"}
+                      {r.description || "—"}
                     </TableCell>
 
                     {/* POWERS */}
                     <TableCell className="py-3 text-xs font-bold text-foreground">
-                      {r.powers_count} powers
+                      {r.powers_count || 0} powers
                     </TableCell>
 
                     {/* TYPE */}
@@ -253,13 +277,13 @@ export function RolesPage() {
                     </TableCell>
 
                     {/* ACTIONS */}
-                    <TableCell className="py-3 text-right">
+                    <TableCell className="py-3 text-right text-xs">
                       <div className="flex items-center justify-end gap-1">
                         <Gated power="PWR_ADMIN_ROLE_MANAGE">
                           <RoleMembersDialog
                             roleId={r.role_id}
                             roleName={r.role_name}
-                            refresh={handleRefresh}
+                            refresh={fetchRoles}
                             trigger={
                               <Button size="icon-sm" variant="ghost" title="View Assigned Members">
                                 <UsersIcon className="size-3.5 text-blue-500" />
@@ -275,7 +299,7 @@ export function RolesPage() {
                             currentName={r.role_name}
                             currentDescription={r.description}
                             isSystemRole={r.is_system_role}
-                            refresh={handleRefresh}
+                            refresh={fetchRoles}
                             trigger={
                               <Button size="icon-sm" variant="ghost" title="Edit Role Checklist">
                                 <PencilIcon className="size-3.5 text-muted-foreground" />
@@ -289,7 +313,7 @@ export function RolesPage() {
                             <DeleteRoleDialog
                               roleId={r.role_id}
                               roleName={r.role_name}
-                              refresh={handleRefresh}
+                              refresh={fetchRoles}
                               trigger={
                                 <Button size="icon-sm" variant="ghost" title="Delete Custom Role">
                                   <Trash2Icon className="size-3.5 text-destructive" />
@@ -307,7 +331,7 @@ export function RolesPage() {
           </Table>
 
           {/* Table Footer */}
-          <div className="flex items-center justify-between border-t bg-muted/10 px-6 py-3 text-xs text-muted-foreground">
+          <div className="flex items-center justify-between border-t bg-card px-6 py-3 text-xs text-muted-foreground">
             <span>
               Showing {filteredRoles.length} of {roles.length} total roles
             </span>

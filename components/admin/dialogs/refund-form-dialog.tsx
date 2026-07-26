@@ -57,7 +57,7 @@ export function RefundFormDialog({ onSuccess, trigger }: Props) {
 
   return (
     <FormDialog
-      title="Create Refund Request"
+      title="Create Refund Request (API NEEDED FROM BACKEND)"
       description="Initiate a subscription refund request. Mandates linked transaction ID and audit reason."
       submitLabel="Submit Refund Request"
       onSubmit={handleSubmit}

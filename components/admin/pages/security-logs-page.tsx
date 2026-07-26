@@ -159,6 +159,7 @@ export function SecurityLogsPage() {
               trigger={
                 <Button size="sm" variant="destructive" className="gap-1.5">
                   <Trash2Icon className="size-3.5" /> Purge Logs
+                  <span className="text-[9px] font-mono opacity-80">(API NEEDED FROM BACKEND)</span>
                 </Button>
               }
             />

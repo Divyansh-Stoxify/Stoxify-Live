@@ -445,7 +445,7 @@ function DataPanel({ page, subtitle }: { page: AdminPageConfig; subtitle: string
 
   return (
     <Card className="rounded-xl border bg-card text-card-foreground shadow-xs overflow-hidden">
-      <CardHeader className="gap-3 border-b bg-muted/20 px-6 py-4 md:flex-row md:items-center md:justify-between">
+      <CardHeader className="gap-3 border-b bg-card px-6 py-4 md:flex-row md:items-center md:justify-between">
         <div>
           <CardTitle className="text-base font-bold tracking-tight text-foreground">{page.title}</CardTitle>
           <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
@@ -477,7 +477,7 @@ function DataPanel({ page, subtitle }: { page: AdminPageConfig; subtitle: string
       <CardContent className="p-0">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/30 hover:bg-muted/30">
+            <TableRow className="bg-card hover:bg-card border-b">
               {page.columns.map((column) => (
                 <TableHead key={column} className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">
                   {column}
@@ -519,7 +519,7 @@ function DataPanel({ page, subtitle }: { page: AdminPageConfig; subtitle: string
               </TableRow>
             ) : (
               page.rows.map((row, index) => (
-                <TableRow key={`${page.title}-${index}`} className="transition-colors hover:bg-muted/40">
+                <TableRow key={`${page.title}-${index}`} className="transition-colors hover:bg-accent/40 border-b border-border/40">
                   {page.columns.map((column) => {
                     const value = row[column] ?? "-";
                     const isState =
@@ -550,7 +550,7 @@ function DataPanel({ page, subtitle }: { page: AdminPageConfig; subtitle: string
           </TableBody>
         </Table>
         {pagination && (
-          <div className="flex items-center justify-between border-t bg-muted/10 px-4 py-3">
+          <div className="flex items-center justify-between border-t bg-card px-4 py-3">
             <span className="text-xs font-medium text-muted-foreground">
               Page {pagination.page} of {totalPages} &mdash; {pagination.total} total items
             </span>

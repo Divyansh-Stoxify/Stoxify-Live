@@ -1,17 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIcon,
   CandlestickChartIcon,
   CheckCircle2Icon,
-  ClockIcon,
   FilterIcon,
   LayersIcon,
   RefreshCwIcon,
   SearchIcon,
   Trash2Icon,
   TrendingUpIcon,
+  UserCheckIcon,
+  XIcon,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { adminFetch } from "@/lib/admin/client-api";
+import { AnalystSearchFilter } from "@/components/admin/analyst-search-filter";
 import { Gated } from "@/components/admin/admin-permissions-provider";
 import { ConfirmActionDialog } from "@/components/admin/dialogs/confirm-action-dialog";
 
@@ -52,27 +55,60 @@ export function TradesPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterSegment, setFilterSegment] = useState("all");
+  const [filterAnalyst, setFilterAnalyst] = useState("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const handleRefresh = () => {
+  const fetchTrades = useCallback(async () => {
     setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
+    try {
+      const res = await adminFetch("/api/admin/trades");
+      if (res.ok) {
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        const list = Array.isArray(data.trades)
+          ? (data.trades as TradeRecord[])
+          : Array.isArray(data.items)
+          ? (data.items as TradeRecord[])
+          : Array.isArray(data)
+          ? (data as TradeRecord[])
+          : [];
+        setTrades(list);
+      } else {
+        setTrades([]);
+      }
+    } catch {
+      setTrades([]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchTrades();
+  }, [fetchTrades]);
 
   const handleDeleteTrade = (tradeId: string) => {
     setTrades((prev) => prev.filter((t) => t.trade_id !== tradeId));
   };
 
-  // Filtered Trades List
+  // Derive unique analyst names for top dropdown
+  const analystList = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of trades) {
+      if (t.analyst_name) set.add(t.analyst_name);
+    }
+    return Array.from(set);
+  }, [trades]);
+
+  // Filtered Trades List according to search, analyst, segment, status
   const filteredTrades = useMemo(() => {
     return trades.filter((t) => {
       const q = search.toLowerCase();
       const matchesSearch =
         !search ||
-        t.symbol.toLowerCase().includes(q) ||
-        t.analyst_name.toLowerCase().includes(q) ||
-        t.segment.toLowerCase().includes(q) ||
-        t.trade_id.toLowerCase().includes(q);
+        (t.symbol && t.symbol.toLowerCase().includes(q)) ||
+        (t.analyst_name && t.analyst_name.toLowerCase().includes(q)) ||
+        (t.segment && t.segment.toLowerCase().includes(q)) ||
+        (t.trade_id && t.trade_id.toLowerCase().includes(q));
 
       const matchesStatus =
         filterStatus === "all" ||
@@ -80,17 +116,21 @@ export function TradesPage() {
         (filterStatus === "CLOSED" && t.status !== "LIVE");
 
       const matchesSegment =
-        filterSegment === "all" || t.segment.toLowerCase() === filterSegment.toLowerCase();
+        filterSegment === "all" || (t.segment && t.segment.toLowerCase() === filterSegment.toLowerCase());
 
-      return matchesSearch && matchesStatus && matchesSegment;
+      const matchesAnalyst =
+        filterAnalyst === "all" || (t.analyst_name && t.analyst_name.toLowerCase() === filterAnalyst.toLowerCase());
+
+      return matchesSearch && matchesStatus && matchesSegment && matchesAnalyst;
     });
-  }, [trades, search, filterStatus, filterSegment]);
+  }, [trades, search, filterStatus, filterSegment, filterAnalyst]);
 
-  const hasTrades = trades.length > 0;
-  const liveCount = hasTrades ? trades.filter((t) => t.status === "LIVE").length : "—";
-  const closedCount = hasTrades ? trades.filter((t) => t.status !== "LIVE").length : "—";
+  // Derive OVERALL Page Summary Metrics strictly from filteredTrades
+  const hasTrades = filteredTrades.length > 0;
+  const liveCount = hasTrades ? filteredTrades.filter((t) => t.status === "LIVE").length : "—";
+  const closedCount = hasTrades ? filteredTrades.filter((t) => t.status !== "LIVE").length : "—";
   const avgPnl = hasTrades
-    ? (trades.reduce((sum, t) => sum + (t.pnl_percent || 0), 0) / trades.length).toFixed(1)
+    ? (filteredTrades.reduce((sum, t) => sum + (t.pnl_percent || 0), 0) / filteredTrades.length).toFixed(1)
     : "—";
 
   return (
@@ -107,11 +147,18 @@ export function TradesPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Top Searchable Analyst Filter Component */}
+          <AnalystSearchFilter
+            selectedAnalyst={filterAnalyst}
+            onSelectAnalyst={setFilterAnalyst}
+            analysts={analystList}
+          />
+
           <Button
             size="sm"
             variant="outline"
-            onClick={handleRefresh}
+            onClick={fetchTrades}
             disabled={isRefreshing}
             className="gap-1.5"
           >
@@ -121,52 +168,76 @@ export function TradesPage() {
         </div>
       </div>
 
-      {/* ── Metric Summary Tiles Grid (Placeholders) ──────────────────────── */}
+      {/* Active Analyst Filter Notification Banner */}
+      {filterAnalyst !== "all" && (
+        <div className="flex items-center justify-between rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+          <div className="flex items-center gap-2">
+            <UserCheckIcon className="size-4 text-emerald-600" />
+            <span>
+              Overall page metrics & trade feed filtered for Research Analyst: <strong>{filterAnalyst}</strong>
+            </span>
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setFilterAnalyst("all")}
+            className="h-6 text-[11px] gap-1 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold"
+          >
+            <XIcon className="size-3" /> Reset Overall Filter
+          </Button>
+        </div>
+      )}
+
+      {/* ── Dynamic Metric Summary Tiles Grid (Filtered by Selected Analyst) ── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Trades</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-foreground/70">Total Trades</span>
             <CandlestickChartIcon className="size-4 text-amber-500" />
           </div>
-          <div className="mt-3 text-2xl font-extrabold tracking-tight text-muted-foreground/80">{hasTrades ? trades.length : "—"}</div>
-          <p className="mt-1 text-xs text-muted-foreground">Published trade signals</p>
+          <div className="mt-3 text-2xl font-extrabold tracking-tight text-foreground">{hasTrades ? filteredTrades.length : "—"}</div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {filterAnalyst !== "all" ? `Trades by ${filterAnalyst}` : "Published trade signals"}
+          </p>
         </Card>
 
         <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Live Trades</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-foreground/70">Live Trades</span>
             <ActivityIcon className="size-4 text-emerald-500" />
           </div>
-          <div className="mt-3 text-2xl font-extrabold tracking-tight text-muted-foreground/80">{liveCount}</div>
+          <div className="mt-3 text-2xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400">{liveCount}</div>
           <p className="mt-1 text-xs text-muted-foreground">Active market positions</p>
         </Card>
 
         <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Closed Trades</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-foreground/70">Closed Trades</span>
             <CheckCircle2Icon className="size-4 text-blue-500" />
           </div>
-          <div className="mt-3 text-2xl font-extrabold tracking-tight text-muted-foreground/80">{closedCount}</div>
+          <div className="mt-3 text-2xl font-extrabold tracking-tight text-blue-600 dark:text-blue-400">{closedCount}</div>
           <p className="mt-1 text-xs text-muted-foreground">Completed positions</p>
         </Card>
 
         <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Avg PnL %</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-foreground/70">Avg PnL %</span>
             <TrendingUpIcon className="size-4 text-emerald-500" />
           </div>
-          <div className="mt-3 text-2xl font-extrabold tracking-tight text-muted-foreground/80">
+          <div className="mt-3 text-2xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400">
             {typeof avgPnl === "string" && avgPnl !== "—" ? `${avgPnl}%` : "—"}
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">Platform average return</p>
+          <p className="mt-1 text-xs text-muted-foreground">Analyst average return</p>
         </Card>
       </div>
 
       {/* ── Main Data Table Card ──────────────────────────────────────────── */}
       <Card className="rounded-xl border bg-card text-card-foreground shadow-xs overflow-hidden">
-        <CardHeader className="gap-3 border-b bg-muted/20 px-6 py-4 md:flex-row md:items-center md:justify-between">
+        <CardHeader className="gap-3 border-b bg-card px-6 py-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <CardTitle className="text-base font-bold tracking-tight text-foreground">Global Trade Feed</CardTitle>
+            <CardTitle className="text-base font-bold tracking-tight text-foreground">
+              {filterAnalyst !== "all" ? `Trade Feed (${filterAnalyst})` : "Global Trade Feed"}
+            </CardTitle>
             <p className="mt-0.5 text-xs text-muted-foreground">Trade signals, analyst attribution, segment, PnL %, and execution timestamps</p>
           </div>
 
@@ -217,7 +288,7 @@ export function TradesPage() {
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/30 hover:bg-muted/30">
+              <TableRow className="bg-card hover:bg-card border-b">
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">TRADE SIGNAL</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">ANALYST</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">SEGMENT</TableHead>
@@ -233,7 +304,11 @@ export function TradesPage() {
                   <TableCell colSpan={7} className="h-36 text-center text-xs text-muted-foreground">
                     <div className="flex flex-col items-center justify-center gap-2 py-4">
                       <CandlestickChartIcon className="size-8 text-muted-foreground/50" />
-                      <p className="font-semibold text-muted-foreground">No trade signals to display</p>
+                      <p className="font-semibold text-muted-foreground">
+                        {filterAnalyst !== "all"
+                          ? `No trade signals found for analyst "${filterAnalyst}"`
+                          : "No trade signals returned from backend"}
+                      </p>
                       <p className="text-[11px] text-muted-foreground/80 max-w-sm">
                         Trade signals published by SEBI registered analysts will appear here automatically.
                       </p>
@@ -242,13 +317,13 @@ export function TradesPage() {
                 </TableRow>
               ) : (
                 filteredTrades.map((trade) => (
-                  <TableRow key={trade.trade_id} className="transition-colors hover:bg-muted/40">
+                  <TableRow key={trade.trade_id} className="transition-colors hover:bg-accent/40 border-b border-border/40">
                     {/* TRADE SIGNAL */}
                     <TableCell className="py-3 text-xs">
                       <div>
                         <p className="font-bold text-foreground font-mono">{trade.symbol}</p>
                         <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                          <span>{trade.trade_type}</span>
+                          <span>{trade.trade_type || "SINGLE"}</span>
                           <span className="font-mono text-[10px] text-muted-foreground/70">• {trade.trade_id}</span>
                         </p>
                       </div>
@@ -256,27 +331,33 @@ export function TradesPage() {
 
                     {/* ANALYST */}
                     <TableCell className="py-3 text-xs font-medium">
-                      {trade.analyst_name}
+                      <span
+                        onClick={() => setFilterAnalyst(trade.analyst_name)}
+                        className="cursor-pointer hover:underline text-emerald-600 dark:text-emerald-400 font-semibold"
+                        title="Filter entire page by this analyst"
+                      >
+                        {trade.analyst_name || "Analyst"}
+                      </span>
                     </TableCell>
 
                     {/* SEGMENT */}
                     <TableCell className="py-3 text-xs">
                       <Badge variant="outline" className="text-[10px] font-mono">
-                        {trade.segment}
+                        {trade.segment || "EQUITY"}
                       </Badge>
                     </TableCell>
 
                     {/* STATUS */}
                     <TableCell className="py-3 text-xs">
-                      <Badge variant={statusVariant(trade.status)} className="font-semibold text-[10px] tracking-wide px-2 py-0.5">
-                        {trade.status}
+                      <Badge variant={statusVariant(trade.status || "LIVE")} className="font-semibold text-[10px] tracking-wide px-2 py-0.5">
+                        {trade.status || "LIVE"}
                       </Badge>
                     </TableCell>
 
                     {/* PNL % */}
                     <TableCell className="py-3 text-xs font-bold">
-                      <span className={trade.pnl_percent >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}>
-                        {trade.pnl_percent >= 0 ? `+${trade.pnl_percent}%` : `${trade.pnl_percent}%`}
+                      <span className={(trade.pnl_percent || 0) >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}>
+                        {(trade.pnl_percent || 0) >= 0 ? `+${trade.pnl_percent || 0}%` : `${trade.pnl_percent}%`}
                       </span>
                     </TableCell>
 
@@ -315,7 +396,7 @@ export function TradesPage() {
           </Table>
 
           {/* Table Footer */}
-          <div className="flex items-center justify-between border-t bg-muted/10 px-6 py-3 text-xs text-muted-foreground">
+          <div className="flex items-center justify-between border-t bg-card px-6 py-3 text-xs text-muted-foreground">
             <span>
               Showing {filteredTrades.length} of {trades.length} total trades
             </span>

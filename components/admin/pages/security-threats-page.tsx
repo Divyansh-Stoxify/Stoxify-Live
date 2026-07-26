@@ -145,7 +145,7 @@ export function SecurityThreatsPage() {
       rowActions={(item, refresh) => <ThreatCaseRowActions item={item} refresh={refresh} />}
       searchable
       searchPlaceholder="Search case title, ID, assigned admin..."
-      title="Threat Investigation Cases"
+      title="Threat Investigation Cases (API NEEDED FROM BACKEND)"
       variant="security"
     />
   );

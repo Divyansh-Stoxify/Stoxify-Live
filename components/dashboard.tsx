@@ -63,19 +63,26 @@ function KpiCard({
   accentColor?: string;
   badgeText?: string;
 }) {
+  let iconBg = "bg-primary/10";
+  if (accentColor.includes("blue")) iconBg = "bg-blue-500/10";
+  else if (accentColor.includes("emerald")) iconBg = "bg-emerald-500/10";
+  else if (accentColor.includes("amber")) iconBg = "bg-amber-500/10";
+  else if (accentColor.includes("destructive") || accentColor.includes("red")) iconBg = "bg-destructive/10";
+  else if (accentColor.includes("purple")) iconBg = "bg-purple-500/10";
+
   return (
-    <Card className="relative overflow-hidden border shadow-xs transition-all hover:shadow-sm">
+    <Card className="relative overflow-hidden border bg-card shadow-xs transition-all hover:shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <CardTitle className="text-xs font-bold uppercase tracking-wider text-foreground/75">
           {title}
         </CardTitle>
-        <div className={`rounded-lg bg-muted/60 p-2 ${accentColor}`}>
+        <div className={`rounded-lg p-2 ${iconBg} ${accentColor}`}>
           <Icon className="size-4" />
         </div>
       </CardHeader>
       <CardContent className="space-y-1.5">
         <div className="flex items-baseline justify-between gap-2">
-          <span className="text-3xl font-extrabold tracking-tight tabular-nums text-muted-foreground/80">
+          <span className={`text-3xl font-extrabold tracking-tight tabular-nums ${accentColor}`}>
             {valuePlaceholder}
           </span>
           {badgeText && (
