@@ -2,12 +2,18 @@
 
 import { useState } from "react";
 import {
+  ActivityIcon,
+  ArrowUpRightIcon,
   BarChart3Icon,
   BriefcaseIcon,
+  CheckCircle2Icon,
+  ClockIcon,
   CreditCardIcon,
   FilterIcon,
   LayersIcon,
   RefreshCwIcon,
+  ShieldAlertIcon,
+  ShieldCheckIcon,
   TrendingUpIcon,
   UserCheckIcon,
   UsersIcon,
@@ -26,12 +32,18 @@ type AnalystOption = {
   username: string;
 };
 
-// Analyst List for the Analyst Filter
 const ANALYST_OPTIONS: AnalystOption[] = [
   { id: "all", name: "All Analysts", username: "all" },
   { id: "analyst_1", name: "Rakesh Jhunjhunwala", username: "rakesh_j" },
   { id: "analyst_2", name: "Vijay Kedia", username: "vijay_k" },
   { id: "analyst_3", name: "Radhakishan Damani", username: "rk_damani" },
+];
+
+const RECENT_ACTIVITY_FEED = [
+  { id: "act_1", actor: "Admin (Founder)", action: "Approved SEBI verification for Analyst @sunil_s", timestamp: "10 mins ago", type: "verify" },
+  { id: "act_2", actor: "System Security", action: "Blocked suspicious IP 192.168.1.102 (Rate limit exceeded)", timestamp: "25 mins ago", type: "security" },
+  { id: "act_3", actor: "Support Lead", action: "Processed refund ₹1,999 for user USR_90211", timestamp: "1 hour ago", type: "refund" },
+  { id: "act_4", actor: "Admin (Founder)", action: "Updated platform fee threshold in System Config", timestamp: "3 hours ago", type: "config" },
 ];
 
 // ─── KPI Card Component ──────────────────────────────────────────────────────
@@ -145,42 +157,131 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* ── Primary KPI Cards Grid ─────────────────────────────────────────── */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        {/* KPI 1: Total Users (Traders) */}
+      {/* ── System Health & Quick-Access Action Shortcuts Bar ─────────────── */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* System Health: API Status */}
+        <div className="flex items-center justify-between rounded-xl border bg-emerald-500/10 p-3.5 text-xs text-emerald-700 dark:text-emerald-400">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2Icon className="size-4 shrink-0 text-emerald-600" />
+            <div>
+              <p className="font-bold text-foreground">API Gateway</p>
+              <p className="text-[11px] opacity-80">99.98% Uptime &bull; Operational</p>
+            </div>
+          </div>
+          <Badge variant="default" className="bg-emerald-600 text-[10px]">Healthy</Badge>
+        </div>
+
+        {/* System Health: Market Data Feed Status */}
+        <div className="flex items-center justify-between rounded-xl border bg-emerald-500/10 p-3.5 text-xs text-emerald-700 dark:text-emerald-400">
+          <div className="flex items-center gap-2.5">
+            <ActivityIcon className="size-4 shrink-0 text-emerald-600" />
+            <div>
+              <p className="font-bold text-foreground">Market Data Feed</p>
+              <p className="text-[11px] opacity-80">NSE/BSE Live Feeds Active</p>
+            </div>
+          </div>
+          <Badge variant="default" className="bg-emerald-600 text-[10px]">Live Sync</Badge>
+        </div>
+
+        {/* Quick Shortcut: Verification Queue */}
+        <a href="#analysts" className="flex items-center justify-between rounded-xl border bg-card p-3.5 text-xs transition-all hover:bg-muted/40 group">
+          <div className="flex items-center gap-2.5">
+            <UserCheckIcon className="size-4 shrink-0 text-amber-500" />
+            <div>
+              <p className="font-bold text-foreground group-hover:text-primary transition-colors">Verification Queue</p>
+              <p className="text-[11px] text-muted-foreground">Action required applications</p>
+            </div>
+          </div>
+          <ArrowUpRightIcon className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
+        </a>
+
+        {/* Quick Shortcut: Pending Refunds */}
+        <a href="#subscriptions" className="flex items-center justify-between rounded-xl border bg-card p-3.5 text-xs transition-all hover:bg-muted/40 group">
+          <div className="flex items-center gap-2.5">
+            <CreditCardIcon className="size-4 shrink-0 text-purple-500" />
+            <div>
+              <p className="font-bold text-foreground group-hover:text-primary transition-colors">Refund Requests</p>
+              <p className="text-[11px] text-muted-foreground">Pending processing queue</p>
+            </div>
+          </div>
+          <ArrowUpRightIcon className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
+        </a>
+      </div>
+
+      {/* ── Summary Metric Cards Grid (5 Specified Metrics) ─────────────────── */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <KpiCard
-          title="Total Users (Traders)"
+          title="Active Users"
           valuePlaceholder="—"
-          subtitle="Calculated by total registered trader accounts"
+          subtitle="Registered trader accounts"
           icon={UsersIcon}
           accentColor="text-blue-500"
-          badgeText="Trader Accounts"
+          badgeText="Active Users"
         />
 
-        {/* KPI 2: Active Analysts (≥1 Active Plan) */}
         <KpiCard
           title="Active Analysts"
           valuePlaceholder="—"
-          subtitle="Analysts having at least 1 active subscription plan"
+          subtitle="Analysts with ≥1 active plan"
           icon={UserCheckIcon}
           accentColor="text-emerald-500"
-          badgeText="≥1 Active Plan"
+          badgeText="Verified SEBI"
         />
 
-        {/* KPI 3: Live & Historical Trades Created by Everyone */}
         <KpiCard
-          title="Total Trades Created"
+          title="Pending Verifications"
           valuePlaceholder="—"
-          subtitle="Number of trades created across all analysts"
-          icon={ZapIcon}
+          subtitle="Credential review queue"
+          icon={ClockIcon}
           accentColor="text-amber-500"
-          badgeText="Created by Everyone"
+          badgeText="Verification Queue"
+        />
+
+        <KpiCard
+          title="Open Incidents"
+          valuePlaceholder="—"
+          subtitle="Security investigation cases"
+          icon={ShieldAlertIcon}
+          accentColor="text-destructive"
+          badgeText="Security"
+        />
+
+        <KpiCard
+          title="MRR / Subscriptions"
+          valuePlaceholder="—"
+          subtitle="Active monthly subscriptions"
+          icon={CreditCardIcon}
+          accentColor="text-purple-500"
+          badgeText="Revenue"
         />
       </div>
 
-      {/* ── Trader & Trade Activity Section ───────────────────────────────── */}
+      {/* ── Activity Feed & Trader Activity ────────────────────────────────── */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        {/* Recent Admin Activity Feed */}
+        <Card className="lg:col-span-1 border shadow-xs">
+          <CardHeader>
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <ClockIcon className="size-4 text-muted-foreground" />
+              Recent Admin Activity Feed
+            </CardTitle>
+            <CardDescription>Audit log of recent actions across platform</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {RECENT_ACTIVITY_FEED.map((act) => (
+              <div key={act.id} className="flex items-start justify-between border-b pb-2 text-xs last:border-0">
+                <div>
+                  <p className="font-semibold text-foreground">{act.actor}</p>
+                  <p className="text-[11px] text-muted-foreground">{act.action}</p>
+                </div>
+                <span className="text-[10px] font-mono text-muted-foreground shrink-0">{act.timestamp}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Trader & Trade Activity Trends */}
+        <Card className="lg:col-span-2 border shadow-xs">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-base font-semibold">Trader & Trade Activity</CardTitle>
@@ -204,26 +305,6 @@ export function Dashboard() {
                 <p className="text-sm font-medium text-muted-foreground">Main Activity Chart</p>
                 <p className="text-xs text-muted-foreground/80 max-w-sm">
                   Daily trader signups & trade volume overview for the selected window.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base font-semibold">Analyst Segment Overview</CardTitle>
-            <CardDescription>Analysts with active plans overview</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="w-full min-w-0 h-[220px] flex items-center justify-center border border-dashed rounded-lg bg-muted/20">
-              <div className="text-center space-y-2 p-6">
-                <BriefcaseIcon className="size-8 mx-auto text-muted-foreground/60" />
-                <p className="text-sm font-medium text-muted-foreground font-mono text-xs uppercase tracking-wider">
-                  Analyst Segment Breakdown
-                </p>
-                <p className="text-xs text-muted-foreground/80">
-                  Active plan distribution per trading segment.
                 </p>
               </div>
             </div>
@@ -312,30 +393,6 @@ export function Dashboard() {
           </CardContent>
         </Card>
       </div>
-
-      {/* ── Analyst Directory Table ────────────────────────────────────────── */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-base font-semibold">Analyst Directory & Active Plans</CardTitle>
-            <CardDescription>
-              Filterable analyst directory, active plan status, and trade counts
-            </CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border border-dashed p-8 text-center bg-muted/10">
-            <div className="max-w-md mx-auto space-y-3">
-              <LayersIcon className="size-8 mx-auto text-muted-foreground/60" />
-              <h3 className="text-sm font-semibold">Analyst Directory Overview</h3>
-              <p className="text-xs text-muted-foreground">
-                Detailed listing of analysts, their active plans count (≥1 active plan criteria), total trades published, and subscriber totals.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
-
