@@ -183,13 +183,13 @@ function AnalyticsLayout({ page }: { page: AdminPageConfig }) {
 
 function PeopleLayout({ page }: { page: AdminPageConfig }) {
   return (
-    <div className="grid gap-4 xl:grid-cols-[0.78fr_1.5fr]">
-      <div className="grid gap-px bg-border p-px sm:grid-cols-2 xl:grid-cols-1">
+    <div className="flex flex-col gap-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {page.metrics.map((metric) => (
           <MetricTile metric={metric} key={metric.label} />
         ))}
       </div>
-      <DataPanel page={page} subtitle="Operational roster" />
+      <DataPanel page={page} subtitle="Operational roster and management" />
     </div>
   );
 }
@@ -212,7 +212,7 @@ function QueueLayout({ page }: { page: AdminPageConfig }) {
           <EmptyState page={page} />
         )}
       </div>
-      <div className="grid gap-px bg-border p-px sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {page.metrics.map((metric) => (
           <MetricTile metric={metric} key={metric.label} />
         ))}
@@ -224,7 +224,7 @@ function QueueLayout({ page }: { page: AdminPageConfig }) {
 function CatalogLayout({ page }: { page: AdminPageConfig }) {
   return (
     <>
-      <div className="grid gap-px bg-border p-px sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {page.metrics.map((metric) => (
           <MetricTile metric={metric} key={metric.label} compact />
         ))}
@@ -268,7 +268,7 @@ function AccessLayout({ page }: { page: AdminPageConfig }) {
 function SecurityLayout({ page }: { page: AdminPageConfig }) {
   return (
     <>
-      <div className="grid gap-px bg-border p-px lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr]">
+      <div className="grid gap-4 lg:grid-cols-4">
         {page.metrics.map((metric, index) => (
           <SecurityMetric metric={metric} raised={index === 0} key={metric.label} />
         ))}
@@ -299,34 +299,34 @@ function ReferenceLayout({ page }: { page: AdminPageConfig }) {
 function FeatureMetric({ metric }: { metric?: AdminMetric }) {
   if (!metric) return null;
   return (
-    <div className="flex min-h-44 flex-col justify-between bg-foreground p-5 text-background">
+    <Card className="flex min-h-44 flex-col justify-between bg-primary p-6 text-primary-foreground shadow-md rounded-xl">
       <div className="flex items-center justify-between">
-        <span className="text-xs opacity-70">{metric.label}</span>
-        <GaugeIcon className="size-4 opacity-70" />
+        <span className="text-xs font-semibold uppercase tracking-wider opacity-80">{metric.label}</span>
+        <GaugeIcon className="size-4 opacity-80" />
       </div>
       <div>
-        <div className="text-4xl font-semibold">{metric.value}</div>
-        <p className="mt-2 text-sm opacity-70">{metric.detail}</p>
+        <div className="text-4xl font-extrabold tracking-tight">{metric.value}</div>
+        <p className="mt-2 text-xs opacity-80">{metric.detail}</p>
       </div>
-    </div>
+    </Card>
   );
 }
 
 function MetricTile({ metric, compact = false }: { metric: AdminMetric; compact?: boolean }) {
   return (
-    <div className="bg-background p-4">
-      <p className="text-xs text-muted-foreground">{metric.label}</p>
-      <div className={compact ? "mt-3 text-xl font-semibold" : "mt-5 text-2xl font-semibold"}>
+    <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{metric.label}</p>
+      <div className={compact ? "mt-2 text-xl font-bold tracking-tight text-foreground" : "mt-3 text-2xl font-extrabold tracking-tight text-foreground"}>
         {metric.value}
       </div>
       <p className="mt-1 text-xs text-muted-foreground">{metric.detail}</p>
-    </div>
+    </Card>
   );
 }
 
 function StackedMetrics({ metrics }: { metrics: AdminMetric[] }) {
   return (
-    <div className="grid gap-px bg-border p-px">
+    <div className="grid gap-3">
       {metrics.map((metric) => (
         <MetricTile metric={metric} key={metric.label} />
       ))}
@@ -444,11 +444,11 @@ function DataPanel({ page, subtitle }: { page: AdminPageConfig; subtitle: string
   const totalPages = pagination ? Math.max(1, Math.ceil(pagination.total / pagination.limit)) : 1;
 
   return (
-    <Card className="rounded-none bg-background shadow-none ring-1 ring-border">
-      <CardHeader className="gap-3 border-b pb-4 md:grid-cols-[1fr_auto]">
+    <Card className="rounded-xl border bg-card text-card-foreground shadow-xs overflow-hidden">
+      <CardHeader className="gap-3 border-b bg-muted/20 px-6 py-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <CardTitle>{page.title}</CardTitle>
-          <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+          <CardTitle className="text-base font-bold tracking-tight text-foreground">{page.title}</CardTitle>
+          <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
         </div>
         <div className="flex w-full items-center gap-2 md:w-80">
           {page.onSearch ? (
@@ -468,26 +468,29 @@ function DataPanel({ page, subtitle }: { page: AdminPageConfig; subtitle: string
             onClick={page.onAction}
             size="icon-sm"
             variant="outline"
+            className="shrink-0"
           >
-            <RefreshCwIcon />
+            <RefreshCwIcon className="size-3.5" />
           </Button>
         </div>
       </CardHeader>
       <CardContent className="p-0">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="bg-muted/30 hover:bg-muted/30">
               {page.columns.map((column) => (
-                <TableHead key={column}>{column}</TableHead>
+                <TableHead key={column} className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">
+                  {column}
+                </TableHead>
               ))}
-              {hasActions && <TableHead className="w-20 text-right">Actions</TableHead>}
+              {hasActions && <TableHead className="w-24 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {page.errorMessage ? (
               <TableRow>
                 <TableCell
-                  className="h-24 text-sm text-destructive"
+                  className="h-28 text-center text-xs text-destructive"
                   colSpan={page.columns.length + (hasActions ? 1 : 0)}
                 >
                   {page.errorMessage}
@@ -496,16 +499,19 @@ function DataPanel({ page, subtitle }: { page: AdminPageConfig; subtitle: string
             ) : page.isLoading ? (
               <TableRow>
                 <TableCell
-                  className="h-24 text-sm text-muted-foreground"
+                  className="h-28 text-center text-xs text-muted-foreground"
                   colSpan={page.columns.length + (hasActions ? 1 : 0)}
                 >
-                  Loading backend data...
+                  <div className="flex items-center justify-center gap-2">
+                    <RefreshCwIcon className="size-4 animate-spin text-muted-foreground" />
+                    <span>Loading data...</span>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : page.rows.length === 0 ? (
               <TableRow>
                 <TableCell
-                  className="h-24 text-sm text-muted-foreground"
+                  className="h-28 text-center text-xs text-muted-foreground"
                   colSpan={page.columns.length + (hasActions ? 1 : 0)}
                 >
                   <EmptyCell page={page} />
@@ -513,7 +519,7 @@ function DataPanel({ page, subtitle }: { page: AdminPageConfig; subtitle: string
               </TableRow>
             ) : (
               page.rows.map((row, index) => (
-                <TableRow key={`${page.title}-${index}`}>
+                <TableRow key={`${page.title}-${index}`} className="transition-colors hover:bg-muted/40">
                   {page.columns.map((column) => {
                     const value = row[column] ?? "-";
                     const isState =
@@ -522,13 +528,19 @@ function DataPanel({ page, subtitle }: { page: AdminPageConfig; subtitle: string
                         value
                       );
                     return (
-                      <TableCell key={column}>
-                        {isState ? <Badge variant={statusVariant(value)}>{value}</Badge> : value}
+                      <TableCell key={column} className="py-3 text-xs">
+                        {isState ? (
+                          <Badge variant={statusVariant(value)} className="font-semibold text-[10px] tracking-wide px-2 py-0.5">
+                            {value}
+                          </Badge>
+                        ) : (
+                          <span className="font-medium text-foreground/90">{value}</span>
+                        )}
                       </TableCell>
                     );
                   })}
                   {hasActions && (
-                    <TableCell className="text-right">
+                    <TableCell className="py-3 text-right">
                       {page.rowActions!(page.items?.[index] ?? {}, page.onAction ?? (() => {}))}
                     </TableCell>
                   )}
@@ -538,11 +550,11 @@ function DataPanel({ page, subtitle }: { page: AdminPageConfig; subtitle: string
           </TableBody>
         </Table>
         {pagination && (
-          <div className="flex items-center justify-between border-t px-4 py-2">
-            <span className="text-xs text-muted-foreground">
-              Page {pagination.page} of {totalPages} &mdash; {pagination.total} total
+          <div className="flex items-center justify-between border-t bg-muted/10 px-4 py-3">
+            <span className="text-xs font-medium text-muted-foreground">
+              Page {pagination.page} of {totalPages} &mdash; {pagination.total} total items
             </span>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <Button
                 size="icon-sm"
                 variant="outline"
@@ -550,7 +562,7 @@ function DataPanel({ page, subtitle }: { page: AdminPageConfig; subtitle: string
                 onClick={() => pagination.onPageChange(pagination.page - 1)}
                 aria-label="Previous page"
               >
-                <ChevronLeftIcon />
+                <ChevronLeftIcon className="size-3.5" />
               </Button>
               <Button
                 size="icon-sm"
@@ -559,7 +571,7 @@ function DataPanel({ page, subtitle }: { page: AdminPageConfig; subtitle: string
                 onClick={() => pagination.onPageChange(pagination.page + 1)}
                 aria-label="Next page"
               >
-                <ChevronRightIcon />
+                <ChevronRightIcon className="size-3.5" />
               </Button>
             </div>
           </div>

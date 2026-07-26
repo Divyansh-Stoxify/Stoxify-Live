@@ -54,11 +54,6 @@ export const navGroups: SidebarNavGroup[] = [
         path: "#analysts",
         icon: <UserCheckIcon />,
       },
-      {
-        title: "Pending Reviews",
-        path: "#analysts-pending",
-        icon: <ShieldCheckIcon />,
-      },
     ],
   },
   {

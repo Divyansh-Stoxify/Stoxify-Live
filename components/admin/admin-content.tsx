@@ -36,7 +36,7 @@ const adminRoutes: Record<string, ComponentType> = {
   "/analytics": Dashboard,
   "/users": UsersPage,
   "/analysts": AnalystsPage,
-  "/analysts-pending": PendingAnalystsPage,
+  "/analysts-pending": AnalystsPage,
   "/internal-team": InternalTeamPage,
   "/plans": PlansPage,
   "/subscriptions": SubscriptionsPage,
