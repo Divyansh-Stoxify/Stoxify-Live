@@ -21,6 +21,7 @@ const BATCH_NAV_ITEMS: NavItem[] = [
   { href: "/transactions", label: "Transactions", icon: "receipt" },
   { href: "/discounts", label: "Discounts", icon: "ticket" },
   { href: "/insights", label: "Insights", icon: "barChart" },
+  { href: "/reports", label: "Reports", icon: "download" },
   { href: "/edit", label: "Settings", icon: "gear" },
 ];
 
