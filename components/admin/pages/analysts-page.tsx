@@ -1,6 +1,6 @@
 "use client";
 
-import { PencilIcon, RefreshCwIcon, ShieldOffIcon, SlidersHorizontalIcon } from "lucide-react";
+import { FileTextIcon, PencilIcon, RefreshCwIcon, ShieldOffIcon, SlidersHorizontalIcon } from "lucide-react";
 
 import {
   ApiAdminPage,
@@ -21,6 +21,7 @@ import { Gated } from "@/components/admin/admin-permissions-provider";
 import { BlockAnalystDialog } from "@/components/admin/dialogs/block-analyst-dialog";
 import { ChangeAnalystStateDialog } from "@/components/admin/dialogs/change-analyst-state-dialog";
 import { EditAnalystProfileDialog } from "@/components/admin/dialogs/edit-analyst-profile-dialog";
+import { ViewAnalystDocumentsDialog } from "@/components/admin/dialogs/view-analyst-documents-dialog";
 
 const FILTERS: FilterDef[] = [
   {
@@ -52,6 +53,19 @@ function AnalystRowActions({ item, refresh }: { item: ApiRecord; refresh: () => 
 
   return (
     <div className="flex items-center justify-end gap-1">
+      <ViewAnalystDocumentsDialog
+        analyst={item}
+        trigger={
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            aria-label="View documents"
+            title="View Verification Documents"
+          >
+            <FileTextIcon className="h-4 w-4 text-amber-600" />
+          </Button>
+        }
+      />
       <Gated power="PWR_ANALYST_BLOCK">
         <BlockAnalystDialog
           analystId={analystId}
@@ -109,7 +123,7 @@ export function AnalystsPage() {
       actionIcon={<RefreshCwIcon />}
       collectionKeys={["analysts"]}
       columns={["Analyst", "State", "SEBI license", "Specialization", "Avg PnL"]}
-      description="Review analyst profiles, verification state, performance, and blocking controls from user-service."
+      description="Review analyst profiles, verification state, compliance documents, performance, and blocking controls from user-service."
       emptyMessage="No analysts returned by the backend."
       endpoint="/api/admin/analysts"
       eyebrow="Analyst operations"

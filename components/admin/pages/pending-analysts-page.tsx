@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckIcon, RefreshCwIcon, XIcon } from "lucide-react";
+import { CheckIcon, FileTextIcon, RefreshCwIcon, XIcon } from "lucide-react";
 
 import {
   ApiAdminPage,
@@ -18,12 +18,30 @@ import { Button } from "@/components/ui/button";
 import { Gated } from "@/components/admin/admin-permissions-provider";
 import { VerifyAnalystDialog } from "@/components/admin/dialogs/verify-analyst-dialog";
 import { RejectAnalystDialog } from "@/components/admin/dialogs/reject-analyst-dialog";
+import { ViewAnalystDocumentsDialog } from "@/components/admin/dialogs/view-analyst-documents-dialog";
+
+function formatDocumentsSummary(analyst: ApiRecord): string {
+  const hasAadhaar = Boolean(analyst.aadhar_doc_url);
+  const hasPan = Boolean(analyst.pan_doc_url);
+  const hasSebi = Boolean(analyst.sebi_license_doc_url);
+  const count = [hasAadhaar, hasPan, hasSebi].filter(Boolean).length;
+  if (count === 3) return "All 3 Uploaded (Aadhaar, PAN, SEBI)";
+  if (count > 0) {
+    const list = [];
+    if (hasAadhaar) list.push("Aadhaar");
+    if (hasPan) list.push("PAN");
+    if (hasSebi) list.push("SEBI");
+    return `${count}/3 (${list.join(", ")})`;
+  }
+  return "None Uploaded";
+}
 
 function mapPendingAnalyst(analyst: ApiRecord): AdminRow {
   return {
     Applicant: field(analyst, ["name", "email", "user_id"]),
     State: stateLabel(analyst.state),
     License: field(analyst, ["sebi_license_number"]),
+    Documents: formatDocumentsSummary(analyst),
     Specialization: formatList(analyst.specialization),
     Submitted: formatDate(field(analyst, ["verification.submitted_at", "created_at"])),
   };
@@ -32,14 +50,24 @@ function mapPendingAnalyst(analyst: ApiRecord): AdminRow {
 function PendingAnalystCardActions({ item, refresh }: { item: ApiRecord; refresh: () => void }) {
   const analystId = field(item, ["user_id", "_id"]);
   return (
-    <div className="flex gap-2 pt-1">
+    <div className="flex items-center gap-2 pt-1">
+      <ViewAnalystDocumentsDialog
+        analyst={item}
+        trigger={
+          <Button size="sm" variant="outline" className="flex-1 gap-1.5 border-slate-300">
+            <FileTextIcon className="h-4 w-4 text-amber-600" />
+            Docs
+          </Button>
+        }
+      />
       <Gated power="PWR_ANALYST_VERIFY">
         <VerifyAnalystDialog
           analystId={analystId}
+          item={item}
           refresh={refresh}
           trigger={
-            <Button size="sm" className="flex-1" variant="default">
-              <CheckIcon />
+            <Button size="sm" className="flex-1 gap-1" variant="default">
+              <CheckIcon className="h-4 w-4" />
               Approve
             </Button>
           }
@@ -50,8 +78,8 @@ function PendingAnalystCardActions({ item, refresh }: { item: ApiRecord; refresh
           analystId={analystId}
           refresh={refresh}
           trigger={
-            <Button size="sm" className="flex-1" variant="destructive">
-              <XIcon />
+            <Button size="sm" className="flex-1 gap-1" variant="destructive">
+              <XIcon className="h-4 w-4" />
               Reject
             </Button>
           }
@@ -67,8 +95,8 @@ export function PendingAnalystsPage() {
       action="Refresh"
       actionIcon={<RefreshCwIcon />}
       collectionKeys={["analysts"]}
-      columns={["Applicant", "State", "License", "Specialization", "Submitted"]}
-      description="Pending and ongoing analyst verification records from the admin verification queue."
+      columns={["Applicant", "State", "License", "Documents", "Specialization", "Submitted"]}
+      description="Pending and ongoing analyst verification records from the admin verification queue. Inspect uploaded Aadhaar, PAN, and SEBI documents prior to approval."
       emptyMessage="No analyst applications are waiting for review."
       endpoint="/api/admin/analysts/pending"
       eyebrow="Verification queue"

@@ -45,6 +45,8 @@ const KNOWN_ERROR_CODES = new Set([
   "INVALID_SIGNATURE",
   "ADMIN_ACCESS_REQUIRED",
   "RATE_LIMITED",
+  "RATE_LIMIT_EXCEEDED",
+  "VALIDATION_ERROR",
 ]);
 
 async function readBackendJson<T>(response: Response): Promise<T> {
