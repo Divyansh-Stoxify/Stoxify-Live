@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import {
   FileTextIcon,
@@ -12,7 +12,12 @@ import {
   ShieldCheckIcon,
   CreditCardIcon,
   UserCheckIcon,
-  XIcon,
+  Loader2Icon,
+  RefreshCwIcon,
+  ZoomInIcon,
+  ZoomOutIcon,
+  RotateCwIcon,
+  RotateCcwIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -43,6 +48,21 @@ interface DocumentItem {
   description: string;
 }
 
+/** Convert a base64 data URI (data:image/... or data:application/pdf...) into a Blob */
+function dataUriToBlob(dataURI: string): Blob {
+  const parts = dataURI.split(",");
+  const mimeMatch = parts[0].match(/:(.*?);/);
+  const mime = mimeMatch ? mimeMatch[1] : "application/octet-stream";
+  const rawBase64 = parts[1] || parts[0];
+  const bstr = atob(rawBase64.trim());
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new Blob([u8arr], { type: mime });
+}
+
 export function ViewAnalystDocumentsDialog({
   analyst,
   trigger,
@@ -51,6 +71,17 @@ export function ViewAnalystDocumentsDialog({
 }: Props) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [activeDocId, setActiveDocId] = useState<string | null>(null);
+
+  // Document loading & processing state
+  const [displayUrl, setDisplayUrl] = useState<string | null>(null);
+  const [isPdfDoc, setIsPdfDoc] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [hasError, setHasError] = useState<boolean>(false);
+  const [usingProxy, setUsingProxy] = useState<boolean>(false);
+
+  // Image manipulation controls (Zoom & Rotation)
+  const [zoom, setZoom] = useState<number>(1);
+  const [rotation, setRotation] = useState<number>(0);
 
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
   const setOpen = (val: boolean) => {
@@ -116,17 +147,110 @@ export function ViewAnalystDocumentsDialog({
   const uploadedCount = documents.filter((d) => Boolean(d.url)).length;
   const currentDoc = documents.find((d) => d.id === activeDocId) || documents.find((d) => Boolean(d.url));
 
-  const isPdf = (url?: string) => {
-    if (!url) return false;
-    return url.includes("application/pdf") || url.toLowerCase().endsWith(".pdf");
-  };
+  // Reset zoom & rotation when active document changes
+  useEffect(() => {
+    setZoom(1);
+    setRotation(0);
+    setUsingProxy(false);
+  }, [activeDocId, currentDoc?.url]);
 
-  const isImage = (url?: string) => {
-    if (!url) return false;
-    return (
-      url.startsWith("data:image/") ||
-      /\.(jpg|jpeg|png|webp|gif|svg)($|\?)/i.test(url)
-    );
+  // Prepare and resolve display URL (handles base64 blob conversion and type detection)
+  useEffect(() => {
+    let active = true;
+    let createdBlobUrl: string | null = null;
+
+    async function prepare() {
+      if (!currentDoc?.url) {
+        setDisplayUrl(null);
+        setIsLoading(false);
+        setHasError(false);
+        return;
+      }
+
+      setIsLoading(true);
+      setHasError(false);
+
+      const raw = currentDoc.url.trim();
+
+      // Check if URL is base64 string (data URI or raw base64)
+      const isDataUri = raw.startsWith("data:");
+      const isRawBase64 = !isDataUri && !raw.startsWith("http://") && !raw.startsWith("https://") && !raw.startsWith("blob:");
+
+      if (isDataUri || isRawBase64) {
+        try {
+          let formattedUri = raw;
+          if (isRawBase64) {
+            if (raw.startsWith("JVBERi")) {
+              formattedUri = `data:application/pdf;base64,${raw}`;
+            } else if (raw.startsWith("/9j/")) {
+              formattedUri = `data:image/jpeg;base64,${raw}`;
+            } else if (raw.startsWith("iVBORw")) {
+              formattedUri = `data:image/png;base64,${raw}`;
+            } else {
+              formattedUri = `data:image/png;base64,${raw}`;
+            }
+          }
+
+          const blob = dataUriToBlob(formattedUri);
+          const blobUrl = URL.createObjectURL(blob);
+          createdBlobUrl = blobUrl;
+
+          const isPdf = blob.type.includes("pdf") || formattedUri.startsWith("data:application/pdf");
+
+          if (active) {
+            setIsPdfDoc(isPdf);
+            setDisplayUrl(blobUrl);
+            setIsLoading(false);
+          }
+          return;
+        } catch (err) {
+          console.warn("[ViewAnalystDocuments] Base64 conversion failed:", err);
+        }
+      }
+
+      // Check if standard URL is PDF
+      const lower = raw.toLowerCase();
+      const isPdfUrl = lower.includes("application/pdf") || lower.endsWith(".pdf") || lower.includes(".pdf?");
+
+      if (active) {
+        setIsPdfDoc(isPdfUrl);
+        setDisplayUrl(raw);
+        setIsLoading(false);
+      }
+    }
+
+    prepare();
+
+    return () => {
+      active = false;
+      if (createdBlobUrl) {
+        URL.revokeObjectURL(createdBlobUrl);
+      }
+    };
+  }, [currentDoc?.url, activeDocId]);
+
+  // Handle image load error: fall back to Next.js server-side proxy
+  const handleMediaError = () => {
+    if (!currentDoc?.url) {
+      setHasError(true);
+      setIsLoading(false);
+      return;
+    }
+
+    const raw = currentDoc.url.trim();
+
+    // If direct HTTP load failed and we haven't tried proxying yet, try proxy URL
+    if ((raw.startsWith("http://") || raw.startsWith("https://")) && !usingProxy) {
+      setUsingProxy(true);
+      const proxiedUrl = `/api/admin/document-proxy?url=${encodeURIComponent(raw)}`;
+      setDisplayUrl(proxiedUrl);
+      setIsLoading(true);
+      return;
+    }
+
+    // Proxy also failed or base64 failed
+    setHasError(true);
+    setIsLoading(false);
   };
 
   return (
@@ -250,47 +374,162 @@ export function ViewAnalystDocumentsDialog({
 
             {/* Document Preview Panel */}
             {currentDoc && currentDoc.url ? (
-              <div className="rounded-xl border border-slate-200 bg-slate-900/5 overflow-hidden flex flex-col">
-                <div className="bg-slate-100 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+              <div className="rounded-xl border border-slate-200 bg-slate-900/5 overflow-hidden flex flex-col shadow-xs">
+                {/* Preview Toolbar */}
+                <div className="bg-slate-100 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <currentDoc.icon className="h-4 w-4 text-slate-600" />
                     <span className="text-xs font-bold text-slate-800">
                       Preview: {currentDoc.label}
                     </span>
+                    {usingProxy && (
+                      <span className="text-[10px] font-medium bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded border border-amber-200">
+                        Proxied View
+                      </span>
+                    )}
                   </div>
+
                   <div className="flex items-center gap-2">
+                    {/* Image Controls (Zoom / Rotate) */}
+                    {!isPdfDoc && !hasError && displayUrl && (
+                      <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-md p-0.5 mr-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          className="h-6 w-6 text-slate-600"
+                          title="Zoom In"
+                          onClick={() => setZoom((z) => Math.min(z + 0.25, 3))}
+                        >
+                          <ZoomInIcon className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          className="h-6 w-6 text-slate-600"
+                          title="Zoom Out"
+                          onClick={() => setZoom((z) => Math.max(z - 0.25, 0.5))}
+                        >
+                          <ZoomOutIcon className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          className="h-6 w-6 text-slate-600"
+                          title="Rotate Right"
+                          onClick={() => setRotation((r) => (r + 90) % 360)}
+                        >
+                          <RotateCwIcon className="h-3.5 w-3.5" />
+                        </Button>
+                        {(zoom !== 1 || rotation !== 0) && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            className="h-6 w-6 text-slate-600 text-[10px] font-bold"
+                            title="Reset View"
+                            onClick={() => {
+                              setZoom(1);
+                              setRotation(0);
+                            }}
+                          >
+                            <RotateCcwIcon className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    )}
+
                     <a
                       href={currentDoc.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 hover:text-amber-800 bg-white px-2.5 py-1 rounded-md border border-slate-200 shadow-2xs"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 hover:text-amber-800 bg-white px-2.5 py-1 rounded-md border border-slate-200 shadow-2xs transition-colors"
                     >
                       <ExternalLinkIcon className="h-3.5 w-3.5" /> Open Full Screen
                     </a>
                   </div>
                 </div>
 
-                <div className="min-h-[380px] max-h-[500px] flex items-center justify-center p-4 bg-slate-950/5">
-                  {isImage(currentDoc.url) ? (
-                    <img
-                      src={currentDoc.url}
-                      alt={currentDoc.label}
-                      className="max-h-[460px] max-w-full object-contain rounded-lg shadow-md bg-white p-2"
-                    />
-                  ) : isPdf(currentDoc.url) ? (
+                {/* Preview Canvas Area */}
+                <div className="min-h-[420px] max-h-[550px] flex items-center justify-center p-4 bg-slate-950/5 relative overflow-auto">
+                  {isLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-50/70 backdrop-blur-[1px] rounded-lg z-20">
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2Icon className="h-7 w-7 animate-spin text-amber-600" />
+                        <span className="text-xs font-semibold text-slate-600">Loading document preview...</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {hasError ? (
+                    <div className="text-center p-8 bg-white rounded-xl border border-slate-200 max-w-md shadow-sm">
+                      <FileTextIcon className="h-12 w-12 text-amber-500 mx-auto mb-3" />
+                      <h4 className="text-sm font-bold text-slate-800 mb-1">
+                        Inline Preview Blocked by Provider
+                      </h4>
+                      <p className="text-xs text-slate-500 mb-4">
+                        This document cannot be rendered inside the embedded frame (due to domain CORS security rules or mock file format), but can be opened directly in full resolution.
+                      </p>
+                      <div className="flex items-center justify-center gap-2">
+                        <a
+                          href={currentDoc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors shadow-sm"
+                        >
+                          <ExternalLinkIcon className="h-4 w-4" /> Open Full Screen Document
+                        </a>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                          onClick={() => {
+                            setHasError(false);
+                            setIsLoading(true);
+                            setUsingProxy(true);
+                            if (currentDoc.url) {
+                              setDisplayUrl(`/api/admin/document-proxy?url=${encodeURIComponent(currentDoc.url)}`);
+                            }
+                          }}
+                        >
+                          <RefreshCwIcon className="h-3.5 w-3.5 mr-1" /> Retry Proxy
+                        </Button>
+                      </div>
+                    </div>
+                  ) : isPdfDoc && displayUrl ? (
                     <iframe
-                      src={currentDoc.url}
-                      className="w-full h-[460px] rounded-lg border border-slate-200 shadow-sm bg-white"
+                      src={displayUrl}
+                      className="w-full h-[480px] rounded-lg border border-slate-200 shadow-sm bg-white"
                       title={currentDoc.label}
+                      onLoad={() => setIsLoading(false)}
+                      onError={handleMediaError}
                     />
+                  ) : displayUrl ? (
+                    <div className="relative flex items-center justify-center w-full h-full min-h-[400px] overflow-auto">
+                      <img
+                        src={displayUrl}
+                        alt={currentDoc.label}
+                        referrerPolicy="no-referrer"
+                        onLoad={() => setIsLoading(false)}
+                        onError={handleMediaError}
+                        style={{
+                          transform: `scale(${zoom}) rotate(${rotation}deg)`,
+                          transition: "transform 0.2s ease-in-out",
+                        }}
+                        className="max-h-[480px] max-w-full object-contain rounded-lg shadow-md bg-white p-2.5 border border-slate-200"
+                      />
+                    </div>
                   ) : (
                     <div className="text-center p-8 bg-white rounded-xl border border-slate-200 max-w-md shadow-sm">
                       <FileTextIcon className="h-12 w-12 text-amber-500 mx-auto mb-3" />
                       <h4 className="text-sm font-bold text-slate-800 mb-1">
-                        Inline Preview Available via Link
+                        Document Available via Link
                       </h4>
                       <p className="text-xs text-slate-500 mb-4">
-                        This document file can be viewed in full high resolution by opening it in a new window or downloading it.
+                        This document file can be viewed in full high resolution by opening it in a new window.
                       </p>
                       <a
                         href={currentDoc.url}
