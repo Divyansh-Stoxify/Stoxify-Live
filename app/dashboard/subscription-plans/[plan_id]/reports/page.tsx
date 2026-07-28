@@ -38,13 +38,53 @@ export default function BatchReportsPage({ params }: { params: Promise<{ plan_id
       }
       
       const blob = await res.blob();
-      const contentDisposition = res.headers.get("Content-Disposition");
+      
+      console.log('[Report Download] Blob size:', blob.size, 'bytes');
+      console.log('[Report Download] Content-Type:', res.headers.get("Content-Type"));
+
+      // Validate blob size
+      if (blob.size === 0) {
+        throw new Error("Downloaded file is empty. Please try again.");
+      }
+
+      if (blob.size < 1024) {
+        // Check if it's an error response that was sent as blob
+        try {
+          const text = await blob.text();
+          const errorJson = JSON.parse(text);
+          throw new Error(errorJson.message || errorJson.error || "Downloaded file is too small. This may indicate a server error.");
+        } catch (parseError) {
+          throw new Error("Downloaded file is too small. This may indicate a server error.");
+        }
+      }
+
+      // Validate Content-Type
+      const contentType = res.headers.get("Content-Type");
+      if (!contentType?.includes("spreadsheetml") && !contentType?.includes("xlsx")) {
+        throw new Error(`Invalid file type received: ${contentType || 'unknown'}`);
+      }
+
+      // Extract filename with RFC 6266 support
       let filename = "Batch_Performance_Statement.xlsx";
+      const contentDisposition = res.headers.get("Content-Disposition");
       
       if (contentDisposition) {
-        const match = contentDisposition.match(/filename="?([^"]+)"?/);
-        if (match && match[1]) {
-          filename = match[1];
+        // Try UTF-8 encoded filename* first
+        const filenameStarMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+        if (filenameStarMatch?.[1]) {
+          try {
+            filename = decodeURIComponent(filenameStarMatch[1]);
+          } catch {
+            // Fallback to regular filename
+          }
+        }
+        
+        // Fallback to regular filename parameter
+        if (!filenameStarMatch) {
+          const filenameMatch = contentDisposition.match(/filename=["']?([^"';]+)["']?/i);
+          if (filenameMatch?.[1]) {
+            filename = filenameMatch[1];
+          }
         }
       }
       
