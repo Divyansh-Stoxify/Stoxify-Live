@@ -39,11 +39,6 @@ export const navGroups: SidebarNavGroup[] = [
         icon: <LayoutDashboardIcon />,
         isActive: true,
       },
-      {
-        title: "Analytics",
-        path: "#analytics",
-        icon: <BarChart3Icon />,
-      },
     ],
   },
   {
@@ -58,11 +53,6 @@ export const navGroups: SidebarNavGroup[] = [
         title: "Analysts",
         path: "#analysts",
         icon: <UserCheckIcon />,
-      },
-      {
-        title: "Pending Reviews",
-        path: "#analysts-pending",
-        icon: <ShieldCheckIcon />,
       },
     ],
   },

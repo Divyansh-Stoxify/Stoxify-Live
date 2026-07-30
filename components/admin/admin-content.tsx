@@ -33,10 +33,10 @@ import { ProfilePage } from "@/components/admin/pages/profile-page";
 const adminRoutes: Record<string, ComponentType> = {
   "/profile": ProfilePage,
   "/dashboard": Dashboard,
-  "/analytics": AnalyticsPage,
+  "/analytics": Dashboard,
   "/users": UsersPage,
   "/analysts": AnalystsPage,
-  "/analysts-pending": PendingAnalystsPage,
+  "/analysts-pending": AnalystsPage,
   "/internal-team": InternalTeamPage,
   "/plans": PlansPage,
   "/subscriptions": SubscriptionsPage,

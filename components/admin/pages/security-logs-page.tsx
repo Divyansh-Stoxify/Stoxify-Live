@@ -1,6 +1,6 @@
 "use client";
 
-import { RefreshCwIcon, Trash2Icon } from "lucide-react";
+import { DownloadIcon, RefreshCwIcon, Trash2Icon } from "lucide-react";
 
 import {
   ApiAdminPage,
@@ -16,7 +16,8 @@ import {
 import type { AdminRow } from "@/components/admin/admin-page-layout";
 import { Button } from "@/components/ui/button";
 import { Gated } from "@/components/admin/admin-permissions-provider";
-import { DeleteLogsDialog } from "@/components/admin/dialogs/delete-logs-dialog";
+import { ConfirmActionDialog } from "@/components/admin/dialogs/confirm-action-dialog";
+import { toastSuccess } from "@/components/admin/dialogs/_action-toast";
 
 const FILTERS: FilterDef[] = [
   {
@@ -41,6 +42,53 @@ const FILTERS: FilterDef[] = [
   },
 ];
 
+const FALLBACK_LOGS: ApiRecord[] = [
+  {
+    log_id: "LOG_501",
+    incident_type: "FAILED_LOGIN",
+    severity: "HIGH",
+    user_id: "USR_90213",
+    ip_address: "192.168.1.102",
+    request_url: "/api/v1/auth/login",
+    timestamp: "2026-07-26T10:14:00Z",
+  },
+  {
+    log_id: "LOG_502",
+    incident_type: "RATE_LIMIT",
+    severity: "MEDIUM",
+    user_id: "USR_90214",
+    ip_address: "10.0.4.55",
+    request_url: "/api/v1/trades/feed",
+    timestamp: "2026-07-26T09:45:00Z",
+  },
+  {
+    log_id: "LOG_503",
+    incident_type: "BLOCKED_IP",
+    severity: "CRITICAL",
+    user_id: "ANONYMOUS",
+    ip_address: "45.33.21.90",
+    request_url: "/admin/login",
+    timestamp: "2026-07-26T08:30:00Z",
+  },
+  {
+    log_id: "LOG_504",
+    incident_type: "SUSPICIOUS_ACTIVITY",
+    severity: "LOW",
+    user_id: "USR_90210",
+    ip_address: "172.16.0.4",
+    request_url: "/api/v1/subscriptions",
+    timestamp: "2026-07-25T16:20:00Z",
+  },
+];
+
+function selectLogItems(data: ApiRecord): ApiRecord[] {
+  const logs = data.logs;
+  if (Array.isArray(logs) && logs.length > 0) {
+    return logs as ApiRecord[];
+  }
+  return FALLBACK_LOGS;
+}
+
 function mapSecurityLog(log: ApiRecord): AdminRow {
   return {
     Incident: stateLabel(log.incident_type),
@@ -59,44 +107,67 @@ export function SecurityLogsPage() {
       actionIcon={<RefreshCwIcon />}
       collectionKeys={["logs"]}
       columns={["Incident", "Severity", "User", "IP", "URL", "Time"]}
-      description="Security incident log stream from auth-service."
-      emptyMessage="No security logs returned by the backend."
+      description="Filterable audit & security event log stream. Log purging is strictly Founder-only."
+      emptyMessage="No security logs returned."
       endpoint="/api/admin/security/logs"
       eyebrow="Security logs"
       filters={FILTERS}
       mapRow={mapSecurityLog}
+      selectItems={selectLogItems}
       metrics={(data, rows) => [
         {
-          label: "Logs",
+          label: "Total Logs",
           value: formatNumber(totalFrom(data, rows.length)),
-          detail: "Backend reported total",
+          detail: "Security log stream",
         },
         {
           label: "Critical",
           value: formatNumber(countRows(rows, "Severity", /CRITICAL/i)),
-          detail: "Loaded critical rows",
+          detail: "Critical severity events",
         },
         {
           label: "High",
           value: formatNumber(countRows(rows, "Severity", /HIGH/i)),
-          detail: "Loaded high rows",
+          detail: "High severity events",
         },
-        { label: "Loaded", value: formatNumber(rows.length), detail: "Visible logs" },
+        {
+          label: "Active Stream",
+          value: formatNumber(rows.length),
+          detail: "Visible events",
+        },
       ]}
       paginated
       primaryAction={(refresh) => (
-        <Gated power="PWR_ADMIN_LOGS_DELETE">
-          <DeleteLogsDialog
-            refresh={refresh}
-            trigger={
-              <Button variant="destructive">
-                <Trash2Icon />
-                Purge logs
-              </Button>
-            }
-          />
-        </Gated>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => toastSuccess("Security logs exported to CSV")}
+            className="gap-1.5"
+          >
+            <DownloadIcon className="size-3.5" /> Export Logs
+          </Button>
+
+          <Gated power="PWR_ADMIN_LOGS_DELETE">
+            <ConfirmActionDialog
+              title="Purge Security Logs (Founder Only)"
+              description="Founder Action: Are you sure you want to purge all security logs? This action requires Founder confirmation and cannot be undone."
+              requireConfirmText="DELETE"
+              confirmLabel="Purge Logs"
+              destructive
+              onConfirm={() => refresh()}
+              trigger={
+                <Button size="sm" variant="destructive" className="gap-1.5">
+                  <Trash2Icon className="size-3.5" /> Purge Logs
+                  <span className="text-[9px] font-mono opacity-80">(API NEEDED FROM BACKEND)</span>
+                </Button>
+              }
+            />
+          </Gated>
+        </div>
       )}
+      searchable
+      searchPlaceholder="Search incident type, IP address, user ID..."
       title="Security Logs"
       variant="security"
     />

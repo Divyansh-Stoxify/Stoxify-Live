@@ -1,130 +1,427 @@
 "use client";
 
-import { BanIcon, RefreshCwIcon, RotateCcwIcon } from "lucide-react";
-
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ApiAdminPage,
-  countRows,
-  field,
-  formatCurrency,
-  formatDate,
-  formatNumber,
-  nested,
-  stateLabel,
-  totalFrom,
-  type ApiRecord,
-  type FilterDef,
-} from "@/components/admin/api-admin-page";
-import type { AdminRow } from "@/components/admin/admin-page-layout";
+  BanIcon,
+  CheckCircle2Icon,
+  CreditCardIcon,
+  FilterIcon,
+  ReceiptTextIcon,
+  RefreshCwIcon,
+  RotateCcwIcon,
+  SearchIcon,
+  UserCheckIcon,
+  XIcon,
+} from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { adminFetch } from "@/lib/admin/client-api";
+import { AnalystSearchFilter } from "@/components/admin/analyst-search-filter";
 import { Gated } from "@/components/admin/admin-permissions-provider";
 import { CancelSubscriptionDialog } from "@/components/admin/dialogs/cancel-subscription-dialog";
 import { RefundSubscriptionDialog } from "@/components/admin/dialogs/refund-subscription-dialog";
+import { RefundFormDialog, type RefundData } from "@/components/admin/dialogs/refund-form-dialog";
 
-const FILTERS: FilterDef[] = [
-  {
-    key: "status",
-    label: "Status",
-    options: [
-      { label: "Active", value: "ACTIVE" },
-      { label: "Cancelled", value: "CANCELLED" },
-      { label: "Expired", value: "EXPIRED" },
-    ],
-  },
-];
+export type SubscriptionRecord = {
+  subscription_id: string;
+  user_name: string;
+  user_email: string;
+  analyst_name: string;
+  plan_name: string;
+  amount: number;
+  status: "ACTIVE" | "CANCELLED" | "EXPIRED" | "REFUNDED";
+  end_date: string;
+};
 
-function mapSubscription(subscription: ApiRecord): AdminRow {
-  return {
-    Subscription: field(subscription, ["subscription_id"]),
-    User: field(subscription, ["user_id"]),
-    Analyst: field(subscription, ["analyst_name", "analyst_id"]),
-    Status: stateLabel(subscription.status),
-    Amount: formatCurrency(nested(subscription, "payment.amount")),
-    Ends: formatDate(subscription.end_date),
-  };
-}
-
-function SubscriptionRowActions({ item, refresh }: { item: ApiRecord; refresh: () => void }) {
-  const subId = field(item, ["subscription_id", "_id"]);
-  const status = String(item.status ?? "");
-  const isActive = /ACTIVE/i.test(status);
-  const amount =
-    typeof nested(item, "payment.amount") === "number"
-      ? (nested(item, "payment.amount") as number)
-      : undefined;
-
-  return (
-    <div className="flex items-center justify-end gap-1">
-      {isActive && (
-        <Gated power="PWR_SUBSCRIPTION_CANCEL_ALL">
-          <CancelSubscriptionDialog
-            subscriptionId={subId}
-            refresh={refresh}
-            trigger={
-              <Button size="icon-sm" variant="ghost" aria-label="Cancel subscription">
-                <BanIcon />
-              </Button>
-            }
-          />
-        </Gated>
-      )}
-      <Gated power="PWR_SUBSCRIPTION_REFUND">
-        <RefundSubscriptionDialog
-          subscriptionId={subId}
-          defaultAmount={amount}
-          refresh={refresh}
-          trigger={
-            <Button size="icon-sm" variant="ghost" aria-label="Refund">
-              <RotateCcwIcon />
-            </Button>
-          }
-        />
-      </Gated>
-    </div>
-  );
+function statusVariant(value: string): "default" | "secondary" | "destructive" | "outline" {
+  if (/cancelled|refunded/i.test(value)) return "destructive";
+  if (/expired/i.test(value)) return "outline";
+  if (/active/i.test(value)) return "default";
+  return "secondary";
 }
 
 export function SubscriptionsPage() {
+  const [subscriptions, setSubscriptions] = useState<SubscriptionRecord[]>([]);
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterAnalyst, setFilterAnalyst] = useState("all");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchSubscriptions = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      const res = await adminFetch("/api/admin/subscriptions");
+      if (res.ok) {
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        const list = Array.isArray(data.subscriptions)
+          ? (data.subscriptions as SubscriptionRecord[])
+          : Array.isArray(data.items)
+          ? (data.items as SubscriptionRecord[])
+          : Array.isArray(data)
+          ? (data as SubscriptionRecord[])
+          : [];
+        setSubscriptions(list);
+      } else {
+        setSubscriptions([]);
+      }
+    } catch {
+      setSubscriptions([]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchSubscriptions();
+  }, [fetchSubscriptions]);
+
+  const handleRefundSuccess = (refund: RefundData) => {
+    const newSub: SubscriptionRecord = {
+      subscription_id: `SUB_${Math.floor(1000 + Math.random() * 9000)}`,
+      user_name: refund.user_name,
+      user_email: refund.user_email,
+      analyst_name: "Platform Analyst",
+      plan_name: "Refunded Plan",
+      amount: refund.amount,
+      status: "REFUNDED",
+      end_date: new Date().toISOString(),
+    };
+    setSubscriptions((prev) => [newSub, ...prev]);
+  };
+
+  const handleCancelSub = (subId: string) => {
+    setSubscriptions((prev) =>
+      prev.map((s) => (s.subscription_id === subId ? { ...s, status: "CANCELLED" } : s))
+    );
+  };
+
+  // Derive unique analyst names for dropdown
+  const analystList = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of subscriptions) {
+      if (s.analyst_name) set.add(s.analyst_name);
+    }
+    return Array.from(set);
+  }, [subscriptions]);
+
+  // Filtered Subscriptions List according to search, analyst, status
+  const filteredSubscriptions = useMemo(() => {
+    return subscriptions.filter((s) => {
+      const q = search.toLowerCase();
+      const matchesSearch =
+        !search ||
+        (s.user_name && s.user_name.toLowerCase().includes(q)) ||
+        (s.user_email && s.user_email.toLowerCase().includes(q)) ||
+        (s.analyst_name && s.analyst_name.toLowerCase().includes(q)) ||
+        (s.plan_name && s.plan_name.toLowerCase().includes(q)) ||
+        (s.subscription_id && s.subscription_id.toLowerCase().includes(q));
+
+      const matchesStatus =
+        filterStatus === "all" || (s.status && s.status.toLowerCase() === filterStatus.toLowerCase());
+
+      const matchesAnalyst =
+        filterAnalyst === "all" || (s.analyst_name && s.analyst_name.toLowerCase() === filterAnalyst.toLowerCase());
+
+      return matchesSearch && matchesStatus && matchesAnalyst;
+    });
+  }, [subscriptions, search, filterStatus, filterAnalyst]);
+
+  // Derive OVERALL Page Summary Metrics strictly from filteredSubscriptions
+  const hasSubs = filteredSubscriptions.length > 0;
+  const activeCount = hasSubs ? filteredSubscriptions.filter((s) => s.status === "ACTIVE").length : "—";
+  const cancelledCount = hasSubs ? filteredSubscriptions.filter((s) => s.status === "CANCELLED").length : "—";
+  const refundedCount = hasSubs ? filteredSubscriptions.filter((s) => s.status === "REFUNDED").length : "—";
+
   return (
-    <ApiAdminPage
-      action="Refresh"
-      actionIcon={<RefreshCwIcon />}
-      collectionKeys={["subscriptions"]}
-      columns={["Subscription", "User", "Analyst", "Status", "Amount", "Ends"]}
-      description="Subscription ledger with cancel/refund admin actions from subscription-service."
-      emptyMessage="No subscriptions returned by the backend."
-      endpoint="/api/admin/subscriptions"
-      eyebrow="Subscription ledger"
-      filters={FILTERS}
-      mapRow={mapSubscription}
-      metrics={(data, rows) => [
-        {
-          label: "Total subscriptions",
-          value: formatNumber(totalFrom(data, rows.length)),
-          detail: "Backend reported total",
-        },
-        {
-          label: "Active",
-          value: formatNumber(countRows(rows, "Status", /ACTIVE/i)),
-          detail: "Loaded active rows",
-        },
-        {
-          label: "Cancelled",
-          value: formatNumber(countRows(rows, "Status", /CANCELLED/i)),
-          detail: "Loaded cancelled rows",
-        },
-        {
-          label: "Refunded",
-          value: formatNumber(countRows(rows, "Status", /REFUNDED/i)),
-          detail: "Loaded refunded rows",
-        },
-      ]}
-      paginated
-      rowActions={(item, refresh) => <SubscriptionRowActions item={item} refresh={refresh} />}
-      searchable
-      searchPlaceholder="Search by subscription ID, user, analyst, plan"
-      title="Subscriptions"
-      variant="ledger"
-    />
+    <div className="space-y-6">
+      {/* ── Page Header ────────────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-4 border-b pb-5 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="font-mono text-[10px] tracking-normal text-muted-foreground uppercase">
+            SUBSCRIPTION LEDGER & REVENUE
+          </p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">Subscriptions</h1>
+          <p className="mt-1 text-xs text-muted-foreground">
+            View active, cancelled, and expired trader subscriptions, process refunds, and track recurring revenue.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Top Searchable Analyst Filter Component */}
+          <AnalystSearchFilter
+            selectedAnalyst={filterAnalyst}
+            onSelectAnalyst={setFilterAnalyst}
+            analysts={analystList}
+          />
+
+          {/* Initiate Refund Form Dialog */}
+          <Gated power="PWR_SUBSCRIPTION_REFUND">
+            <RefundFormDialog onSuccess={handleRefundSuccess} />
+          </Gated>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={fetchSubscriptions}
+            disabled={isRefreshing}
+            className="gap-1.5"
+          >
+            <RefreshCwIcon className={`size-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        </div>
+      </div>
+
+      {/* Active Analyst Filter Notification Banner */}
+      {filterAnalyst !== "all" && (
+        <div className="flex items-center justify-between rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+          <div className="flex items-center gap-2">
+            <UserCheckIcon className="size-4 text-emerald-600" />
+            <span>
+              Overall page metrics & ledger filtered for Research Analyst: <strong>{filterAnalyst}</strong>
+            </span>
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setFilterAnalyst("all")}
+            className="h-6 text-[11px] gap-1 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold"
+          >
+            <XIcon className="size-3" /> Reset Overall Filter
+          </Button>
+        </div>
+      )}
+
+      {/* ── Dynamic Metric Summary Tiles Grid (Filtered by Selected Analyst) ── */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-foreground/70">Total Subscriptions</span>
+            <ReceiptTextIcon className="size-4 text-blue-500" />
+          </div>
+          <div className="mt-3 text-2xl font-extrabold tracking-tight text-foreground">{hasSubs ? filteredSubscriptions.length : "—"}</div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {filterAnalyst !== "all" ? `Subscriptions for ${filterAnalyst}` : "Platform subscription ledger"}
+          </p>
+        </Card>
+
+        <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-foreground/70">Active Subscriptions</span>
+            <CheckCircle2Icon className="size-4 text-emerald-500" />
+          </div>
+          <div className="mt-3 text-2xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400">{activeCount}</div>
+          <p className="mt-1 text-xs text-muted-foreground">Currently active trader plans</p>
+        </Card>
+
+        <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-foreground/70">Cancelled</span>
+            <BanIcon className="size-4 text-amber-500" />
+          </div>
+          <div className="mt-3 text-2xl font-extrabold tracking-tight text-amber-600 dark:text-amber-400">{cancelledCount}</div>
+          <p className="mt-1 text-xs text-muted-foreground">Cancelled subscriptions</p>
+        </Card>
+
+        <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-foreground/70">Refunded</span>
+            <RotateCcwIcon className="size-4 text-purple-500" />
+          </div>
+          <div className="mt-3 text-2xl font-extrabold tracking-tight text-purple-600 dark:text-purple-400">{refundedCount}</div>
+          <p className="mt-1 text-xs text-muted-foreground">Processed refund requests</p>
+        </Card>
+      </div>
+
+      {/* ── Main Data Table Card ──────────────────────────────────────────── */}
+      <Card className="rounded-xl border bg-card text-card-foreground shadow-xs overflow-hidden">
+        <CardHeader className="gap-3 border-b bg-card px-6 py-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <CardTitle className="text-base font-bold tracking-tight text-foreground">
+              {filterAnalyst !== "all" ? `Subscriptions (${filterAnalyst})` : "Subscription Ledger & History"}
+            </CardTitle>
+            <p className="mt-0.5 text-xs text-muted-foreground">Subscriber plans, analyst allocations, pricing, and renewal dates</p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Status Filter Dropdown */}
+            <div className="flex items-center gap-1.5 border rounded-md bg-background px-2 py-1">
+              <FilterIcon className="size-3.5 text-muted-foreground" />
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="bg-transparent text-xs font-medium text-foreground focus:outline-hidden"
+              >
+                <option value="all">All Statuses</option>
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="CANCELLED">CANCELLED</option>
+                <option value="EXPIRED">EXPIRED</option>
+                <option value="REFUNDED">REFUNDED</option>
+              </select>
+            </div>
+
+            {/* Search Input */}
+            <div className="relative w-full md:w-64">
+              <SearchIcon className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search sub ID, user, analyst..."
+                className="h-8 pl-8 text-xs"
+              />
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-card hover:bg-card border-b">
+                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">SUBSCRIPTION</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">USER</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">ANALYST & PLAN</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">AMOUNT</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">STATUS</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">ENDS</TableHead>
+                <TableHead className="w-28 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">ACTIONS</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredSubscriptions.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-36 text-center text-xs text-muted-foreground">
+                    <div className="flex flex-col items-center justify-center gap-2 py-4">
+                      <ReceiptTextIcon className="size-8 text-muted-foreground/50" />
+                      <p className="font-semibold text-muted-foreground">
+                        {filterAnalyst !== "all"
+                          ? `No subscription records found for analyst "${filterAnalyst}"`
+                          : "No subscription records returned from backend"}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground/80 max-w-sm">
+                        Use the &ldquo;Initiate Refund&rdquo; button above or reset overall filters.
+                      </p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredSubscriptions.map((sub) => {
+                  const isActive = sub.status === "ACTIVE";
+                  return (
+                    <TableRow key={sub.subscription_id} className="transition-colors hover:bg-accent/40 border-b border-border/40">
+                      {/* SUBSCRIPTION */}
+                      <TableCell className="py-3 text-xs">
+                        <div>
+                          <p className="font-semibold text-foreground font-mono">{sub.subscription_id}</p>
+                          <p className="text-[11px] text-muted-foreground">{sub.plan_name}</p>
+                        </div>
+                      </TableCell>
+
+                      {/* USER */}
+                      <TableCell className="py-3 text-xs">
+                        <div>
+                          <p className="font-semibold text-foreground">{sub.user_name}</p>
+                          <p className="text-[11px] text-muted-foreground">{sub.user_email}</p>
+                        </div>
+                      </TableCell>
+
+                      {/* ANALYST & PLAN */}
+                      <TableCell className="py-3 text-xs">
+                        <div>
+                          <span
+                            onClick={() => setFilterAnalyst(sub.analyst_name)}
+                            className="font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                            title="Filter entire page by this analyst"
+                          >
+                            {sub.analyst_name}
+                          </span>
+                          <div>
+                            <Badge variant="outline" className="text-[10px] font-mono mt-0.5">
+                              {sub.plan_name}
+                            </Badge>
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      {/* AMOUNT */}
+                      <TableCell className="py-3 text-xs font-bold text-foreground">
+                        ₹{(sub.amount || 0).toLocaleString("en-IN")}
+                      </TableCell>
+
+                      {/* STATUS */}
+                      <TableCell className="py-3 text-xs">
+                        <Badge variant={statusVariant(sub.status)} className="font-semibold text-[10px] tracking-wide px-2 py-0.5">
+                          {sub.status}
+                        </Badge>
+                      </TableCell>
+
+                      {/* ENDS */}
+                      <TableCell className="py-3 text-xs text-muted-foreground">
+                        {sub.end_date ? new Date(sub.end_date).toLocaleDateString("en-IN") : "—"}
+                      </TableCell>
+
+                      {/* ACTIONS */}
+                      <TableCell className="py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {isActive && (
+                            <Gated power="PWR_SUBSCRIPTION_CANCEL_ALL">
+                              <CancelSubscriptionDialog
+                                subscriptionId={sub.subscription_id}
+                                refresh={fetchSubscriptions}
+                                trigger={
+                                  <Button
+                                    size="icon-sm"
+                                    variant="ghost"
+                                    onClick={() => handleCancelSub(sub.subscription_id)}
+                                    title="Cancel Subscription"
+                                  >
+                                    <BanIcon className="size-3.5 text-amber-600" />
+                                  </Button>
+                                }
+                              />
+                            </Gated>
+                          )}
+
+                          <Gated power="PWR_SUBSCRIPTION_REFUND">
+                            <RefundSubscriptionDialog
+                              subscriptionId={sub.subscription_id}
+                              defaultAmount={sub.amount}
+                              refresh={fetchSubscriptions}
+                              trigger={
+                                <Button size="icon-sm" variant="ghost" title="Process Refund">
+                                  <RotateCcwIcon className="size-3.5 text-purple-600" />
+                                </Button>
+                              }
+                            />
+                          </Gated>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+
+          {/* Table Footer */}
+          <div className="flex items-center justify-between border-t bg-card px-6 py-3 text-xs text-muted-foreground">
+            <span>
+              Showing {filteredSubscriptions.length} of {subscriptions.length} total subscriptions
+            </span>
+            <span className="font-mono text-[11px]">Subscription Ledger Active</span>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
