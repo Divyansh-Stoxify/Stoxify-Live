@@ -395,7 +395,8 @@ function ReviewCard({
   refresh?: () => void;
 }) {
   const title = row.Applicant ?? row.User ?? row.Role ?? "Review item";
-  const status = row.State ?? row.Status ?? "Review";
+  // No State/Status column on this row — show nothing rather than inventing one.
+  const status = row.State ?? row.Status;
   const details = Object.entries(row).filter(
     ([key]) => key !== "Applicant" && key !== "User" && key !== "Role"
   );
@@ -405,7 +406,7 @@ function ReviewCard({
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <CardTitle className="text-sm">{title}</CardTitle>
-          <Badge variant={statusVariant(status)}>{status}</Badge>
+          {status && <Badge variant={statusVariant(status)}>{status}</Badge>}
         </div>
       </CardHeader>
       <CardContent className="space-y-3">

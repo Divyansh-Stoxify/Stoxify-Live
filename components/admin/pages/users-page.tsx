@@ -29,7 +29,7 @@ import {
 import { adminFetch } from "@/lib/admin/client-api";
 import { BlockUserDialog } from "@/components/admin/dialogs/block-user-dialog";
 import { ChangeUserStateDialog } from "@/components/admin/dialogs/change-user-state-dialog";
-import { CreateUserDialog, type NewUserData } from "@/components/admin/dialogs/create-user-dialog";
+import { CreateUserDialog } from "@/components/admin/dialogs/create-user-dialog";
 import { EditUserProfileDialog } from "@/components/admin/dialogs/edit-user-profile-dialog";
 import { UserDetailCardDialog, type UserRecord } from "@/components/admin/dialogs/user-detail-card-dialog";
 
@@ -75,21 +75,6 @@ export function UsersPage() {
   useEffect(() => {
     void fetchUsers();
   }, [fetchUsers]);
-
-  const handleAddUser = (newUserData: NewUserData) => {
-    const newUser: UserRecord = {
-      user_id: `USR_${Math.floor(10000 + Math.random() * 90000)}`,
-      name: newUserData.name,
-      email: newUserData.email,
-      phone: newUserData.phone,
-      user_type: newUserData.user_type,
-      state: newUserData.state,
-      created_at: new Date().toISOString(),
-      kyc: { aadhaar_verified: false, risk_level: "Low Risk" },
-      metrics: { subscriptions_count: 0, active_subscriptions_count: 0, total_spent: 0 },
-    };
-    setUsers((prev) => [newUser, ...prev]);
-  };
 
   const handleDeleteUser = (userId: string) => {
     setUsers((prev) => prev.filter((u) => u.user_id !== userId));
@@ -148,7 +133,7 @@ export function UsersPage() {
 
         <div className="flex items-center gap-2">
           {/* Create User Dialog Trigger */}
-          <CreateUserDialog onSuccess={handleAddUser} />
+          <CreateUserDialog onSuccess={fetchUsers} />
 
           <Button
             size="sm"
@@ -279,10 +264,10 @@ export function UsersPage() {
                       <TableCell className="py-3 text-xs">
                         <div className="flex items-center gap-2.5">
                           <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold text-xs">
-                            {(user.name || "US").slice(0, 2).toUpperCase()}
+                            {(user.name || user.email || user.user_id || "US").slice(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-semibold text-foreground">{user.name || "User"}</p>
+                            <p className="font-semibold text-foreground">{user.name || "Unnamed User"}</p>
                             <p className="text-[11px] text-muted-foreground flex items-center gap-1">
                               <span>{user.email || "—"}</span>
                               <span className="font-mono text-[10px] text-muted-foreground/70">• {user.user_id}</span>
@@ -294,14 +279,14 @@ export function UsersPage() {
                       {/* TYPE */}
                       <TableCell className="py-3 text-xs">
                         <Badge variant="outline" className="text-[10px] font-mono">
-                          {user.user_type || "END_USER"}
+                          {user.user_type || "—"}
                         </Badge>
                       </TableCell>
 
                       {/* STATE */}
                       <TableCell className="py-3 text-xs">
-                        <Badge variant={statusVariant(user.state || "ACTIVE")} className="font-semibold text-[10px] tracking-wide px-2 py-0.5">
-                          {user.state || "ACTIVE"}
+                        <Badge variant={statusVariant(user.state || "")} className="font-semibold text-[10px] tracking-wide px-2 py-0.5">
+                          {user.state || "—"}
                         </Badge>
                       </TableCell>
 
@@ -328,7 +313,7 @@ export function UsersPage() {
                         <div className="flex items-center justify-end gap-1">
                           <BlockUserDialog
                             userId={user.user_id}
-                            currentState={user.state || "ACTIVE"}
+                            currentState={user.state || ""}
                             refresh={fetchUsers}
                             trigger={
                               <Button size="icon-sm" variant="ghost" title={/BLOCKED/i.test(user.state || "") ? "Unblock" : "Block"}>
@@ -339,7 +324,7 @@ export function UsersPage() {
 
                           <ChangeUserStateDialog
                             userId={user.user_id}
-                            currentState={user.state || "ACTIVE"}
+                            currentState={user.state || ""}
                             refresh={fetchUsers}
                             trigger={
                               <Button size="icon-sm" variant="ghost" title="Change state">

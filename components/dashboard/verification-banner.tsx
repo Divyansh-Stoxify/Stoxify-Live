@@ -4,6 +4,7 @@ import React, { useState, useRef } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/stoxify-icon";
 import { useDashboard } from "@/components/dashboard/dashboard-context";
+import { realDocUrl } from "@/lib/utils";
 import type { AnalystProfile } from "@/lib/types/analyst";
 
 interface VerificationBannerProps {
@@ -27,27 +28,22 @@ function fileToBase64(file: File): Promise<string> {
 /** Helper to upload a single document file to Azure via /api/analyst/document */
 async function uploadDocumentFile(file: File, docType: string): Promise<string> {
   const base64Data = await fileToBase64(file);
-  try {
-    const res = await fetch("/api/analyst/document", {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        document_base64: base64Data,
-        content_type: file.type || "application/pdf",
-        doc_type: docType,
-      }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.document_url) {
-        return data.document_url;
-      }
-    }
-  } catch (err) {
-    console.warn(`Failed to upload ${docType} to storage endpoint, falling back to base64:`, err);
+  const res = await fetch("/api/analyst/document", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      document_base64: base64Data,
+      content_type: file.type || "application/pdf",
+      doc_type: docType,
+    }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.document_url) {
+    throw new Error(data.error ?? data.message ?? `Unable to upload ${file.name}.`);
   }
-  return base64Data;
+  return data.document_url as string;
 }
 
 export function VerificationBanner({ profile, onRefreshProfile }: VerificationBannerProps) {
@@ -102,9 +98,9 @@ export function VerificationBanner({ profile, onRefreshProfile }: VerificationBa
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const hasAadhar = aadharFile || profile?.aadhar_doc_url;
-    const hasPan = panFile || profile?.pan_doc_url;
-    const hasSebi = sebiDocFile || profile?.sebi_license_doc_url;
+    const hasAadhar = aadharFile || realDocUrl(profile?.aadhar_doc_url);
+    const hasPan = panFile || realDocUrl(profile?.pan_doc_url);
+    const hasSebi = sebiDocFile || realDocUrl(profile?.sebi_license_doc_url);
 
     if (!hasAadhar && !hasPan && !hasSebi) {
       showSuccessToast("Documents Required", "Please select at least one verification document to upload.");
@@ -160,15 +156,13 @@ export function VerificationBanner({ profile, onRefreshProfile }: VerificationBa
         onRefreshProfile();
       }
     } catch (err) {
+      // Keep the modal open with the picked files intact so the analyst can retry
+      // — reporting a success we didn't get is how uploads silently went missing.
       console.error("Submission error:", err);
       showSuccessToast(
-        "Upload Completed",
-        "Your verification documents have been submitted for review."
+        "Upload Failed",
+        err instanceof Error ? err.message : "Unable to submit your documents. Please try again."
       );
-      setIsModalOpen(false);
-      if (onRefreshProfile) {
-        onRefreshProfile();
-      }
     } finally {
       setIsSubmitting(false);
     }
@@ -356,7 +350,7 @@ export function VerificationBanner({ profile, onRefreshProfile }: VerificationBa
                 "Aadhaar Card Document (PDF, PNG, JPG)",
                 aadharFile,
                 setAadharFile,
-                profile?.aadhar_doc_url,
+                realDocUrl(profile?.aadhar_doc_url),
                 aadharInputRef,
                 "Aadhaar Card"
               )}
@@ -366,7 +360,7 @@ export function VerificationBanner({ profile, onRefreshProfile }: VerificationBa
                 "PAN Card Document (PDF, PNG, JPG)",
                 panFile,
                 setPanFile,
-                profile?.pan_doc_url,
+                realDocUrl(profile?.pan_doc_url),
                 panInputRef,
                 "PAN Card"
               )}
@@ -376,7 +370,7 @@ export function VerificationBanner({ profile, onRefreshProfile }: VerificationBa
                 "SEBI Verification Document (PDF, PNG, JPG)",
                 sebiDocFile,
                 setSebiDocFile,
-                profile?.sebi_license_doc_url,
+                realDocUrl(profile?.sebi_license_doc_url),
                 sebiDocInputRef,
                 "SEBI Certificate"
               )}

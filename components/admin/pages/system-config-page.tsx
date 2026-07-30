@@ -34,43 +34,9 @@ const FILTERS: FilterDef[] = [
   },
 ];
 
-const FALLBACK_CONFIG: ApiRecord[] = [
-  {
-    key: "FF_TRADING_BOT_ENABLED",
-    category: "feature-flags",
-    value: true,
-    description: "Enable automated trade execution bot for high-frequency strategies",
-    updated_at: "2026-07-26T10:00:00Z",
-  },
-  {
-    key: "MAX_SUB_LIMIT_PER_USER",
-    category: "limits",
-    value: 5,
-    description: "Maximum active analyst subscriptions allowed per trader account",
-    updated_at: "2026-07-25T14:30:00Z",
-  },
-  {
-    key: "CACHE_TTL_REDIS_SECONDS",
-    category: "limits",
-    value: 3600,
-    description: "Global Redis cache propagation TTL override in seconds",
-    updated_at: "2026-07-24T11:00:00Z",
-  },
-  {
-    key: "MARKET_DATA_FEED_URL",
-    category: "auth",
-    value: "wss://feed.stoxify.com/v1/live",
-    description: "Primary WebSocket market data feed gateway URL",
-    updated_at: "2026-07-20T09:15:00Z",
-  },
-];
-
 function selectConfigItems(data: ApiRecord): ApiRecord[] {
   const config = data.config;
-  if (Array.isArray(config) && config.length > 0) {
-    return config as ApiRecord[];
-  }
-  return FALLBACK_CONFIG;
+  return Array.isArray(config) ? (config as ApiRecord[]) : [];
 }
 
 function stringifyValue(value: unknown) {

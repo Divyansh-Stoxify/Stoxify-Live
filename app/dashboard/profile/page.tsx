@@ -7,6 +7,7 @@ import { Topbar } from "@/components/dashboard/topbar";
 import { useAnalystProfile } from "@/hooks/use-analyst-dashboard";
 import { useDashboard } from "@/components/dashboard/dashboard-context";
 import { Icon } from "@/components/stoxify-icon";
+import { realDocUrl } from "@/lib/utils";
 
 const TABS = [
   { name: "Profile Information", icon: "user" as const },
@@ -19,6 +20,11 @@ const TABS = [
 // Accepted upload formats + client-side size cap (backend enforces 3 MB too).
 const ACCEPTED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_AVATAR_BYTES = 3 * 1024 * 1024;
+
+// Verification documents (Aadhaar / PAN / SEBI certificate). The backend sniffs
+// the byte header and rejects anything that isn't one of these, and caps at 10 MB.
+const ACCEPTED_DOC_TYPES = ["application/pdf", "image/jpeg", "image/png"];
+const MAX_DOC_BYTES = 10 * 1024 * 1024;
 
 /** Formats a raw phone string as "+91 98765 08888"; falls back to the raw value. */
 function formatPhone(phone?: string): string {
@@ -42,6 +48,46 @@ function fileToBase64(file: File): Promise<string> {
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
+}
+
+/**
+ * Upload one verification document and return its hosted URL.
+ * Mirrors the avatar flow: the bytes go to Azure Blob via the user-service, and
+ * only the returned URL is persisted on the analyst profile.
+ */
+async function uploadVerificationDoc(file: File, docType: "aadhar" | "pan" | "sebi"): Promise<string> {
+  const document_base64 = await fileToBase64(file);
+  const res = await fetch("/api/analyst/document", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ document_base64, content_type: file.type, doc_type: docType }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.document_url) {
+    throw new Error(data.error ?? data.message ?? `Unable to upload ${file.name}.`);
+  }
+  return data.document_url as string;
+}
+
+/** Distinguishes a document that is live on the server from one merely staged. */
+function DocStatusBadge({ staged, saved }: { staged: boolean; saved: boolean }) {
+  if (staged) {
+    return (
+      <span className="text-[11px] font-extrabold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+        Not saved yet
+      </span>
+    );
+  }
+  if (saved) {
+    return (
+      <span className="text-[11px] font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+        Uploaded
+      </span>
+    );
+  }
+  return null;
 }
 
 // ─── Notifications Tab ────────────────────────────────────────────────────────
@@ -573,6 +619,11 @@ export default function ProfilePage() {
   // Derive SEBI verification status from the analyst's state
   const isSebiVerified = profile?.state ? /^ACTIVE$/i.test(profile.state) : false;
 
+  // Documents genuinely on file — the onboarding placeholder doesn't count.
+  const aadharOnFile = realDocUrl(profile?.aadhar_doc_url);
+  const panOnFile = realDocUrl(profile?.pan_doc_url);
+  const sebiOnFile = realDocUrl(profile?.sebi_license_doc_url);
+
   // Human-readable registration type
   const entityTypeLabel = profile?.registration_type
     ? profile.registration_type === "research_analyst"
@@ -605,6 +656,8 @@ export default function ProfilePage() {
   const [removedSebiDoc, setRemovedSebiDoc] = useState(false);
   const [removedAadharDoc, setRemovedAadharDoc] = useState(false);
   const [removedPanDoc, setRemovedPanDoc] = useState(false);
+
+  const [savingDocs, setSavingDocs] = useState(false);
 
   const sebiDocInputRef = useRef<HTMLInputElement>(null);
   const aadharDocInputRef = useRef<HTMLInputElement>(null);
@@ -776,6 +829,112 @@ export default function ProfilePage() {
   const handleRemoveAvatar = () => {
     setAvatarUrl("");
     showSuccessToast("Avatar Removed", "Avatar removed. Initials will be displayed.");
+  };
+
+  // ─── Verification documents ───────────────────────────────────────────────
+  // Validate a picked document before staging it. Save uploads it.
+  const handleDocFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setFile: (file: File | null) => void,
+    clearRemoved: () => void
+  ) => {
+    const file = e.target.files?.[0];
+    // Reset the input so re-picking the same file still fires onChange.
+    e.target.value = "";
+    if (!file) return;
+
+    if (!ACCEPTED_DOC_TYPES.includes(file.type)) {
+      showSuccessToast("Unsupported File", "Please choose a PDF, JPEG, or PNG file.");
+      return;
+    }
+    if (file.size > MAX_DOC_BYTES) {
+      showSuccessToast("File Too Large", "Please choose a file under 10 MB.");
+      return;
+    }
+
+    clearRemoved();
+    setFile(file);
+  };
+
+  // True when there is something to persist — drives the Save button's state.
+  const hasDocChanges =
+    Boolean(aadharDocFile || panDocFile || sebiDocFile) ||
+    (removedAadharDoc && Boolean(aadharOnFile)) ||
+    (removedPanDoc && Boolean(panOnFile)) ||
+    (removedSebiDoc && Boolean(sebiOnFile));
+
+  // Discard staged document changes and fall back to what's on the server.
+  const handleResetDocs = () => {
+    setAadharDocFile(null);
+    setPanDocFile(null);
+    setSebiDocFile(null);
+    setRemovedAadharDoc(false);
+    setRemovedPanDoc(false);
+    setRemovedSebiDoc(false);
+  };
+
+  // Upload any newly picked documents, then persist the resulting URLs on the
+  // analyst profile. A removed document is cleared by saving an empty URL.
+  const handleSaveDocs = async () => {
+    if (!hasDocChanges || savingDocs) return;
+
+    setSavingDocs(true);
+    try {
+      const resolve = async (
+        file: File | null,
+        removed: boolean,
+        existing: string | undefined,
+        docType: "aadhar" | "pan" | "sebi"
+      ) => {
+        if (file) return uploadVerificationDoc(file, docType);
+        if (removed) return "";
+        return existing ?? "";
+      };
+
+      const [aadharUrl, panUrl, sebiUrl] = await Promise.all([
+        resolve(aadharDocFile, removedAadharDoc, profile?.aadhar_doc_url, "aadhar"),
+        resolve(panDocFile, removedPanDoc, profile?.pan_doc_url, "pan"),
+        resolve(sebiDocFile, removedSebiDoc, profile?.sebi_license_doc_url, "sebi"),
+      ]);
+
+      const res = await fetch("/api/analyst/profile", {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          aadhar_doc_url: aadharUrl,
+          pan_doc_url: panUrl,
+          sebi_license_doc_url: sebiUrl,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        showSuccessToast(
+          "Save Failed",
+          err.error ?? err.message ?? "Unable to save your verification documents."
+        );
+        return;
+      }
+
+      // Refresh first, then drop the staged files — clearing them before the
+      // fresh profile lands would flash an empty slot for a saved document.
+      await mutate();
+      handleResetDocs();
+
+      showSuccessToast(
+        "Documents Saved",
+        "Your verification documents have been submitted for review."
+      );
+    } catch (err) {
+      console.error("Document save error:", err);
+      showSuccessToast(
+        "Upload Failed",
+        err instanceof Error ? err.message : "Unable to upload your documents. Please try again."
+      );
+    } finally {
+      setSavingDocs(false);
+    }
   };
 
   // Calculate initials fallback
@@ -1277,11 +1436,10 @@ export default function ProfilePage() {
                   <div className="border border-slate-100 rounded-xl p-4 bg-[#f8fafc]">
                     <div className="text-[13px] font-bold text-slate-700 mb-2 flex items-center justify-between">
                       <span>1. Aadhaar Card Document</span>
-                      {(aadharDocFile || (profile?.aadhar_doc_url && !removedAadharDoc)) && (
-                        <span className="text-[11px] font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                          Uploaded
-                        </span>
-                      )}
+                      <DocStatusBadge
+                        staged={Boolean(aadharDocFile)}
+                        saved={Boolean(aadharOnFile) && !removedAadharDoc}
+                      />
                     </div>
 
                     {aadharDocFile ? (
@@ -1298,7 +1456,7 @@ export default function ProfilePage() {
                           <Icon name="trash" className="h-4 w-4" />
                         </button>
                       </div>
-                    ) : profile?.aadhar_doc_url && !removedAadharDoc ? (
+                    ) : aadharOnFile && !removedAadharDoc ? (
                       <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
                         <div className="flex items-center gap-2.5 truncate">
                           <Icon name="fileText" className="h-5 w-5 text-emerald-600 shrink-0" />
@@ -1306,7 +1464,7 @@ export default function ProfilePage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <a
-                            href={profile.aadhar_doc_url}
+                            href={aadharOnFile}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="px-2.5 py-1 text-[12px] font-bold text-amber-700 bg-amber-50 rounded-md hover:bg-amber-100 transition-colors"
@@ -1331,10 +1489,9 @@ export default function ProfilePage() {
                           ref={aadharDocInputRef}
                           type="file"
                           accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={(e) => {
-                            const f = e.target.files?.[0];
-                            if (f) setAadharDocFile(f);
-                          }}
+                          onChange={(e) =>
+                            handleDocFileChange(e, setAadharDocFile, () => setRemovedAadharDoc(false))
+                          }
                           className="hidden"
                         />
                         <span className="text-[12.5px] font-bold text-slate-600">Select Aadhaar Card (PDF, PNG, JPG)</span>
@@ -1347,11 +1504,10 @@ export default function ProfilePage() {
                   <div className="border border-slate-100 rounded-xl p-4 bg-[#f8fafc]">
                     <div className="text-[13px] font-bold text-slate-700 mb-2 flex items-center justify-between">
                       <span>2. PAN Card Document</span>
-                      {(panDocFile || (profile?.pan_doc_url && !removedPanDoc)) && (
-                        <span className="text-[11px] font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                          Uploaded
-                        </span>
-                      )}
+                      <DocStatusBadge
+                        staged={Boolean(panDocFile)}
+                        saved={Boolean(panOnFile) && !removedPanDoc}
+                      />
                     </div>
 
                     {panDocFile ? (
@@ -1368,7 +1524,7 @@ export default function ProfilePage() {
                           <Icon name="trash" className="h-4 w-4" />
                         </button>
                       </div>
-                    ) : profile?.pan_doc_url && !removedPanDoc ? (
+                    ) : panOnFile && !removedPanDoc ? (
                       <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
                         <div className="flex items-center gap-2.5 truncate">
                           <Icon name="fileText" className="h-5 w-5 text-emerald-600 shrink-0" />
@@ -1376,7 +1532,7 @@ export default function ProfilePage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <a
-                            href={profile.pan_doc_url}
+                            href={panOnFile}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="px-2.5 py-1 text-[12px] font-bold text-amber-700 bg-amber-50 rounded-md hover:bg-amber-100 transition-colors"
@@ -1401,10 +1557,9 @@ export default function ProfilePage() {
                           ref={panDocInputRef}
                           type="file"
                           accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={(e) => {
-                            const f = e.target.files?.[0];
-                            if (f) setPanDocFile(f);
-                          }}
+                          onChange={(e) =>
+                            handleDocFileChange(e, setPanDocFile, () => setRemovedPanDoc(false))
+                          }
                           className="hidden"
                         />
                         <span className="text-[12.5px] font-bold text-slate-600">Select PAN Card (PDF, PNG, JPG)</span>
@@ -1417,11 +1572,10 @@ export default function ProfilePage() {
                   <div className="border border-slate-100 rounded-xl p-4 bg-[#f8fafc]">
                     <div className="text-[13px] font-bold text-slate-700 mb-2 flex items-center justify-between">
                       <span>3. SEBI Registration Certificate</span>
-                      {(sebiDocFile || (profile?.sebi_license_doc_url && !removedSebiDoc)) && (
-                        <span className="text-[11px] font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                          Uploaded
-                        </span>
-                      )}
+                      <DocStatusBadge
+                        staged={Boolean(sebiDocFile)}
+                        saved={Boolean(sebiOnFile) && !removedSebiDoc}
+                      />
                     </div>
 
                     {sebiDocFile ? (
@@ -1438,7 +1592,7 @@ export default function ProfilePage() {
                           <Icon name="trash" className="h-4 w-4" />
                         </button>
                       </div>
-                    ) : profile?.sebi_license_doc_url && !removedSebiDoc ? (
+                    ) : sebiOnFile && !removedSebiDoc ? (
                       <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
                         <div className="flex items-center gap-2.5 truncate">
                           <Icon name="fileText" className="h-5 w-5 text-emerald-600 shrink-0" />
@@ -1446,7 +1600,7 @@ export default function ProfilePage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <a
-                            href={profile.sebi_license_doc_url}
+                            href={sebiOnFile}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="px-2.5 py-1 text-[12px] font-bold text-amber-700 bg-amber-50 rounded-md hover:bg-amber-100 transition-colors"
@@ -1471,10 +1625,9 @@ export default function ProfilePage() {
                           ref={sebiDocInputRef}
                           type="file"
                           accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={(e) => {
-                            const f = e.target.files?.[0];
-                            if (f) setSebiDocFile(f);
-                          }}
+                          onChange={(e) =>
+                            handleDocFileChange(e, setSebiDocFile, () => setRemovedSebiDoc(false))
+                          }
                           className="hidden"
                         />
                         <span className="text-[12.5px] font-bold text-slate-600">Select SEBI Certificate (PDF, PNG, JPG)</span>
@@ -1486,7 +1639,7 @@ export default function ProfilePage() {
               </div>
 
               {/* Bottom Actions */}
-              <div className="flex mt-2">
+              <div className="flex flex-wrap items-center justify-between gap-3 mt-2">
                 <button
                   onClick={() =>
                     showSuccessToast(
@@ -1499,7 +1652,33 @@ export default function ProfilePage() {
                 >
                   Request Detail Update
                 </button>
+
+                <div className="flex items-center gap-3">
+                  {hasDocChanges && !savingDocs && (
+                    <button
+                      onClick={handleResetDocs}
+                      className="px-4 py-2 border border-slate-200 rounded-lg text-[13px] font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer bg-white"
+                      type="button"
+                    >
+                      Discard
+                    </button>
+                  )}
+                  <button
+                    onClick={handleSaveDocs}
+                    disabled={!hasDocChanges || savingDocs}
+                    className="px-4 py-2 bg-[var(--brand)] hover:bg-[var(--brand-dark)] rounded-lg text-[13px] font-bold text-white transition-colors shadow-sm shadow-[var(--brand)]/15 disabled:opacity-50 disabled:cursor-not-allowed enabled:cursor-pointer"
+                    type="button"
+                  >
+                    {savingDocs ? "Saving…" : "Save Documents"}
+                  </button>
+                </div>
               </div>
+
+              {hasDocChanges && !savingDocs && (
+                <p className="text-[12px] text-amber-600 font-semibold -mt-3 text-right">
+                  You have unsaved document changes.
+                </p>
+              )}
             </div>
           )}
 

@@ -17,7 +17,8 @@ export type NewUserData = {
 };
 
 type Props = {
-  onSuccess?: (user: NewUserData) => void;
+  /** Fired only after the backend confirms the create. Refetch here. */
+  onSuccess?: () => void;
   trigger?: ReactNode;
 };
 
@@ -57,18 +58,15 @@ export function CreateUserDialog({ onSuccess, trigger }: Props) {
         body: JSON.stringify(payload),
       });
 
-      if (res.ok) {
-        onSuccess?.(payload);
-        resetForm();
-        return readFormResult(res);
-      }
-    } catch {
-      // Fallback local handle
-    }
+      if (!res.ok) return readFormResult(res);
 
-    onSuccess?.(payload);
-    resetForm();
-    return { ok: true, message: `User "${payload.name}" created successfully` };
+      onSuccess?.();
+      resetForm();
+      return readFormResult(res);
+    } catch {
+      // A dead backend is not a created user — say so instead of pretending.
+      return { ok: false, message: "Unable to reach the user service", code: "SERVICE_UNAVAILABLE" };
+    }
   }
 
   return (

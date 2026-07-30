@@ -42,51 +42,9 @@ const FILTERS: FilterDef[] = [
   },
 ];
 
-const FALLBACK_LOGS: ApiRecord[] = [
-  {
-    log_id: "LOG_501",
-    incident_type: "FAILED_LOGIN",
-    severity: "HIGH",
-    user_id: "USR_90213",
-    ip_address: "192.168.1.102",
-    request_url: "/api/v1/auth/login",
-    timestamp: "2026-07-26T10:14:00Z",
-  },
-  {
-    log_id: "LOG_502",
-    incident_type: "RATE_LIMIT",
-    severity: "MEDIUM",
-    user_id: "USR_90214",
-    ip_address: "10.0.4.55",
-    request_url: "/api/v1/trades/feed",
-    timestamp: "2026-07-26T09:45:00Z",
-  },
-  {
-    log_id: "LOG_503",
-    incident_type: "BLOCKED_IP",
-    severity: "CRITICAL",
-    user_id: "ANONYMOUS",
-    ip_address: "45.33.21.90",
-    request_url: "/admin/login",
-    timestamp: "2026-07-26T08:30:00Z",
-  },
-  {
-    log_id: "LOG_504",
-    incident_type: "SUSPICIOUS_ACTIVITY",
-    severity: "LOW",
-    user_id: "USR_90210",
-    ip_address: "172.16.0.4",
-    request_url: "/api/v1/subscriptions",
-    timestamp: "2026-07-25T16:20:00Z",
-  },
-];
-
 function selectLogItems(data: ApiRecord): ApiRecord[] {
   const logs = data.logs;
-  if (Array.isArray(logs) && logs.length > 0) {
-    return logs as ApiRecord[];
-  }
-  return FALLBACK_LOGS;
+  return Array.isArray(logs) ? (logs as ApiRecord[]) : [];
 }
 
 function mapSecurityLog(log: ApiRecord): AdminRow {

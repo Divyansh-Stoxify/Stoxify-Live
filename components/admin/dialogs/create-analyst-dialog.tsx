@@ -21,7 +21,8 @@ export type NewAnalystData = {
 const SPEC_OPTIONS = ["Equity", "Options", "Futures", "Commodities", "Crypto", "Forex"];
 
 type Props = {
-  onSuccess?: (analyst: NewAnalystData) => void;
+  /** Fired only after the backend confirms the create. Refetch here. */
+  onSuccess?: () => void;
   trigger?: ReactNode;
 };
 
@@ -72,18 +73,15 @@ export function CreateAnalystDialog({ onSuccess, trigger }: Props) {
         body: JSON.stringify(payload),
       });
 
-      if (res.ok) {
-        onSuccess?.(payload);
-        resetForm();
-        return readFormResult(res);
-      }
-    } catch {
-      // Fallback
-    }
+      if (!res.ok) return readFormResult(res);
 
-    onSuccess?.(payload);
-    resetForm();
-    return { ok: true, message: `Analyst "${payload.name}" created successfully` };
+      onSuccess?.();
+      resetForm();
+      return readFormResult(res);
+    } catch {
+      // A dead backend is not a created analyst — say so instead of pretending.
+      return { ok: false, message: "Unable to reach the user service", code: "SERVICE_UNAVAILABLE" };
+    }
   }
 
   return (
@@ -107,7 +105,7 @@ export function CreateAnalystDialog({ onSuccess, trigger }: Props) {
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Radhakishan Damani"
+            placeholder="Analyst's full legal name"
             className="h-8 text-xs"
             required
           />

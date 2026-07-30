@@ -244,9 +244,13 @@ export function SecurityOverviewPage() {
 
                     {/* SEVERITY */}
                     <TableCell className="py-3 text-xs">
-                      <Badge variant={severityVariant(i.severity || "LOW")} className="font-semibold text-[10px] tracking-wide px-2 py-0.5">
-                        {i.severity || "LOW"}
-                      </Badge>
+                      {i.severity ? (
+                        <Badge variant={severityVariant(i.severity)} className="font-semibold text-[10px] tracking-wide px-2 py-0.5">
+                          {i.severity}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </TableCell>
 
                     {/* USER / TARGET */}

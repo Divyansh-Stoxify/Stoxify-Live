@@ -32,7 +32,7 @@ import {
 import { adminFetch } from "@/lib/admin/client-api";
 import { AnalystSearchFilter } from "@/components/admin/analyst-search-filter";
 import { Gated } from "@/components/admin/admin-permissions-provider";
-import { ConfirmActionDialog } from "@/components/admin/dialogs/confirm-action-dialog";
+import { DeletePlanDialog } from "@/components/admin/dialogs/delete-plan-dialog";
 import { EditPlanDialog } from "@/components/admin/dialogs/edit-plan-dialog";
 import { PlanStatusDialog } from "@/components/admin/dialogs/plan-status-dialog";
 
@@ -83,10 +83,6 @@ export function PlansPage() {
   useEffect(() => {
     void fetchPlans();
   }, [fetchPlans]);
-
-  const handleDeletePlan = (planId: string) => {
-    setPlans((prev) => prev.filter((p) => p.plan_id !== planId));
-  };
 
   const handleToggleStatus = (planId: string) => {
     setPlans((prev) =>
@@ -335,7 +331,7 @@ export function PlansPage() {
                       <div>
                         <p className="font-semibold text-foreground">{plan.name}</p>
                         <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                          <span>{plan.description || "Subscription plan"}</span>
+                          <span>{plan.description || "No description"}</span>
                           <span className="font-mono text-[10px] text-muted-foreground/70">• {plan.plan_id}</span>
                         </p>
                       </div>
@@ -348,14 +344,14 @@ export function PlansPage() {
                         className="cursor-pointer hover:underline text-emerald-600 dark:text-emerald-400 font-semibold"
                         title="Filter entire page by this analyst"
                       >
-                        {plan.analyst_name || "Analyst"}
+                        {plan.analyst_name || "—"}
                       </span>
                     </TableCell>
 
                     {/* SEGMENT */}
                     <TableCell className="py-3 text-xs">
                       <Badge variant="outline" className="text-[10px] font-mono">
-                        {plan.segment || "EQUITY"}
+                        {plan.segment || "—"}
                       </Badge>
                     </TableCell>
 
@@ -411,20 +407,17 @@ export function PlansPage() {
                           />
                         </Gated>
 
-                        <Gated power="PWR_ADMIN_SYSTEM_CONFIG">
-                          <ConfirmActionDialog
-                            title="Delete Plan (Founder Only)"
-                            description={`Are you sure you want to delete "${plan.name}"? Action requires typing DELETE.`}
-                            requireConfirmText="DELETE"
-                            confirmLabel="Delete Plan"
-                            destructive
-                            onConfirm={() => handleDeletePlan(plan.plan_id)}
+                        <Gated power="PWR_PLAN_DELETE">
+                          <DeletePlanDialog
+                            planId={plan.plan_id}
+                            planName={plan.name}
+                            refresh={fetchPlans}
                             trigger={
                               <Button
                                 size="icon-sm"
                                 variant="ghost"
                                 className="text-destructive hover:bg-destructive/10"
-                                title="Founder Action: Delete Plan"
+                                title="Delete Plan"
                               >
                                 <Trash2Icon className="size-3.5" />
                               </Button>

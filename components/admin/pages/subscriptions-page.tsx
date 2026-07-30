@@ -31,7 +31,6 @@ import { AnalystSearchFilter } from "@/components/admin/analyst-search-filter";
 import { Gated } from "@/components/admin/admin-permissions-provider";
 import { CancelSubscriptionDialog } from "@/components/admin/dialogs/cancel-subscription-dialog";
 import { RefundSubscriptionDialog } from "@/components/admin/dialogs/refund-subscription-dialog";
-import { RefundFormDialog, type RefundData } from "@/components/admin/dialogs/refund-form-dialog";
 
 export type SubscriptionRecord = {
   subscription_id: string;
@@ -85,20 +84,6 @@ export function SubscriptionsPage() {
   useEffect(() => {
     void fetchSubscriptions();
   }, [fetchSubscriptions]);
-
-  const handleRefundSuccess = (refund: RefundData) => {
-    const newSub: SubscriptionRecord = {
-      subscription_id: `SUB_${Math.floor(1000 + Math.random() * 9000)}`,
-      user_name: refund.user_name,
-      user_email: refund.user_email,
-      analyst_name: "Platform Analyst",
-      plan_name: "Refunded Plan",
-      amount: refund.amount,
-      status: "REFUNDED",
-      end_date: new Date().toISOString(),
-    };
-    setSubscriptions((prev) => [newSub, ...prev]);
-  };
 
   const handleCancelSub = (subId: string) => {
     setSubscriptions((prev) =>
@@ -164,11 +149,6 @@ export function SubscriptionsPage() {
             onSelectAnalyst={setFilterAnalyst}
             analysts={analystList}
           />
-
-          {/* Initiate Refund Form Dialog */}
-          <Gated power="PWR_SUBSCRIPTION_REFUND">
-            <RefundFormDialog onSuccess={handleRefundSuccess} />
-          </Gated>
 
           <Button
             size="sm"

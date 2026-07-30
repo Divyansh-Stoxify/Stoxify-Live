@@ -33,8 +33,9 @@ import { BlockAnalystDialog } from "./block-analyst-dialog";
 import { ChangeAnalystStateDialog } from "./change-analyst-state-dialog";
 import { EditAnalystProfileDialog } from "./edit-analyst-profile-dialog";
 import { VerifyAnalystDialog } from "./verify-analyst-dialog";
-import { VerificationDocViewerDialog } from "./verification-doc-viewer-dialog";
+import { ViewAnalystDocumentsDialog } from "./view-analyst-documents-dialog";
 import { ConfirmDialog } from "./_confirm-dialog";
+import { realDocUrl } from "@/lib/utils";
 
 export type AnalystRecord = {
   user_id: string;
@@ -47,6 +48,16 @@ export type AnalystRecord = {
   state: string;
   profile_pic_url?: string;
   created_at?: string;
+  // Verification documents the analyst uploaded (Azure Blob URLs).
+  aadhar_doc_url?: string;
+  pan_doc_url?: string;
+  sebi_license_doc_url?: string;
+  verification?: {
+    submitted_at?: string;
+    reviewed_at?: string;
+    rejection_reason?: string;
+    documents?: { type?: string; url?: string; uploaded_at?: string }[];
+  };
   performance?: {
     average_pnl_percent?: number;
     win_rate?: number;
@@ -90,6 +101,12 @@ export function AnalystDetailCardDialog({
 
   const specs = Array.isArray(analyst.specialization) ? analyst.specialization : [];
 
+  const uploadedDocCount = [
+    analyst.aadhar_doc_url,
+    analyst.pan_doc_url,
+    analyst.sebi_license_doc_url,
+  ].filter((url) => realDocUrl(url)).length;
+
   return (
     <>
       {trigger && (
@@ -119,12 +136,12 @@ export function AnalystDetailCardDialog({
                     </Badge>
                   </DialogTitle>
                   <DialogDescription className="text-xs font-mono text-muted-foreground mt-0.5">
-                    SEBI Reg: {analyst.sebi_license_number || "PENDING"}
+                    SEBI Reg: {analyst.sebi_license_number || "Not provided"}
                   </DialogDescription>
                 </div>
               </div>
               <Badge variant={stateVariant} className="uppercase text-[11px] font-semibold shrink-0">
-                {analyst.state || "PENDING"}
+                {analyst.state || "—"}
               </Badge>
             </div>
           </DialogHeader>
@@ -137,7 +154,7 @@ export function AnalystDetailCardDialog({
                 <p className="mt-0.5 text-base font-bold text-emerald-600 dark:text-emerald-400">
                   {typeof analyst.performance?.average_pnl_percent === "number"
                     ? `${analyst.performance.average_pnl_percent}%`
-                    : "0%"}
+                    : "—"}
                 </p>
               </div>
               <div>
@@ -151,7 +168,7 @@ export function AnalystDetailCardDialog({
               <div>
                 <span className="text-muted-foreground text-[10px]">Active Plans</span>
                 <p className="mt-0.5 text-base font-bold text-foreground">
-                  {analyst.performance?.active_plans_count ?? 0}
+                  {analyst.performance?.active_plans_count ?? "—"}
                 </p>
               </div>
             </div>
@@ -167,7 +184,7 @@ export function AnalystDetailCardDialog({
                     <FileTextIcon className="size-3.5" /> SEBI License No.
                   </span>
                   <span className="font-mono font-bold text-foreground">
-                    {analyst.sebi_license_number || "Not Registered"}
+                    {analyst.sebi_license_number || "Not provided"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between py-1 border-b border-border/50">
@@ -183,15 +200,14 @@ export function AnalystDetailCardDialog({
                     <ShieldCheckIcon className="size-3.5" /> Verification State
                   </span>
                   <Badge variant={stateVariant} className="text-[10px]">
-                    {analyst.state || "Pending Verification"}
+                    {analyst.state || "—"}
                   </Badge>
                 </div>
-                <VerificationDocViewerDialog
-                  applicantName={analyst.name}
-                  sebiLicenseNumber={analyst.sebi_license_number}
+                <ViewAnalystDocumentsDialog
+                  analyst={analyst}
                   trigger={
                     <Button size="sm" variant="outline" className="gap-1.5 w-full text-xs font-semibold mt-2 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10">
-                      <FileTextIcon className="size-3.5" /> Inspect Submitted Documents (Aadhaar, PAN, SEBI Certificate)
+                      <FileTextIcon className="size-3.5" /> Inspect Submitted Documents ({uploadedDocCount} of 3 uploaded)
                     </Button>
                   }
                 />

@@ -30,8 +30,13 @@ import {
 import { BlockUserDialog } from "./block-user-dialog";
 import { ChangeUserStateDialog } from "./change-user-state-dialog";
 import { EditUserProfileDialog } from "./edit-user-profile-dialog";
-import { VerificationDocViewerDialog } from "./verification-doc-viewer-dialog";
 import { ConfirmDialog } from "./_confirm-dialog";
+
+/** Renders a backend value, or an em dash when the field wasn't returned. */
+function orDash(value: string | number | undefined | null) {
+  if (value === undefined || value === null || value === "") return "—";
+  return value;
+}
 
 export type UserRecord = {
   user_id: string;
@@ -113,7 +118,7 @@ export function UserDetailCardDialog({
                   <DialogTitle className="text-lg font-bold flex items-center gap-2">
                     {user.name || "User Details"}
                     <Badge variant="outline" className="text-[10px] font-mono">
-                      {user.user_type || "END_USER"}
+                      {orDash(user.user_type)}
                     </Badge>
                   </DialogTitle>
                   <DialogDescription className="text-xs font-mono text-muted-foreground mt-0.5">
@@ -122,7 +127,7 @@ export function UserDetailCardDialog({
                 </div>
               </div>
               <Badge variant={stateVariant} className="uppercase text-[11px] font-semibold shrink-0">
-                {user.state || "ACTIVE"}
+                {orDash(user.state)}
               </Badge>
             </div>
           </DialogHeader>
@@ -133,19 +138,21 @@ export function UserDetailCardDialog({
               <div>
                 <span className="text-muted-foreground text-[10px]">Active Subscriptions</span>
                 <p className="mt-0.5 text-base font-bold text-foreground">
-                  {user.metrics?.active_subscriptions_count ?? 0}
+                  {orDash(user.metrics?.active_subscriptions_count)}
                 </p>
               </div>
               <div>
                 <span className="text-muted-foreground text-[10px]">Total Subscriptions</span>
                 <p className="mt-0.5 text-base font-bold text-foreground">
-                  {user.metrics?.subscriptions_count ?? 0}
+                  {orDash(user.metrics?.subscriptions_count)}
                 </p>
               </div>
               <div>
                 <span className="text-muted-foreground text-[10px]">Total Spent</span>
                 <p className="mt-0.5 text-base font-bold text-emerald-600 dark:text-emerald-400">
-                  ₹{(user.metrics?.total_spent ?? 0).toLocaleString("en-IN")}
+                  {typeof user.metrics?.total_spent === "number"
+                    ? `₹${user.metrics.total_spent.toLocaleString("en-IN")}`
+                    : "—"}
                 </p>
               </div>
             </div>
@@ -199,7 +206,9 @@ export function UserDetailCardDialog({
                   <span className="text-muted-foreground flex items-center gap-2">
                     <ShieldCheckIcon className="size-3.5" /> Aadhaar Verification
                   </span>
-                  {user.kyc?.aadhaar_verified ? (
+                  {user.kyc === undefined ? (
+                    <span className="text-muted-foreground">—</span>
+                  ) : user.kyc.aadhaar_verified ? (
                     <Badge variant="default" className="bg-emerald-600 text-white text-[10px]">
                       Verified
                     </Badge>
@@ -219,19 +228,14 @@ export function UserDetailCardDialog({
                   <span className="text-muted-foreground flex items-center gap-2">
                     <ShieldAlertIcon className="size-3.5" /> Security Risk Assessment
                   </span>
-                  <Badge variant="secondary" className="text-[10px]">
-                    {user.kyc?.risk_level || "Low Risk"}
-                  </Badge>
+                  {user.kyc?.risk_level ? (
+                    <Badge variant="secondary" className="text-[10px]">
+                      {user.kyc.risk_level}
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground">Not assessed</span>
+                  )}
                 </div>
-                <VerificationDocViewerDialog
-                  applicantName={user.name}
-                  sebiLicenseNumber="N/A"
-                  trigger={
-                    <Button size="sm" variant="outline" className="gap-1.5 w-full text-xs font-semibold mt-2 border-blue-500/40 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10">
-                      <FileTextIcon className="size-3.5" /> Inspect Submitted Documents (Aadhaar, PAN Card)
-                    </Button>
-                  }
-                />
               </div>
             </div>
 

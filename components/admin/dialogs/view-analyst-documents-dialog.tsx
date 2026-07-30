@@ -30,6 +30,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { ApiRecord } from "@/components/admin/api-admin-page";
+import { realDocUrl } from "@/lib/utils";
 
 type Props = {
   analyst: ApiRecord;
@@ -104,7 +105,7 @@ export function ViewAnalystDocumentsDialog({
       type: "Aadhaar Card",
       label: "Aadhaar Card Document",
       icon: UserCheckIcon,
-      url: (analyst.aadhar_doc_url as string) || undefined,
+      url: realDocUrl(analyst.aadhar_doc_url),
       description: "Government Issued Aadhaar Identity Proof",
     },
     {
@@ -112,7 +113,7 @@ export function ViewAnalystDocumentsDialog({
       type: "PAN Card",
       label: "PAN Card Document",
       icon: CreditCardIcon,
-      url: (analyst.pan_doc_url as string) || undefined,
+      url: realDocUrl(analyst.pan_doc_url),
       description: "Permanent Account Number Tax Verification Card",
     },
     {
@@ -120,7 +121,7 @@ export function ViewAnalystDocumentsDialog({
       type: "SEBI Certificate",
       label: "SEBI Registration Certificate",
       icon: ShieldCheckIcon,
-      url: (analyst.sebi_license_doc_url as string) || undefined,
+      url: realDocUrl(analyst.sebi_license_doc_url),
       description: "Official SEBI Research Analyst License Certificate",
     },
   ];
@@ -136,7 +137,7 @@ export function ViewAnalystDocumentsDialog({
           type: docType.toUpperCase(),
           label: `${docType.toUpperCase()} Document`,
           icon: FileTextIcon,
-          url: doc.url as string,
+          url: realDocUrl(doc.url),
           uploadedAt: doc.uploaded_at as string,
           description: "Additional Uploaded Verification Document",
         });

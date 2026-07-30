@@ -39,42 +39,9 @@ const FILTERS: FilterDef[] = [
   },
 ];
 
-const FALLBACK_CASES: ApiRecord[] = [
-  {
-    case_id: "CASE_101",
-    title: "Multiple Failed Logins from IP 192.168.1.102",
-    assigned_to: "Admin (Founder)",
-    severity: "CRITICAL",
-    status: "INVESTIGATING",
-    notes: "IP rate limited for 24 hours. Investigating credential stuffing attempt.",
-    created_at: "2026-07-26T09:00:00Z",
-  },
-  {
-    case_id: "CASE_102",
-    title: "Unusual Session Location: Moscow, RU",
-    assigned_to: "Security Lead",
-    severity: "HIGH",
-    status: "OPEN",
-    notes: "User USR_90213 logged in from unverified device location.",
-    created_at: "2026-07-25T14:30:00Z",
-  },
-  {
-    case_id: "CASE_103",
-    title: "Suspicious API Access Pattern",
-    assigned_to: "Admin (Founder)",
-    severity: "MEDIUM",
-    status: "RESOLVED",
-    notes: "Verified as automated API load test by internal engineer.",
-    created_at: "2026-07-24T11:15:00Z",
-  },
-];
-
 function selectThreatCases(data: ApiRecord): ApiRecord[] {
   const cases = data.cases;
-  if (Array.isArray(cases) && cases.length > 0) {
-    return cases as ApiRecord[];
-  }
-  return FALLBACK_CASES;
+  return Array.isArray(cases) ? (cases as ApiRecord[]) : [];
 }
 
 function mapThreatCase(item: ApiRecord): AdminRow {

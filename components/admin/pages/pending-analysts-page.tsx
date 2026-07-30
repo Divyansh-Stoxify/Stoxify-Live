@@ -19,11 +19,12 @@ import { Gated } from "@/components/admin/admin-permissions-provider";
 import { VerifyAnalystDialog } from "@/components/admin/dialogs/verify-analyst-dialog";
 import { RejectAnalystDialog } from "@/components/admin/dialogs/reject-analyst-dialog";
 import { ViewAnalystDocumentsDialog } from "@/components/admin/dialogs/view-analyst-documents-dialog";
+import { realDocUrl } from "@/lib/utils";
 
 function formatDocumentsSummary(analyst: ApiRecord): string {
-  const hasAadhaar = Boolean(analyst.aadhar_doc_url);
-  const hasPan = Boolean(analyst.pan_doc_url);
-  const hasSebi = Boolean(analyst.sebi_license_doc_url);
+  const hasAadhaar = Boolean(realDocUrl(analyst.aadhar_doc_url));
+  const hasPan = Boolean(realDocUrl(analyst.pan_doc_url));
+  const hasSebi = Boolean(realDocUrl(analyst.sebi_license_doc_url));
   const count = [hasAadhaar, hasPan, hasSebi].filter(Boolean).length;
   if (count === 3) return "All 3 Uploaded (Aadhaar, PAN, SEBI)";
   if (count > 0) {

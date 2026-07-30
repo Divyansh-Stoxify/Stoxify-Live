@@ -7,6 +7,7 @@ import { backendUrls, forwardedIpHeaders, signedBackendFetch } from "@/lib/backe
 import { adminCookieNames } from "@/lib/admin/cookies";
 import { rejectCrossOriginPost } from "@/lib/admin/csrf";
 import { readAdminSession } from "@/lib/admin/server-session";
+import type { AdminSessionPayload } from "@/lib/admin/session-shared";
 
 type BackendKey = keyof typeof backendUrls;
 
@@ -38,8 +39,12 @@ export async function proxyAdminInternalRequest({
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   requiredPower: string;
   query?: Record<string, string | number | undefined>;
-  /** Optional transform applied to the body the client sent (already parsed). */
-  bodyTransform?: (body: unknown) => unknown;
+  /**
+   * Optional transform applied to the body the client sent (already parsed).
+   * Receives the verified admin session so routes can stamp server-trusted
+   * fields (who sent this) instead of trusting the client for them.
+   */
+  bodyTransform?: (body: unknown, session: AdminSessionPayload) => unknown;
 }): Promise<NextResponse> {
   if (method !== "GET") {
     const reject = rejectCrossOriginPost(request);
@@ -94,7 +99,7 @@ export async function proxyAdminInternalRequest({
     } catch {
       body = {};
     }
-    if (bodyTransform) body = bodyTransform(body);
+    if (bodyTransform) body = bodyTransform(body, session);
   }
 
   let upstream: Response;

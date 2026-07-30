@@ -323,7 +323,7 @@ export function TradesPage() {
                       <div>
                         <p className="font-bold text-foreground font-mono">{trade.symbol}</p>
                         <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                          <span>{trade.trade_type || "SINGLE"}</span>
+                          <span>{trade.trade_type || "—"}</span>
                           <span className="font-mono text-[10px] text-muted-foreground/70">• {trade.trade_id}</span>
                         </p>
                       </div>
@@ -336,21 +336,21 @@ export function TradesPage() {
                         className="cursor-pointer hover:underline text-emerald-600 dark:text-emerald-400 font-semibold"
                         title="Filter entire page by this analyst"
                       >
-                        {trade.analyst_name || "Analyst"}
+                        {trade.analyst_name || "—"}
                       </span>
                     </TableCell>
 
                     {/* SEGMENT */}
                     <TableCell className="py-3 text-xs">
                       <Badge variant="outline" className="text-[10px] font-mono">
-                        {trade.segment || "EQUITY"}
+                        {trade.segment || "—"}
                       </Badge>
                     </TableCell>
 
                     {/* STATUS */}
                     <TableCell className="py-3 text-xs">
-                      <Badge variant={statusVariant(trade.status || "LIVE")} className="font-semibold text-[10px] tracking-wide px-2 py-0.5">
-                        {trade.status || "LIVE"}
+                      <Badge variant={statusVariant(trade.status || "")} className="font-semibold text-[10px] tracking-wide px-2 py-0.5">
+                        {trade.status || "—"}
                       </Badge>
                     </TableCell>
 

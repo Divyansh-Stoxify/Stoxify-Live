@@ -255,7 +255,7 @@ export function InternalTeamPage() {
                     {/* MEMBER */}
                     <TableCell className="py-3 text-xs">
                       <div>
-                        <p className="font-semibold text-foreground">{m.name || "Team Member"}</p>
+                        <p className="font-semibold text-foreground">{m.name || "Unnamed Member"}</p>
                         <p className="text-[11px] text-muted-foreground flex items-center gap-1">
                           <span>{m.email || "—"}</span>
                           {m.user_id && <span className="font-mono opacity-70">• {m.user_id}</span>}
@@ -266,14 +266,14 @@ export function InternalTeamPage() {
                     {/* ROLE */}
                     <TableCell className="py-3 text-xs">
                       <Badge variant="outline" className="text-[10px] font-mono font-bold">
-                        {m.assigned_role || "SUB_ADMIN"}
+                        {m.assigned_role || "—"}
                       </Badge>
                     </TableCell>
 
                     {/* STATE */}
                     <TableCell className="py-3 text-xs">
-                      <Badge variant={statusVariant(m.state || "ACTIVE")} className="font-semibold text-[10px] tracking-wide px-2 py-0.5">
-                        {m.state || "ACTIVE"}
+                      <Badge variant={statusVariant(m.state || "")} className="font-semibold text-[10px] tracking-wide px-2 py-0.5">
+                        {m.state || "—"}
                       </Badge>
                     </TableCell>
 
@@ -307,7 +307,7 @@ export function InternalTeamPage() {
                         <Gated power="PWR_USER_STATE_CHANGE">
                           <ChangeUserStateDialog
                             userId={m.user_id}
-                            currentState={m.state || "ACTIVE"}
+                            currentState={m.state || ""}
                             refresh={fetchMembers}
                             trigger={
                               <Button size="icon-sm" variant="ghost" title="Change State">

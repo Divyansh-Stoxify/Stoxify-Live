@@ -4,12 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BellIcon,
   CheckCircle2Icon,
-  ClockIcon,
-  FilterIcon,
   MegaphoneIcon,
   RefreshCwIcon,
   SearchIcon,
-  SendIcon,
+  UsersIcon,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -26,50 +24,58 @@ import {
 } from "@/components/ui/table";
 import { adminFetch } from "@/lib/admin/client-api";
 import { Gated } from "@/components/admin/admin-permissions-provider";
-import { BroadcastComposerDialog, type BroadcastData } from "@/components/admin/dialogs/broadcast-composer-dialog";
+import { BroadcastComposerDialog } from "@/components/admin/dialogs/broadcast-composer-dialog";
 
+/**
+ * One row per broadcast, as returned by GET /notifications/history — the
+ * notification-service aggregates the per-recipient rows by broadcast_id.
+ * Broadcasts send immediately, so every record here has already gone out;
+ * there is no draft/approval/scheduled state in the backend.
+ */
 export type BroadcastRecord = {
-  notification_id: string;
+  broadcast_id: string;
+  type: string;
   title: string;
-  body: string;
-  target_audience: string;
-  audience_size: number;
-  status: "PENDING_APPROVAL" | "SENT" | "SCHEDULED" | "REJECTED";
-  created_at: string;
+  message: string;
+  sent_by: string;
+  sent_at: string;
+  recipients: number;
+  read_count: number;
 };
-
-function statusVariant(value: string): "default" | "secondary" | "destructive" | "outline" {
-  if (/rejected/i.test(value)) return "destructive";
-  if (/pending|scheduled/i.test(value)) return "outline";
-  if (/sent/i.test(value)) return "default";
-  return "secondary";
-}
 
 export function NotificationsPage() {
   const [broadcasts, setBroadcasts] = useState<BroadcastRecord[]>([]);
   const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const fetchBroadcasts = useCallback(async () => {
     setIsRefreshing(true);
     try {
       const res = await adminFetch("/api/admin/notifications/history");
-      if (res.ok) {
-        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-        const list = Array.isArray(data.notifications)
-          ? (data.notifications as BroadcastRecord[])
-          : Array.isArray(data.items)
+      const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+
+      if (!res.ok) {
+        setBroadcasts([]);
+        setLoadError(
+          (data.error as string) ?? (data.message as string) ?? `Request failed (${res.status})`
+        );
+        return;
+      }
+
+      // The service replies { broadcasts, total, page, limit }.
+      const list = Array.isArray(data.broadcasts)
+        ? (data.broadcasts as BroadcastRecord[])
+        : Array.isArray(data.items)
           ? (data.items as BroadcastRecord[])
           : Array.isArray(data)
-          ? (data as BroadcastRecord[])
-          : [];
-        setBroadcasts(list);
-      } else {
-        setBroadcasts([]);
-      }
-    } catch {
+            ? (data as BroadcastRecord[])
+            : [];
+      setBroadcasts(list);
+      setLoadError(null);
+    } catch (err) {
       setBroadcasts([]);
+      setLoadError(err instanceof Error ? err.message : "Unable to reach the notification service");
     } finally {
       setIsRefreshing(false);
     }
@@ -79,40 +85,29 @@ export function NotificationsPage() {
     void fetchBroadcasts();
   }, [fetchBroadcasts]);
 
-  const handleAddBroadcast = (data: BroadcastData) => {
-    const record: BroadcastRecord = {
-      notification_id: `BRD_${Math.floor(1000 + Math.random() * 9000)}`,
-      title: data.title,
-      body: data.body,
-      target_audience: data.target_audience,
-      audience_size: data.target_audience === "ALL_USERS" ? 4250 : 1820,
-      status: data.status,
-      created_at: new Date().toISOString(),
-    };
-    setBroadcasts((prev) => [record, ...prev]);
-  };
-
-  // Filtered Broadcasts List
   const filteredBroadcasts = useMemo(() => {
-    return broadcasts.filter((b) => {
-      const q = search.toLowerCase();
-      const matchesSearch =
-        !search ||
-        (b.title && b.title.toLowerCase().includes(q)) ||
-        (b.target_audience && b.target_audience.toLowerCase().includes(q)) ||
-        (b.notification_id && b.notification_id.toLowerCase().includes(q));
-
-      const matchesStatus =
-        filterStatus === "all" || (b.status && b.status.toLowerCase() === filterStatus.toLowerCase());
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [broadcasts, search, filterStatus]);
+    const q = search.trim().toLowerCase();
+    if (!q) return broadcasts;
+    return broadcasts.filter(
+      (b) =>
+        b.title?.toLowerCase().includes(q) ||
+        b.message?.toLowerCase().includes(q) ||
+        b.sent_by?.toLowerCase().includes(q) ||
+        b.broadcast_id?.toLowerCase().includes(q)
+    );
+  }, [broadcasts, search]);
 
   const hasBroadcasts = broadcasts.length > 0;
-  const sentCount = hasBroadcasts ? broadcasts.filter((b) => b.status === "SENT").length : "—";
-  const pendingCount = hasBroadcasts ? broadcasts.filter((b) => b.status === "PENDING_APPROVAL").length : "—";
-  const scheduledCount = hasBroadcasts ? broadcasts.filter((b) => b.status === "SCHEDULED").length : "—";
+  const totalRecipients = broadcasts.reduce((sum, b) => sum + (b.recipients || 0), 0);
+  const totalReads = broadcasts.reduce((sum, b) => sum + (b.read_count || 0), 0);
+  const readRate = totalRecipients > 0 ? Math.round((totalReads / totalRecipients) * 100) : 0;
+  const lastSent = hasBroadcasts
+    ? broadcasts
+        .map((b) => b.sent_at)
+        .filter(Boolean)
+        .sort()
+        .at(-1)
+    : undefined;
 
   return (
     <div className="space-y-6">
@@ -124,13 +119,13 @@ export function NotificationsPage() {
           </p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">Notifications & Broadcasts</h1>
           <p className="mt-1 text-xs text-muted-foreground">
-            Compose platform broadcasts with draft editor, target segmentation, live preview, scheduling, and approval logs.
+            Send a platform-wide notification to a user segment and review what has already gone out.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <Gated power="PWR_NOTIFICATION_SEND_BROADCAST">
-            <BroadcastComposerDialog onSuccess={handleAddBroadcast} />
+            <BroadcastComposerDialog onSuccess={fetchBroadcasts} />
           </Gated>
 
           <Button
@@ -150,38 +145,48 @@ export function NotificationsPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Broadcasts</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Broadcasts Sent</span>
             <MegaphoneIcon className="size-4 text-blue-500" />
           </div>
-          <div className="mt-3 text-2xl font-extrabold tracking-tight text-muted-foreground/80">{hasBroadcasts ? broadcasts.length : "—"}</div>
-          <p className="mt-1 text-xs text-muted-foreground">Sent & draft broadcast logs</p>
-        </Card>
-
-        <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sent</span>
-            <CheckCircle2Icon className="size-4 text-emerald-500" />
+          <div className="mt-3 text-2xl font-extrabold tracking-tight text-foreground">
+            {hasBroadcasts ? broadcasts.length : "—"}
           </div>
-          <div className="mt-3 text-2xl font-extrabold tracking-tight text-muted-foreground/80">{sentCount}</div>
           <p className="mt-1 text-xs text-muted-foreground">Delivered platform broadcasts</p>
         </Card>
 
         <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pending Approval</span>
-            <ClockIcon className="size-4 text-amber-500" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Reach</span>
+            <UsersIcon className="size-4 text-emerald-500" />
           </div>
-          <div className="mt-3 text-2xl font-extrabold tracking-tight text-muted-foreground/80">{pendingCount}</div>
-          <p className="mt-1 text-xs text-muted-foreground">Review queue broadcasts</p>
+          <div className="mt-3 text-2xl font-extrabold tracking-tight text-foreground">
+            {hasBroadcasts ? totalRecipients.toLocaleString("en-IN") : "—"}
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">Notifications delivered across all sends</p>
         </Card>
 
         <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Scheduled</span>
-            <SendIcon className="size-4 text-purple-500" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Read Rate</span>
+            <CheckCircle2Icon className="size-4 text-amber-500" />
           </div>
-          <div className="mt-3 text-2xl font-extrabold tracking-tight text-muted-foreground/80">{scheduledCount}</div>
-          <p className="mt-1 text-xs text-muted-foreground">Scheduled future broadcasts</p>
+          <div className="mt-3 text-2xl font-extrabold tracking-tight text-foreground">
+            {hasBroadcasts ? `${readRate}%` : "—"}
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {hasBroadcasts ? `${totalReads.toLocaleString("en-IN")} of ${totalRecipients.toLocaleString("en-IN")} opened` : "Opened by recipients"}
+          </p>
+        </Card>
+
+        <Card className="rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Last Broadcast</span>
+            <BellIcon className="size-4 text-purple-500" />
+          </div>
+          <div className="mt-3 text-2xl font-extrabold tracking-tight text-foreground">
+            {lastSent ? new Date(lastSent).toLocaleDateString("en-IN", { day: "2-digit", month: "short" }) : "—"}
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">Most recent platform send</p>
         </Card>
       </div>
 
@@ -190,36 +195,17 @@ export function NotificationsPage() {
         <CardHeader className="gap-3 border-b bg-card px-6 py-4 md:flex-row md:items-center md:justify-between">
           <div>
             <CardTitle className="text-base font-bold tracking-tight text-foreground">Notification History & Broadcast Log</CardTitle>
-            <p className="mt-0.5 text-xs text-muted-foreground">Delivered broadcasts, target audience segment, reach, and review status</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Delivered broadcasts, reach, read counts, and sender</p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Status Filter Dropdown */}
-            <div className="flex items-center gap-1.5 border rounded-md bg-background px-2 py-1">
-              <FilterIcon className="size-3.5 text-muted-foreground" />
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="bg-transparent text-xs font-medium text-foreground focus:outline-hidden"
-              >
-                <option value="all">All Statuses</option>
-                <option value="PENDING_APPROVAL">Pending Approval</option>
-                <option value="SENT">Sent</option>
-                <option value="SCHEDULED">Scheduled</option>
-                <option value="REJECTED">Rejected</option>
-              </select>
-            </div>
-
-            {/* Search Input */}
-            <div className="relative w-full md:w-64">
-              <SearchIcon className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search title, audience..."
-                className="h-8 pl-8 text-xs"
-              />
-            </div>
+          <div className="relative w-full md:w-64">
+            <SearchIcon className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search title, message, sender..."
+              className="h-8 pl-8 text-xs"
+            />
           </div>
         </CardHeader>
 
@@ -227,10 +213,10 @@ export function NotificationsPage() {
           <Table>
             <TableHeader>
               <TableRow className="bg-card hover:bg-card border-b">
-                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">BROADCAST TITLE</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">AUDIENCE SEGMENT</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">EST. REACH</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">STATUS</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">BROADCAST</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">SENT BY</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">REACH</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">READ</TableHead>
                 <TableHead className="w-28 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">DATE</TableHead>
               </TableRow>
             </TableHeader>
@@ -240,51 +226,58 @@ export function NotificationsPage() {
                   <TableCell colSpan={5} className="h-36 text-center text-xs text-muted-foreground">
                     <div className="flex flex-col items-center justify-center gap-2 py-4">
                       <BellIcon className="size-8 text-muted-foreground/50" />
-                      <p className="font-semibold text-muted-foreground">No broadcast notifications returned from backend</p>
+                      <p className="font-semibold text-muted-foreground">
+                        {loadError
+                          ? "Couldn't load broadcast history"
+                          : search
+                            ? "No broadcasts match your search"
+                            : "No broadcasts sent yet"}
+                      </p>
                       <p className="text-[11px] text-muted-foreground/80 max-w-sm">
-                        Use the &ldquo;Compose Broadcast&rdquo; button above to create a notification draft or connect backend API routes.
+                        {loadError ?? "Use “Compose Broadcast” to send a platform-wide notification."}
                       </p>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredBroadcasts.map((b) => (
-                  <TableRow key={b.notification_id} className="transition-colors hover:bg-accent/40 border-b border-border/40">
-                    {/* BROADCAST TITLE */}
-                    <TableCell className="py-3 text-xs">
-                      <div>
-                        <p className="font-semibold text-foreground">{b.title}</p>
-                        <p className="text-[11px] text-muted-foreground flex items-center gap-1 font-mono">
-                          <span>{b.notification_id}</span>
-                        </p>
-                      </div>
-                    </TableCell>
+                filteredBroadcasts.map((b) => {
+                  const rate = b.recipients > 0 ? Math.round((b.read_count / b.recipients) * 100) : 0;
+                  return (
+                    <TableRow key={b.broadcast_id} className="transition-colors hover:bg-accent/40 border-b border-border/40">
+                      {/* BROADCAST */}
+                      <TableCell className="py-3 text-xs">
+                        <div className="max-w-md">
+                          <p className="font-semibold text-foreground">{b.title}</p>
+                          <p className="text-[11px] text-muted-foreground line-clamp-1">{b.message}</p>
+                          <p className="text-[11px] text-muted-foreground/70 font-mono">{b.broadcast_id}</p>
+                        </div>
+                      </TableCell>
 
-                    {/* AUDIENCE SEGMENT */}
-                    <TableCell className="py-3 text-xs">
-                      <Badge variant="outline" className="text-[10px] font-mono">
-                        {b.target_audience || "ALL_USERS"}
-                      </Badge>
-                    </TableCell>
+                      {/* SENT BY */}
+                      <TableCell className="py-3 text-xs">
+                        <Badge variant="outline" className="text-[10px] font-mono">
+                          {b.sent_by || "—"}
+                        </Badge>
+                      </TableCell>
 
-                    {/* EST. REACH */}
-                    <TableCell className="py-3 text-xs font-semibold text-foreground">
-                      {(b.audience_size || 0).toLocaleString("en-IN")} users
-                    </TableCell>
+                      {/* REACH */}
+                      <TableCell className="py-3 text-xs font-semibold text-foreground">
+                        {(b.recipients || 0).toLocaleString("en-IN")} users
+                      </TableCell>
 
-                    {/* STATUS */}
-                    <TableCell className="py-3 text-xs">
-                      <Badge variant={statusVariant(b.status || "SENT")} className="font-semibold text-[10px] tracking-wide px-2 py-0.5">
-                        {b.status || "SENT"}
-                      </Badge>
-                    </TableCell>
+                      {/* READ */}
+                      <TableCell className="py-3 text-xs">
+                        <span className="font-semibold text-foreground">{(b.read_count || 0).toLocaleString("en-IN")}</span>
+                        <span className="text-muted-foreground"> ({rate}%)</span>
+                      </TableCell>
 
-                    {/* DATE */}
-                    <TableCell className="py-3 text-right text-xs text-muted-foreground">
-                      {b.created_at ? new Date(b.created_at).toLocaleDateString("en-IN") : "—"}
-                    </TableCell>
-                  </TableRow>
-                ))
+                      {/* DATE */}
+                      <TableCell className="py-3 text-right text-xs text-muted-foreground">
+                        {b.sent_at ? new Date(b.sent_at).toLocaleDateString("en-IN") : "—"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -294,7 +287,7 @@ export function NotificationsPage() {
             <span>
               Showing {filteredBroadcasts.length} of {broadcasts.length} total broadcasts
             </span>
-            <span className="font-mono text-[11px]">Broadcast System Active</span>
+            <span className="font-mono text-[11px]">Sends are immediate — no approval queue</span>
           </div>
         </CardContent>
       </Card>

@@ -222,3 +222,19 @@ export function cleanErrorMessage(
 
   return defaultMsg;
 }
+
+/**
+ * Analyst onboarding stamps this stand-in on `sebi_license_doc_url` because the
+ * signup form collects details only — no file. Treat it as "nothing uploaded"
+ * everywhere, otherwise the SEBI slot reads "Uploaded" with a dead View link
+ * until the analyst actually uploads the certificate from their dashboard.
+ */
+export const PLACEHOLDER_DOC_URL = "https://stoxify.in/placeholder-doc.pdf";
+
+/** A verification document URL that actually points at an uploaded file. */
+export function realDocUrl(url: unknown): string | undefined {
+  if (typeof url !== "string") return undefined;
+  const trimmed = url.trim();
+  if (!trimmed || trimmed === PLACEHOLDER_DOC_URL) return undefined;
+  return trimmed;
+}

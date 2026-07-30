@@ -5,6 +5,7 @@ import {
   AwardIcon,
   CheckIcon,
   ClockIcon,
+  FileTextIcon,
   FilterIcon,
   PencilIcon,
   PlusIcon,
@@ -32,11 +33,12 @@ import {
 import { adminFetch } from "@/lib/admin/client-api";
 import { BlockAnalystDialog } from "@/components/admin/dialogs/block-analyst-dialog";
 import { ChangeAnalystStateDialog } from "@/components/admin/dialogs/change-analyst-state-dialog";
-import { CreateAnalystDialog, type NewAnalystData } from "@/components/admin/dialogs/create-analyst-dialog";
+import { CreateAnalystDialog } from "@/components/admin/dialogs/create-analyst-dialog";
 import { EditAnalystProfileDialog } from "@/components/admin/dialogs/edit-analyst-profile-dialog";
 import { VerifyAnalystDialog } from "@/components/admin/dialogs/verify-analyst-dialog";
 import { RejectAnalystDialog } from "@/components/admin/dialogs/reject-analyst-dialog";
 import { AnalystDetailCardDialog, type AnalystRecord } from "@/components/admin/dialogs/analyst-detail-card-dialog";
+import { ViewAnalystDocumentsDialog } from "@/components/admin/dialogs/view-analyst-documents-dialog";
 
 function statusVariant(value: string): "default" | "secondary" | "destructive" | "outline" {
   if (/blocked|rejected/i.test(value)) return "destructive";
@@ -80,27 +82,6 @@ export function AnalystsPage() {
   useEffect(() => {
     void fetchAnalysts();
   }, [fetchAnalysts]);
-
-  const handleAddAnalyst = (newAnalystData: NewAnalystData) => {
-    const newAnalyst: AnalystRecord = {
-      user_id: `ANL_${Math.floor(10000 + Math.random() * 90000)}`,
-      name: newAnalystData.name,
-      email: newAnalystData.email,
-      phone: newAnalystData.phone,
-      sebi_license_number: newAnalystData.sebi_license_number,
-      experience_years: newAnalystData.experience_years,
-      specialization: newAnalystData.specialization,
-      state: newAnalystData.state,
-      created_at: new Date().toISOString(),
-      performance: {
-        average_pnl_percent: 15.0,
-        win_rate: 70.0,
-        trades_count: 0,
-        active_plans_count: 0,
-      },
-    };
-    setAnalysts((prev) => [newAnalyst, ...prev]);
-  };
 
   const handleDeleteAnalyst = (analystId: string) => {
     setAnalysts((prev) => prev.filter((a) => a.user_id !== analystId));
@@ -177,7 +158,7 @@ export function AnalystsPage() {
 
         <div className="flex items-center gap-2">
           {/* Create Analyst Dialog Trigger */}
-          <CreateAnalystDialog onSuccess={handleAddAnalyst} />
+          <CreateAnalystDialog onSuccess={fetchAnalysts} />
 
           <Button
             size="sm"
@@ -371,10 +352,10 @@ export function AnalystsPage() {
                       <TableCell className="py-3 text-xs">
                         <div className="flex items-center gap-2.5">
                           <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
-                            {(analyst.name || "AN").slice(0, 2).toUpperCase()}
+                            {(analyst.name || analyst.email || analyst.user_id || "AN").slice(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-semibold text-foreground">{analyst.name || "Analyst"}</p>
+                            <p className="font-semibold text-foreground">{analyst.name || "Unnamed Analyst"}</p>
                             <p className="text-[11px] text-muted-foreground flex items-center gap-1">
                               <span>{analyst.email || "—"}</span>
                               <span className="font-mono text-[10px] text-muted-foreground/70">• {analyst.user_id}</span>
@@ -385,15 +366,15 @@ export function AnalystsPage() {
 
                       {/* STATE */}
                       <TableCell className="py-3 text-xs">
-                        <Badge variant={statusVariant(analyst.state || "ACTIVE")} className="font-semibold text-[10px] tracking-wide px-2 py-0.5">
-                          {analyst.state || "ACTIVE"}
+                        <Badge variant={statusVariant(analyst.state || "")} className="font-semibold text-[10px] tracking-wide px-2 py-0.5">
+                          {analyst.state || "—"}
                         </Badge>
                       </TableCell>
 
                       {/* SEBI LICENSE */}
                       <TableCell className="py-3 text-xs font-mono font-medium">
                         {analyst.sebi_license_number || (
-                          <span className="text-amber-600 dark:text-amber-400 text-[11px]">PENDING</span>
+                          <span className="text-muted-foreground text-[11px]">Not provided</span>
                         )}
                       </TableCell>
 
@@ -428,6 +409,17 @@ export function AnalystsPage() {
                       {/* ACTIONS / APPROVAL BUTTONS */}
                       <TableCell className="py-3 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* Uploaded verification documents — available for every
+                              analyst, not just those still awaiting approval. */}
+                          <ViewAnalystDocumentsDialog
+                            analyst={analyst}
+                            trigger={
+                              <Button size="icon-sm" variant="ghost" title="View verification documents">
+                                <FileTextIcon className="size-4 text-muted-foreground" />
+                              </Button>
+                            }
+                          />
+
                           {/* Approval / Verify Button */}
                           {isPending && (
                             <>
@@ -435,6 +427,7 @@ export function AnalystsPage() {
                                 analystId={analyst.user_id}
                                 analystName={analyst.name}
                                 sebiLicenseNumber={analyst.sebi_license_number}
+                                item={analyst}
                                 refresh={() => {
                                   handleApproveAnalyst(analyst.user_id);
                                   fetchAnalysts();
@@ -465,7 +458,7 @@ export function AnalystsPage() {
                             <>
                               <BlockAnalystDialog
                                 analystId={analyst.user_id}
-                                currentState={analyst.state || "ACTIVE"}
+                                currentState={analyst.state || ""}
                                 refresh={fetchAnalysts}
                                 trigger={
                                   <Button size="icon-sm" variant="ghost" title={/BLOCKED/i.test(analyst.state || "") ? "Unblock" : "Block"}>
@@ -476,7 +469,7 @@ export function AnalystsPage() {
 
                               <ChangeAnalystStateDialog
                                 analystId={analyst.user_id}
-                                currentState={analyst.state || "ACTIVE"}
+                                currentState={analyst.state || ""}
                                 refresh={fetchAnalysts}
                                 trigger={
                                   <Button size="icon-sm" variant="ghost" title="Change state">
