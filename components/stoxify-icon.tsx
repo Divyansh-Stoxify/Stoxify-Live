@@ -41,6 +41,8 @@ import {
   Lock,
   LogOut,
   Mail,
+  MessageSquare,
+  Minus,
   Phone,
   Plus,
   Power,
@@ -55,6 +57,7 @@ import {
   Star,
   Store,
   Target,
+  Tag,
   Ticket,
   Timer,
   Trash2,
@@ -63,6 +66,7 @@ import {
   User,
   Users,
   Wallet,
+  Wrench,
   X,
   Zap,
 } from "lucide-react";
@@ -98,7 +102,9 @@ export type IconName =
   | "lock"
   | "logout"
   | "mail"
+  | "message"
   | "phone"
+  | "minus"
   | "plus"
   | "power"
   | "receipt"
@@ -111,6 +117,7 @@ export type IconName =
   | "sparkle"
   | "star"
   | "store"
+  | "tag"
   | "target"
   | "timer"
   | "trendingDown"
@@ -118,6 +125,7 @@ export type IconName =
   | "user"
   | "users"
   | "wallet"
+  | "wrench"
   | "x"
   | "zap"
   | "eye"
@@ -189,7 +197,9 @@ const lucideIconMap: Record<IconName, React.ComponentType<any>> = {
   lock: Lock,
   logout: LogOut,
   mail: Mail,
+  message: MessageSquare,
   phone: Phone,
+  minus: Minus,
   plus: Plus,
   power: Power,
   receipt: Receipt,
@@ -209,6 +219,8 @@ const lucideIconMap: Record<IconName, React.ComponentType<any>> = {
   user: User,
   users: Users,
   wallet: Wallet,
+  wrench: Wrench,
+  tag: Tag,
   x: X,
   zap: Zap,
   helpCircle: HelpCircle,
