@@ -221,11 +221,16 @@ function Hero() {
           </div>
         </div>
 
-        {/* Placeholder for the app screenshots - two phone mockups, 2532 x 1170px each */}
-        <div className="flex min-h-[460px] items-center justify-center rounded-2xl border border-dashed border-[var(--line)] bg-white/40 max-[860px]:hidden">
-          <span className="text-[13px] font-medium text-[var(--muted-2)]">
-            App screenshots &middot; 2532 x 1170px
-          </span>
+        <div className="flex items-center justify-center">
+          <Image
+            alt="The StoXify app shown on two phones"
+            className="h-auto w-full max-w-[560px]"
+            height={703}
+            priority
+            sizes="(max-width: 860px) 90vw, 560px"
+            src="/Assets/HeroImage.png"
+            width={765}
+          />
         </div>
       </div>
     </section>
