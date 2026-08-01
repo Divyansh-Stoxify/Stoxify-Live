@@ -300,12 +300,22 @@ export function TraderDashboard({ user }: { user: DashboardUser }) {
         return;
       }
 
-      // Fan out one request per subscription (analyst + plan)
+      // Fan out one request per subscription (analyst + plan). Two ACTIVE subs
+      // can point at the same plan (e.g. a renewal), so collapse the requests
+      // first — otherwise the identical trade list is fetched twice.
+      const requests = new Map<string, { analystId: string; planId: string }>();
+      for (const sub of activeSubs) {
+        if (!sub.analyst_id || !sub.plan_id) continue;
+        requests.set(`${sub.analyst_id}|${sub.plan_id}`, {
+          analystId: sub.analyst_id,
+          planId: sub.plan_id,
+        });
+      }
+
       const results = await Promise.allSettled(
-        activeSubs.map(async (sub) => {
-          if (!sub.analyst_id || !sub.plan_id) return [];
+        Array.from(requests.values()).map(async ({ analystId, planId }) => {
           const res = await fetch(
-            `/api/trader/trades?analyst_id=${sub.analyst_id}&plan_id=${sub.plan_id}&status=${status}&limit=10`,
+            `/api/trader/trades?analyst_id=${analystId}&plan_id=${planId}&status=${status}&limit=10`,
             { credentials: "same-origin", cache: "no-store" }
           );
           const data = await res.json().catch(() => ({}));
@@ -313,12 +323,22 @@ export function TraderDashboard({ user }: { user: DashboardUser }) {
         })
       );
 
-      const allTrades = results
-        .filter((r): r is PromiseFulfilledResult<Trade[]> => r.status === "fulfilled")
-        .flatMap((r) => r.value)
-        .sort(
-          (a, b) => new Date(b.entry_timestamp).getTime() - new Date(a.entry_timestamp).getTime()
-        );
+      // A trade published to several batches at once carries one plan_id per
+      // batch, so a user subscribed to two of the same analyst's plans gets the
+      // same trade_id back from both requests. Keep the first copy — the
+      // backend scopes `batch` to all of the viewer's subs on that analyst, so
+      // every copy is identical.
+      const byTradeId = new Map<string, Trade>();
+      for (const result of results) {
+        if (result.status !== "fulfilled") continue;
+        for (const trade of result.value) {
+          if (!byTradeId.has(trade.trade_id)) byTradeId.set(trade.trade_id, trade);
+        }
+      }
+
+      const allTrades = Array.from(byTradeId.values()).sort(
+        (a, b) => new Date(b.entry_timestamp).getTime() - new Date(a.entry_timestamp).getTime()
+      );
 
       setTrades(allTrades);
     } catch {

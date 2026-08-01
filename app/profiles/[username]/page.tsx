@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import { AnalystProfile, SubscriptionPlan } from "@/lib/types/analyst";
 import Link from "next/link";
-import { BadgeCheck, Globe, Box, Target, TrendingUp, Users, Activity } from "lucide-react";
+import { Box } from "lucide-react";
 import { BatchListClient } from "@/components/public/BatchListClient";
 import { ThemeToggle } from "@/components/public/ThemeToggle";
 import { OpenInAppBanner } from "@/components/public/OpenInAppBanner";
-import { RAEvaluationDashboard } from "@/components/public/RAEvaluationDashboard";
+import { ProfileHero, ProfileTag } from "@/components/public/ProfileHero";
 import { ReviewsSection } from "@/components/public/ReviewsSection";
 
 interface PageProps {
@@ -46,6 +46,40 @@ async function getAnalystPlans(analystId: string): Promise<{ plans: Subscription
     console.error("Failed to fetch plans in SSR:", err);
     return null;
   }
+}
+
+/** "LONG TERM" / "FNO" read as database values; the page should read as English. */
+function titleCase(value: string): string {
+  if (value.toUpperCase() === "FNO") return "F&O";
+  return value
+    .toLowerCase()
+    .split(/[\s_]+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+/**
+ * The analyst's batches are the only place segments, horizons and risk appetite
+ * are recorded, so the profile's strategy chips are the union across them.
+ */
+function deriveTags(plans: SubscriptionPlan[]): ProfileTag[] {
+  const seen = new Set<string>();
+  const tags: ProfileTag[] = [];
+
+  const push = (kind: ProfileTag["kind"], raw?: string) => {
+    if (!raw) return;
+    const label = kind === "risk" ? `${titleCase(raw)} risk` : titleCase(raw);
+    const key = `${kind}:${label.toLowerCase()}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    tags.push({ kind, label });
+  };
+
+  for (const plan of plans) plan.segments?.forEach((segment) => push("segment", segment));
+  for (const plan of plans) plan.horizons?.forEach((horizon) => push("horizon", horizon));
+  for (const plan of plans) push("risk", plan.risk_level);
+
+  return tags;
 }
 
 export default async function AnalystLandingPage({ params }: PageProps) {
@@ -98,145 +132,22 @@ export default async function AnalystLandingPage({ params }: PageProps) {
           Universal Links never fire. */}
       <OpenInAppBanner username={resolvedParams.username} />
 
-      {/* Hero Section */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 pt-32 pb-12 transition-colors duration-300">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
-            {/* Avatar */}
-            <div className="h-32 w-32 rounded-full overflow-hidden border-4 border-white dark:border-slate-800 shadow-lg bg-slate-100 dark:bg-slate-800 flex-shrink-0 flex items-center justify-center text-4xl font-bold text-slate-400 dark:text-slate-500">
-              {profile.profile_pic_url ? (
-                <img
-                  src={profile.profile_pic_url}
-                  alt={profile.name}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                profile.name.charAt(0).toUpperCase()
-              )}
-            </div>
-
-            {/* Profile Info */}
-            <div className="flex-1 text-center md:text-left">
-              <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
-                <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">
-                  {profile.name}
-                </h1>
-                {profile.state === "ACTIVE" && (
-                  <BadgeCheck className="h-6 w-6 text-[var(--brand)]" />
-                )}
-              </div>
-              <p className="text-[15px] font-bold text-[var(--brand)] mb-4">
-                SEBI Registered: {profile.sebi_license_number || "Application Pending"}
-              </p>
-              {profile.bio && (
-                <p className="text-[15px] text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed mb-6">
-                  {profile.bio}
-                </p>
-              )}
-
-              {/* Socials & Contact */}
-              <div className="flex items-center justify-center md:justify-start gap-4">
-                {profile.twitter_url && (
-                  <a
-                    href={profile.twitter_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-slate-400 hover:text-[var(--brand)] dark:hover:text-[var(--brand)] transition-colors text-sm font-semibold"
-                  >
-                    X / Twitter
-                  </a>
-                )}
-                {profile.linkedin_url && (
-                  <a
-                    href={profile.linkedin_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-slate-400 hover:text-[var(--brand)] dark:hover:text-[var(--brand)] transition-colors text-sm font-semibold"
-                  >
-                    LinkedIn
-                  </a>
-                )}
-                {profile.website && (
-                  <a
-                    href={profile.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-slate-400 hover:text-[var(--brand)] dark:hover:text-[var(--brand)] transition-colors"
-                  >
-                    <Globe className="h-5 w-5" />
-                  </a>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Strip */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 py-6 transition-colors duration-300">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 divide-x divide-slate-100 dark:divide-slate-800">
-            <div className="flex flex-col items-center justify-center px-4">
-              <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 mb-1">
-                <Target size={14} />
-                <span className="text-xs font-semibold uppercase tracking-wider">Accuracy</span>
-              </div>
-              <span className="text-2xl font-bold text-slate-900 dark:text-white">
-                {stats.accuracy}%
-              </span>
-            </div>
-            <div className="flex flex-col items-center justify-center px-4">
-              <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 mb-1">
-                <TrendingUp size={14} />
-                <span className="text-xs font-semibold uppercase tracking-wider">Avg Return</span>
-              </div>
-              <span className="text-2xl font-bold text-green-500">+{stats.avgReturn}%</span>
-            </div>
-            <div className="flex flex-col items-center justify-center px-4">
-              <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 mb-1">
-                <Activity size={14} />
-                <span className="text-xs font-semibold uppercase tracking-wider">
-                  Closed Trades
-                </span>
-              </div>
-              <span className="text-2xl font-bold text-slate-900 dark:text-white">
-                {stats.totalClosedTrades}
-              </span>
-            </div>
-            <div className="flex flex-col items-center justify-center px-4">
-              <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 mb-1">
-                <Box size={14} />
-                <span className="text-xs font-semibold uppercase tracking-wider">Batches</span>
-              </div>
-              <span className="text-2xl font-bold text-slate-900 dark:text-white">
-                {stats.activeBatches}
-              </span>
-            </div>
-            <div className="flex flex-col items-center justify-center px-4">
-              <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 mb-1">
-                <Users size={14} />
-                <span className="text-xs font-semibold uppercase tracking-wider">Subscribers</span>
-              </div>
-              <span className="text-2xl font-bold text-[var(--brand)]">
-                {stats.subscriberCount}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Evaluation Dashboard Section */}
-      <div className="bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 py-16 transition-colors duration-300">
-        <div className="max-w-5xl mx-auto px-6 animate-reveal">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-8 text-center">
-            Analyst Evaluation
-          </h2>
-          <RAEvaluationDashboard username={resolvedParams.username} />
-        </div>
-      </div>
+      <ProfileHero
+        name={profile.name}
+        profilePicUrl={profile.profile_pic_url}
+        bio={profile.bio}
+        sebiLicense={profile.sebi_license_number || profile.sebi_registration_number}
+        registrationType={profile.registration_type}
+        isVerified={profile.state === "ACTIVE"}
+        twitterUrl={profile.twitter_url}
+        linkedinUrl={profile.linkedin_url}
+        website={profile.website}
+        tags={deriveTags(plans)}
+        stats={stats}
+      />
 
       {/* Batches Section */}
-      <div className="py-16">
+      <div id="batches" className="py-16 scroll-mt-24">
         <div className="max-w-5xl mx-auto px-6">
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-8 text-center">
             Available Batches
@@ -256,7 +167,10 @@ export default async function AnalystLandingPage({ params }: PageProps) {
       </div>
 
       {/* Reviews Section */}
-      <div className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-16 transition-colors duration-300">
+      <div
+        id="reviews"
+        className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-16 scroll-mt-24 transition-colors duration-300"
+      >
         <div className="max-w-5xl mx-auto px-6">
           <ReviewsSection
             analystId={profile.user_id as string}

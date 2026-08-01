@@ -8,11 +8,23 @@ import { useAnalystProfile } from "@/hooks/use-analyst-dashboard";
 import { useDashboard } from "@/components/dashboard/dashboard-context";
 import { Icon } from "@/components/stoxify-icon";
 import { realDocUrl } from "@/lib/utils";
+import {
+  INPUT_BASE,
+  INPUT_LOCKED,
+  BTN_GHOST,
+  BTN_PRIMARY,
+  HINT,
+  SectionHead,
+  SettingsRow,
+  LockedField,
+  DetailPair,
+  StatusPill,
+} from "@/components/dashboard/profile/ui";
+import { BankPayoutsTab } from "@/components/dashboard/profile/bank-payouts-tab";
 
 const TABS = [
   { name: "Profile Information", icon: "user" as const },
   { name: "SEBI Verification", icon: "shieldCheck" as const },
-  { name: "Notifications", icon: "bell" as const },
   { name: "Bank & Payouts", icon: "bank" as const },
   { name: "Delete Account", icon: "trash" as const },
 ];
@@ -55,7 +67,10 @@ function fileToBase64(file: File): Promise<string> {
  * Mirrors the avatar flow: the bytes go to Azure Blob via the user-service, and
  * only the returned URL is persisted on the analyst profile.
  */
-async function uploadVerificationDoc(file: File, docType: "aadhar" | "pan" | "sebi"): Promise<string> {
+async function uploadVerificationDoc(
+  file: File,
+  docType: "aadhar" | "pan" | "sebi"
+): Promise<string> {
   const document_base64 = await fileToBase64(file);
   const res = await fetch("/api/analyst/document", {
     method: "POST",
@@ -88,264 +103,6 @@ function DocStatusBadge({ staged, saved }: { staged: boolean; saved: boolean }) 
     );
   }
   return null;
-}
-
-// ─── Notifications Tab ────────────────────────────────────────────────────────
-
-interface NotificationPreferences {
-  channels: { email: boolean; push: boolean };
-  categories: { trades: boolean; subscriptions: boolean; account: boolean };
-}
-
-const DEFAULT_PREFS: NotificationPreferences = {
-  channels: { email: true, push: true },
-  categories: { trades: true, subscriptions: true, account: true },
-};
-
-/** Small accessible toggle switch. */
-function Toggle({
-  checked,
-  onChange,
-  label,
-}: {
-  checked: boolean;
-  onChange: (next: boolean) => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
-        checked ? "bg-[var(--brand)]" : "bg-slate-200"
-      }`}
-    >
-      <span
-        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
-          checked ? "translate-x-[22px]" : "translate-x-0.5"
-        }`}
-      />
-    </button>
-  );
-}
-
-function PrefRow({
-  title,
-  description,
-  checked,
-  onChange,
-}: {
-  title: string;
-  description: string;
-  checked: boolean;
-  onChange: (next: boolean) => void;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4 py-3.5">
-      <div className="min-w-0">
-        <div className="text-[13.5px] font-bold text-slate-800">{title}</div>
-        <div className="text-[12px] text-slate-400 mt-0.5">{description}</div>
-      </div>
-      <Toggle checked={checked} onChange={onChange} label={title} />
-    </div>
-  );
-}
-
-function NotificationsTab() {
-  const { showSuccessToast } = useDashboard();
-  const [prefs, setPrefs] = useState<NotificationPreferences>(DEFAULT_PREFS);
-  const [initial, setInitial] = useState<NotificationPreferences>(DEFAULT_PREFS);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isError, setIsError] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/analyst/notifications/preferences", {
-          credentials: "same-origin",
-          cache: "no-store",
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const loaded: NotificationPreferences = {
-          channels: {
-            email: data?.channels?.email ?? DEFAULT_PREFS.channels.email,
-            push: data?.channels?.push ?? DEFAULT_PREFS.channels.push,
-          },
-          categories: {
-            trades: data?.categories?.trades ?? DEFAULT_PREFS.categories.trades,
-            subscriptions:
-              data?.categories?.subscriptions ?? DEFAULT_PREFS.categories.subscriptions,
-            account: data?.categories?.account ?? DEFAULT_PREFS.categories.account,
-          },
-        };
-        if (!cancelled) {
-          setPrefs(loaded);
-          setInitial(loaded);
-          setIsError(false);
-        }
-      } catch {
-        if (!cancelled) setIsError(true);
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const isDirty = JSON.stringify(prefs) !== JSON.stringify(initial);
-
-  const setChannel = (key: keyof NotificationPreferences["channels"], next: boolean) =>
-    setPrefs((p) => ({ ...p, channels: { ...p.channels, [key]: next } }));
-
-  const setCategory = (key: keyof NotificationPreferences["categories"], next: boolean) =>
-    setPrefs((p) => ({ ...p, categories: { ...p.categories, [key]: next } }));
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      const res = await fetch("/api/analyst/notifications/preferences", {
-        method: "PATCH",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(prefs),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        showSuccessToast("Save Failed", err.error ?? "Unable to save notification preferences.");
-        return;
-      }
-      const saved = await res.json();
-      const next: NotificationPreferences = {
-        channels: { ...prefs.channels, ...(saved?.channels ?? {}) },
-        categories: { ...prefs.categories, ...(saved?.categories ?? {}) },
-      };
-      setPrefs(next);
-      setInitial(next);
-      showSuccessToast("Preferences Saved", "Your notification settings have been updated.");
-    } catch {
-      showSuccessToast("Network Error", "Unable to reach the server. Please try again.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  return (
-    <div
-      role="tabpanel"
-      id="panel-notifications"
-      aria-labelledby="tab-notifications"
-      className="flex flex-col gap-6 outline-none"
-    >
-      {/* Header */}
-      <div>
-        <h2 className="text-[17px] font-bold text-slate-800 leading-tight">Notifications</h2>
-        <p className="text-[13px] text-slate-400 mt-1">
-          Choose how and what you want to be notified about. In-app alerts are always on.
-        </p>
-      </div>
-
-      <hr className="border-slate-100" />
-
-      {isError ? (
-        <div className="rounded-lg border border-red-100 bg-red-50 p-4 text-[13px] text-red-600">
-          Unable to load your notification preferences. Make sure the notification service is
-          running.
-        </div>
-      ) : isLoading ? (
-        <div className="flex flex-col gap-3">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="flex items-center justify-between py-2">
-              <div className="space-y-1.5">
-                <div className="h-3.5 w-40 animate-pulse rounded bg-slate-100" />
-                <div className="h-2.5 w-56 animate-pulse rounded bg-slate-100" />
-              </div>
-              <div className="h-6 w-11 animate-pulse rounded-full bg-slate-100" />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <>
-          {/* Delivery channels */}
-          <div>
-            <h3 className="text-[13px] font-bold uppercase tracking-[0.04em] text-slate-400">
-              Delivery Channels
-            </h3>
-            <div className="mt-1 divide-y divide-slate-100">
-              <PrefRow
-                title="Email"
-                description="Receive notifications at your registered email address."
-                checked={prefs.channels.email}
-                onChange={(v) => setChannel("email", v)}
-              />
-              <PrefRow
-                title="Push Notifications"
-                description="Get push alerts on your devices."
-                checked={prefs.channels.push}
-                onChange={(v) => setChannel("push", v)}
-              />
-            </div>
-          </div>
-
-          {/* Categories */}
-          <div>
-            <h3 className="text-[13px] font-bold uppercase tracking-[0.04em] text-slate-400">
-              What to notify me about
-            </h3>
-            <div className="mt-1 divide-y divide-slate-100">
-              <PrefRow
-                title="Trade Alerts"
-                description="New trades, modifications and closures."
-                checked={prefs.categories.trades}
-                onChange={(v) => setCategory("trades", v)}
-              />
-              <PrefRow
-                title="Subscriptions"
-                description="Subscription activations, renewals and cancellations."
-                checked={prefs.categories.subscriptions}
-                onChange={(v) => setCategory("subscriptions", v)}
-              />
-              <PrefRow
-                title="Account & Security"
-                description="Account approval and important account updates."
-                checked={prefs.categories.account}
-                onChange={(v) => setCategory("account", v)}
-              />
-            </div>
-          </div>
-
-          <hr className="border-slate-100" />
-
-          {/* Actions */}
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={() => setPrefs(initial)}
-              disabled={!isDirty || isSaving}
-              className="px-4 py-2 border border-slate-200 rounded-lg text-[13px] font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer bg-white disabled:opacity-50 disabled:cursor-not-allowed"
-              type="button"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={!isDirty || isSaving}
-              className="px-4 py-2 bg-[var(--brand)] hover:bg-[var(--brand-dark)] rounded-lg text-[13px] font-bold text-white transition-colors cursor-pointer shadow-sm shadow-[var(--brand)]/15 disabled:opacity-50 disabled:cursor-not-allowed"
-              type="button"
-            >
-              {isSaving ? "Saving..." : "Save Changes"}
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  );
 }
 
 // ── Delete Account Tab ────────────────────────────────────────────────────────
@@ -428,48 +185,49 @@ function DeleteAccountTab() {
       aria-labelledby="tab-delete-account"
       className="flex flex-col gap-6 outline-none"
     >
-      {/* Header */}
-      <div>
-        <h2 className="text-[17px] font-bold text-red-600 leading-tight flex items-center gap-2">
-          <Icon name="trash" className="h-4.5 w-4.5" />
-          Delete Account
-        </h2>
-        <p className="text-[13px] text-slate-400 mt-1">
-          Permanently remove your Stoxify analyst account and all associated data.
-        </p>
-      </div>
-
-      <hr className="border-slate-100" />
+      <SectionHead
+        title="Delete Account"
+        tone="danger"
+        subtitle="Permanently remove your Stoxify analyst account and all associated data."
+        badge={
+          <StatusPill tone="danger" icon="ban">
+            Irreversible
+          </StatusPill>
+        }
+      />
 
       {/* Warning card */}
-      <div className="rounded-xl border border-red-100 bg-red-50/50 p-5">
-        <div className="flex items-start gap-3.5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600 mt-0.5">
-            <Icon name="x" className="h-5 w-5" />
+      <div className="overflow-hidden rounded-2xl border border-red-100">
+        <div className="flex items-center gap-3 border-b border-red-100 bg-red-50/70 px-5 py-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600">
+            <Icon name="trash" className="h-4.5 w-4.5" />
           </div>
-          <div>
-            <h4 className="text-[13.5px] font-bold text-red-800 mb-1.5">
-              What happens when you delete your account?
-            </h4>
-            <ul className="text-[12.5px] text-red-700 space-y-1.5 list-disc ml-4 leading-relaxed">
-              <li>All your subscription plans will be deactivated</li>
-              <li>Active subscriber access to your trades will be revoked</li>
-              <li>Your published trade history will be archived</li>
-              <li>All sessions will be terminated across every device</li>
-              <li>Your SEBI verification status and profile will be removed</li>
-              <li>Pending payouts may still be processed per compliance requirements</li>
-            </ul>
-          </div>
+          <h4 className="text-[13.5px] font-extrabold text-red-800">
+            What happens when you delete your account?
+          </h4>
         </div>
+        <ul className="grid grid-cols-1 gap-x-8 gap-y-2.5 bg-white p-5 text-[12.5px] leading-relaxed text-slate-600 sm:grid-cols-2">
+          {[
+            "All your subscription plans will be deactivated",
+            "Active subscriber access to your trades will be revoked",
+            "Your published trade history will be archived",
+            "All sessions will be terminated across every device",
+            "Your SEBI verification status and profile will be removed",
+            "Pending payouts may still be processed per compliance requirements",
+          ].map((line) => (
+            <li key={line} className="flex items-start gap-2.5">
+              <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-red-400" />
+              {line}
+            </li>
+          ))}
+        </ul>
       </div>
 
-      <hr className="border-slate-100" />
-
-      <div className="flex justify-end">
+      <div className="flex justify-end border-t border-slate-100 pt-6">
         <button
           type="button"
           onClick={() => setShowModal(true)}
-          className="px-5 py-2.5 bg-red-600 hover:bg-red-700 rounded-lg text-[13px] font-bold text-white transition-colors cursor-pointer shadow-sm active:scale-[0.98]"
+          className="inline-flex h-10 cursor-pointer items-center justify-center rounded-xl bg-red-600 px-5 text-[13px] font-bold text-white shadow-sm shadow-red-600/25 transition-all hover:bg-red-700 active:scale-[0.98]"
         >
           Delete My Account
         </button>
@@ -539,7 +297,7 @@ function DeleteAccountTab() {
                     type="button"
                     disabled={sendingOtp}
                     onClick={closeModal}
-                    className="flex-1 px-4 py-2.5 border border-slate-200 rounded-lg text-[13px] font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                    className="h-11 flex-1 rounded-xl border border-slate-200 text-[13px] font-bold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -547,9 +305,9 @@ function DeleteAccountTab() {
                     type="button"
                     disabled={sendingOtp || confirmText !== "DELETE"}
                     onClick={handleRequestOtp}
-                    className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 rounded-lg text-[13px] font-bold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
+                    className="h-11 flex-1 rounded-xl bg-red-600 text-[13px] font-bold text-white shadow-sm shadow-red-600/25 transition-all hover:bg-red-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
                   >
-                    {sendingOtp ? "Sending code..." : "Continue"}
+                    {sendingOtp ? "Sending code…" : "Continue"}
                   </button>
                 </div>
               </>
@@ -590,7 +348,7 @@ function DeleteAccountTab() {
                       setStep("confirm");
                       setOtp("");
                     }}
-                    className="flex-1 px-4 py-2.5 border border-slate-200 rounded-lg text-[13px] font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                    className="h-11 flex-1 rounded-xl border border-slate-200 text-[13px] font-bold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50"
                   >
                     Back
                   </button>
@@ -598,9 +356,9 @@ function DeleteAccountTab() {
                     type="button"
                     disabled={deleting || otp.length !== 6}
                     onClick={handleDelete}
-                    className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 rounded-lg text-[13px] font-bold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
+                    className="h-11 flex-1 rounded-xl bg-red-600 text-[13px] font-bold text-white shadow-sm shadow-red-600/25 transition-all hover:bg-red-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
                   >
-                    {deleting ? "Deleting..." : "Permanently Delete"}
+                    {deleting ? "Deleting…" : "Permanently Delete"}
                   </button>
                 </div>
               </>
@@ -646,7 +404,6 @@ export default function ProfilePage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [username, setUsername] = useState("");
-
 
   // Document Upload States
   const [sebiDocFile, setSebiDocFile] = useState<File | null>(null);
@@ -765,7 +522,10 @@ export default function ProfilePage() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        showSuccessToast("Save Failed", err.error ?? err.message ?? "Unable to save profile changes.");
+        showSuccessToast(
+          "Save Failed",
+          err.error ?? err.message ?? "Unable to save profile changes."
+        );
         return;
       }
 
@@ -951,41 +711,48 @@ export default function ProfilePage() {
     <>
       <Topbar title="Settings" showUserProfile={true} />
 
-      <div className="flex-1 p-8 bg-[#fafbfc] flex flex-col md:flex-row gap-8 overflow-y-auto">
-        {/* ─── Left Sidebar Tabs (With icons) ─── */}
-        <div
-          className="flex flex-col gap-1 w-full md:w-[220px] shrink-0"
-          role="tablist"
-          aria-label="Settings Tab list"
-        >
-          {TABS.map((tab) => {
-            const isActive = activeTab === tab.name;
-            const tabId = `tab-${tab.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
-            const panelId = `panel-${tab.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
-            return (
-              <button
-                key={tab.name}
-                id={tabId}
-                role="tab"
-                aria-selected={isActive}
-                aria-controls={panelId}
-                onClick={() => setActiveTab(tab.name)}
-                className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-[13.5px] font-semibold transition-all duration-150 text-left ${
-                  isActive
-                    ? "bg-[#eef2f6] text-slate-800"
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-                }`}
-                type="button"
-              >
-                <Icon className="h-4 w-4 shrink-0" name={tab.icon} />
-                {tab.name}
-              </button>
-            );
-          })}
+      <div className="flex-1 overflow-y-auto bg-white">
+        {/* ─── Settings Navbar ─── */}
+        <div className="sticky top-0 z-10 border-b border-slate-100 bg-white/95 px-5 backdrop-blur-sm md:px-10">
+          <div
+            className="-mb-px flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            role="tablist"
+            aria-label="Settings Tab list"
+          >
+            {TABS.map((tab) => {
+              const isActive = activeTab === tab.name;
+              const isDanger = tab.name === "Delete Account";
+              const tabId = `tab-${tab.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+              const panelId = `panel-${tab.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+              return (
+                <button
+                  key={tab.name}
+                  id={tabId}
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-controls={panelId}
+                  onClick={() => setActiveTab(tab.name)}
+                  className={`flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap border-b-2 px-3 py-4 text-[13.5px] font-semibold transition-colors duration-150 ${
+                    isActive
+                      ? isDanger
+                        ? "border-red-500 text-red-600"
+                        : "border-[var(--brand)] text-[var(--brand)]"
+                      : isDanger
+                        ? "border-transparent text-slate-400 hover:text-red-500"
+                        : "border-transparent text-slate-400 hover:text-slate-700"
+                  }`}
+                  type="button"
+                >
+                  <Icon className="h-4 w-4 shrink-0" name={tab.icon} />
+                  {tab.name}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* ─── Right Content Card ─── */}
-        <div className="flex-1 max-w-4xl bg-white rounded-xl border border-slate-100 shadow-sm p-8">
+        {/* ─── Active Panel ─── */}
+        <div className="px-5 py-7 md:px-10 md:py-9">
           {activeTab === "Profile Information" && (
             <div
               role="tabpanel"
@@ -993,315 +760,357 @@ export default function ProfilePage() {
               aria-labelledby="tab-profile-information"
               className="outline-none"
             >
-              <form onSubmit={handleSave} className="flex flex-col gap-6">
-                {/* Header */}
-                <div>
-                  <h2 className="text-[17px] font-bold text-slate-800 leading-tight">
-                    Profile Information
-                  </h2>
-                  <p className="text-[13px] text-slate-400 mt-1">
-                    Update your photo and personal details here.
-                  </p>
-                </div>
+              <form onSubmit={handleSave} className="flex flex-col">
+                <SectionHead
+                  title="Profile Details"
+                  subtitle="You can change your profile details here seamlessly."
+                />
 
-                <hr className="border-slate-100" />
+                <div className="mt-6">
+                  {/* Profile Picture */}
+                  <SettingsRow
+                    label="Profile Picture"
+                    description="This is what subscribers see beside every trade you publish."
+                  >
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-[var(--brand)] text-[19px] font-bold text-white shadow-sm">
+                          {avatarUrl ? (
+                            <Image
+                              src={avatarUrl}
+                              alt="Avatar"
+                              width={64}
+                              height={64}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            initials
+                          )}
+                        </div>
+                        {avatarUrl && (
+                          <button
+                            onClick={handleRemoveAvatar}
+                            disabled={uploadingAvatar}
+                            className="cursor-pointer text-[11.5px] font-bold text-red-500 transition-colors hover:text-red-600 disabled:opacity-60"
+                            type="button"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
 
-                {/* Avatar section */}
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-full overflow-hidden bg-[var(--brand)] flex items-center justify-center text-white text-[18px] font-bold shadow-sm border border-slate-100">
-                    {avatarUrl ? (
-                      <Image
-                        src={avatarUrl}
-                        alt="Avatar"
-                        width={56}
-                        height={56}
-                        className="w-full h-full object-cover"
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={handleAvatarFileChange}
+                        className="hidden"
                       />
-                    ) : (
-                      initials
-                    )}
-                  </div>
-
-                  <div className="flex gap-2">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      onChange={handleAvatarFileChange}
-                      className="hidden"
-                    />
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploadingAvatar}
-                      className="px-4 py-1.5 border border-slate-200 rounded-lg text-[12.5px] font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors shadow-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                      type="button"
-                    >
-                      {uploadingAvatar ? "Uploading…" : "Upload Photo"}
-                    </button>
-                    <button
-                      onClick={handleRemoveAvatar}
-                      disabled={uploadingAvatar}
-                      className="px-3 py-1.5 text-red-500 text-[12.5px] font-bold hover:text-red-600 transition-colors cursor-pointer bg-transparent border-none disabled:opacity-60"
-                      type="button"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-
-                {/* Form Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {/* First Name */}
-                  <div>
-                    <label
-                      htmlFor="firstName"
-                      className="text-[12.5px] font-bold text-slate-700 mb-1.5 block"
-                    >
-                      First Name
-                    </label>
-                    <input
-                      id="firstName"
-                      type="text"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-[13.5px] text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors shadow-sm"
-                    />
-                  </div>
-
-                  {/* Last Name */}
-                  <div>
-                    <label
-                      htmlFor="lastName"
-                      className="text-[12.5px] font-bold text-slate-700 mb-1.5 block"
-                    >
-                      Last Name
-                    </label>
-                    <input
-                      id="lastName"
-                      type="text"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-[13.5px] text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors shadow-sm"
-                    />
-                  </div>
-                </div>
-
-                {/* Username */}
-                <div>
-                  <label
-                    htmlFor="username"
-                    className="text-[12.5px] font-bold text-slate-700 mb-1.5 flex items-center justify-between"
-                  >
-                    <span>Unique Username</span>
-                    {usernameStatus === "checking" && (
-                      <span className="text-slate-400 font-normal">Checking...</span>
-                    )}
-                    {usernameStatus === "available" && (
-                      <span className="text-green-500 font-normal">Available</span>
-                    )}
-                    {usernameStatus === "taken" && (
-                      <span className="text-red-500 font-normal">Taken</span>
-                    )}
-                  </label>
-                  <div className="relative flex items-center">
-                    <span className="absolute left-3 text-slate-400 text-[13.5px]">
-                      stoxify.in/profiles/
-                    </span>
-                    <input
-                      id="username"
-                      type="text"
-                      value={username}
-                      disabled={isUsernameSet}
-                      onChange={(e) => {
-                        setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.-]+/g, ""));
-                        setUsernameStatus("idle");
-                      }}
-                      className={`w-full pl-[135px] pr-3 py-2 border rounded-lg text-[13.5px] text-slate-800 placeholder-slate-400 focus:outline-none transition-colors shadow-sm ${
-                        isUsernameSet
-                          ? "bg-slate-50 text-slate-500 cursor-not-allowed"
-                          : usernameStatus === "taken"
-                            ? "border-red-300 focus:border-red-500 text-red-600 bg-red-50"
-                            : usernameStatus === "available"
-                              ? "border-green-300 focus:border-green-500 text-green-700 bg-green-50"
-                              : "border-slate-200 focus:border-[var(--brand)]"
-                      }`}
-                      placeholder="username"
-                    />
-                  </div>
-                  {isUsernameSet ? (
-                    <span className="text-[11px] text-slate-400 mt-1 block">
-                      Your unique username has been permanently claimed.
-                    </span>
-                  ) : (
-                    <span className="text-[11px] text-slate-400 mt-1 block">
-                      Choose a unique username to claim your public profile URL.
-                    </span>
-                  )}
-                </div>
-
-                {/* Email Address */}
-                <div>
-                  <label
-                    htmlFor="email"
-                    className="text-[12.5px] font-bold text-slate-700 mb-1.5 block"
-                  >
-                    Email Address
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    value={profile?.email || ""}
-                    disabled
-                    className="w-full px-3 py-2 border border-slate-100 bg-[#f8fafc] rounded-lg text-[13.5px] text-slate-400 cursor-not-allowed focus:outline-none"
-                  />
-                  <span className="text-[11px] text-slate-400 mt-1 block">
-                    Email cannot be changed. Contact support for assistance.
-                  </span>
-                </div>
-
-                {/* Phone Number */}
-                <div>
-                  <label
-                    htmlFor="phone"
-                    className="text-[12.5px] font-bold text-slate-700 mb-1.5 block"
-                  >
-                    Phone Number
-                  </label>
-                  <input
-                    id="phone"
-                    type="text"
-                    value={formatPhone(profile?.phone)}
-                    disabled
-                    className="w-full px-3 py-2 border border-slate-100 bg-[#f8fafc] rounded-lg text-[13.5px] text-slate-400 cursor-not-allowed focus:outline-none"
-                  />
-                  <span className="text-[11px] text-slate-400 mt-1 block">
-                    Your phone number is your login and cannot be changed here.
-                  </span>
-                </div>
-
-                {/* Bio */}
-                <div>
-                  <label
-                    htmlFor="bio"
-                    className="text-[12.5px] font-bold text-slate-700 mb-1.5 block"
-                  >
-                    Professional Bio
-                  </label>
-                  <textarea
-                    id="bio"
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    className="w-full h-24 px-3 py-2 border border-slate-200 rounded-lg text-[13.5px] text-slate-800 focus:outline-none focus:border-[var(--brand)] transition-colors shadow-sm resize-none"
-                    placeholder="Describe your credentials and approach..."
-                  />
-                </div>
-
-                {/* Social URLs Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {/* Twitter */}
-                  <div>
-                    <label
-                      htmlFor="twitter"
-                      className="text-[12.5px] font-bold text-slate-700 mb-1.5 block"
-                    >
-                      Twitter/X Profile URL
-                    </label>
-                    <input
-                      id="twitter"
-                      type="text"
-                      value={twitterUrl}
-                      onChange={(e) => setTwitterUrl(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-[13.5px] text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors shadow-sm"
-                      placeholder="https://twitter.com/..."
-                    />
-                  </div>
-
-                  {/* LinkedIn */}
-                  <div>
-                    <label
-                      htmlFor="linkedin"
-                      className="text-[12.5px] font-bold text-slate-700 mb-1.5 block"
-                    >
-                      LinkedIn Profile URL
-                    </label>
-                    <input
-                      id="linkedin"
-                      type="text"
-                      value={linkedinUrl}
-                      onChange={(e) => setLinkedinUrl(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-[13.5px] text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors shadow-sm"
-                      placeholder="https://linkedin.com/in/..."
-                    />
-                  </div>
-                </div>
-
-                {/* Public Landing Page */}
-                <div className="mt-2">
-                  <label className="text-[12.5px] font-bold text-slate-700 mb-1.5 block">
-                    Public Landing Page
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={
-                        username
-                          ? `stoxify.in/profiles/${username}`
-                          : "Set a username above to claim your link"
-                      }
-                      readOnly
-                      className="w-full px-3 py-2 border border-slate-200 bg-[#f8fafc] rounded-lg text-[13.5px] text-slate-500 focus:outline-none"
-                    />
-                    <button
-                      onClick={() => {
-                        const savedUsername = profile?.username;
-                        if (savedUsername) {
-                          navigator.clipboard.writeText(`stoxify.in/profiles/${savedUsername}`);
-                          showSuccessToast(
-                            "Link Copied",
-                            "Your landing page link has been copied to clipboard."
-                          );
-                        } else {
-                          showSuccessToast("Error", "Please set and save a unique username first.");
-                        }
-                      }}
-                      className="px-4 py-2 border border-slate-200 rounded-lg text-[12.5px] font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors shadow-sm cursor-pointer whitespace-nowrap"
-                      type="button"
-                    >
-                      Copy Link
-                    </button>
-                    {profile?.username && (
-                      <Link
-                        href={`/profiles/${profile.username}`}
-                        target="_blank"
-                        className="px-4 py-2 border border-transparent rounded-lg text-[12.5px] font-bold text-white bg-[var(--brand)] hover:bg-[var(--brand-dark)] transition-colors shadow-sm cursor-pointer whitespace-nowrap"
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingAvatar}
+                        className="flex flex-1 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/60 px-4 py-5 text-center transition-colors hover:border-[var(--brand)] hover:bg-[var(--brand-light)]/50 disabled:cursor-not-allowed disabled:opacity-60"
+                        type="button"
                       >
-                        Visit Page
-                      </Link>
-                    )}
-                  </div>
-                  <span className="text-[11px] text-slate-400 mt-1 block">
-                    Share this unique link with potential subscribers to showcase your profile and
-                    plans.
-                  </span>
+                        <span className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-100 bg-white text-[var(--brand)] shadow-sm">
+                          <Icon name="plus" className="h-4 w-4" />
+                        </span>
+                        <span className="text-[12.5px] font-bold text-slate-600">
+                          {uploadingAvatar ? (
+                            "Uploading…"
+                          ) : (
+                            <>
+                              <span className="text-[var(--brand)]">Click here</span> to upload your
+                              photo
+                            </>
+                          )}
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          Supported formats: JPG, PNG, WebP (3 MB max)
+                        </span>
+                      </button>
+                    </div>
+                  </SettingsRow>
+
+                  {/* Full Name */}
+                  <SettingsRow
+                    label="Full Name"
+                    description="The name shown on your public profile and trade alerts."
+                  >
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div>
+                        <label
+                          htmlFor="firstName"
+                          className="mb-1.5 block text-[11.5px] font-semibold text-slate-500"
+                        >
+                          First name
+                        </label>
+                        <input
+                          id="firstName"
+                          type="text"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          className={INPUT_BASE}
+                          placeholder="First name"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="lastName"
+                          className="mb-1.5 block text-[11.5px] font-semibold text-slate-500"
+                        >
+                          Last name
+                        </label>
+                        <input
+                          id="lastName"
+                          type="text"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          className={INPUT_BASE}
+                          placeholder="Last name"
+                        />
+                      </div>
+                    </div>
+                  </SettingsRow>
+
+                  {/* Public Profile URL */}
+                  <SettingsRow
+                    label="Public Profile"
+                    description="This is the main profile that will be visible to everyone."
+                    htmlFor="username"
+                  >
+                    <div
+                      className={`flex h-11 w-full items-stretch overflow-hidden rounded-xl border transition-all ${
+                        isUsernameSet
+                          ? "border-slate-200/70 bg-slate-50"
+                          : usernameStatus === "taken"
+                            ? "border-red-300 bg-white focus-within:ring-4 focus-within:ring-red-500/10"
+                            : usernameStatus === "available"
+                              ? "border-emerald-300 bg-white focus-within:ring-4 focus-within:ring-emerald-500/10"
+                              : "border-slate-200 bg-white focus-within:border-[var(--brand)] focus-within:ring-4 focus-within:ring-[var(--brand)]/10"
+                      }`}
+                    >
+                      <span className="flex select-none items-center whitespace-nowrap border-r border-slate-200 bg-slate-50 px-3.5 text-[12.5px] font-semibold text-slate-400">
+                        stoxify.in/profiles/
+                      </span>
+                      <input
+                        id="username"
+                        type="text"
+                        value={username}
+                        disabled={isUsernameSet}
+                        onChange={(e) => {
+                          setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.-]+/g, ""));
+                          setUsernameStatus("idle");
+                        }}
+                        className={`min-w-0 flex-1 bg-transparent px-3.5 text-[13.5px] outline-none placeholder:text-slate-300 ${
+                          isUsernameSet
+                            ? "cursor-not-allowed text-slate-500"
+                            : usernameStatus === "taken"
+                              ? "text-red-600"
+                              : usernameStatus === "available"
+                                ? "text-emerald-700"
+                                : "text-slate-800"
+                        }`}
+                        placeholder="username"
+                      />
+                      {isUsernameSet ? (
+                        <span className="flex items-center pr-3.5 text-slate-300">
+                          <Icon name="lock" className="h-3.5 w-3.5" />
+                        </span>
+                      ) : (
+                        usernameStatus !== "idle" && (
+                          <span
+                            className={`flex items-center gap-1 whitespace-nowrap pr-3.5 text-[11.5px] font-bold ${
+                              usernameStatus === "checking"
+                                ? "text-slate-400"
+                                : usernameStatus === "available"
+                                  ? "text-emerald-600"
+                                  : "text-red-500"
+                            }`}
+                          >
+                            {usernameStatus === "available" && (
+                              <Icon name="circleCheck" className="h-3.5 w-3.5" />
+                            )}
+                            {usernameStatus === "taken" && (
+                              <Icon name="x" className="h-3.5 w-3.5" />
+                            )}
+                            {usernameStatus === "checking"
+                              ? "Checking…"
+                              : usernameStatus === "available"
+                                ? "Available"
+                                : "Taken"}
+                          </span>
+                        )
+                      )}
+                    </div>
+                    <p className={HINT}>
+                      {isUsernameSet
+                        ? "Your unique username has been permanently claimed."
+                        : "Choose a unique username to claim your public profile URL."}
+                    </p>
+                  </SettingsRow>
+
+                  {/* Email Address */}
+                  <SettingsRow
+                    label="Email Address"
+                    description="Where account and payout receipts are sent."
+                  >
+                    <LockedField icon="mail" value={profile?.email || ""} />
+                    <p className={HINT}>Email cannot be changed. Contact support for assistance.</p>
+                  </SettingsRow>
+
+                  {/* Phone Number */}
+                  <SettingsRow
+                    label="Phone Number"
+                    description="Used to sign in and to verify sensitive actions."
+                  >
+                    <LockedField icon="phone" value={formatPhone(profile?.phone)} />
+                    <p className={HINT}>
+                      Your phone number is your login and cannot be changed here.
+                    </p>
+                  </SettingsRow>
+
+                  {/* Bio */}
+                  <SettingsRow
+                    label="Bio Description"
+                    description="This will be your main story. Keep it credible and to the point."
+                    htmlFor="bio"
+                  >
+                    <textarea
+                      id="bio"
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      className="h-28 w-full resize-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-[13.5px] leading-relaxed text-slate-800 outline-none transition-all placeholder:text-slate-300 focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/10"
+                      placeholder="Describe your credentials and approach..."
+                    />
+                    <div className="mt-1.5 flex items-center justify-between">
+                      <span className="text-[11.5px] text-slate-400">
+                        Shown at the top of your public profile.
+                      </span>
+                      <span className="text-[11.5px] font-semibold text-slate-400">
+                        {bio.length} characters
+                      </span>
+                    </div>
+                  </SettingsRow>
+
+                  {/* Social Links */}
+                  <SettingsRow
+                    label="Social Links"
+                    description="Optional. Helps subscribers verify who you are."
+                  >
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div>
+                        <label
+                          htmlFor="twitter"
+                          className="mb-1.5 block text-[11.5px] font-semibold text-slate-500"
+                        >
+                          Twitter / X
+                        </label>
+                        <div className="relative">
+                          <Icon
+                            name="link"
+                            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-300"
+                          />
+                          <input
+                            id="twitter"
+                            type="text"
+                            value={twitterUrl}
+                            onChange={(e) => setTwitterUrl(e.target.value)}
+                            className={`${INPUT_BASE} pl-10`}
+                            placeholder="https://twitter.com/..."
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="linkedin"
+                          className="mb-1.5 block text-[11.5px] font-semibold text-slate-500"
+                        >
+                          LinkedIn
+                        </label>
+                        <div className="relative">
+                          <Icon
+                            name="link"
+                            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-300"
+                          />
+                          <input
+                            id="linkedin"
+                            type="text"
+                            value={linkedinUrl}
+                            onChange={(e) => setLinkedinUrl(e.target.value)}
+                            className={`${INPUT_BASE} pl-10`}
+                            placeholder="https://linkedin.com/in/..."
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </SettingsRow>
+
+                  {/* Public Landing Page */}
+                  <SettingsRow
+                    label="Landing Page"
+                    description="Share this link with potential subscribers to showcase your profile and plans."
+                  >
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <div className="relative min-w-0 flex-1">
+                        <Icon
+                          name="link"
+                          className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-300"
+                        />
+                        <input
+                          type="text"
+                          value={
+                            username
+                              ? `stoxify.in/profiles/${username}`
+                              : "Set a username above to claim your link"
+                          }
+                          readOnly
+                          className={`${INPUT_LOCKED} cursor-default pl-10`}
+                        />
+                      </div>
+                      <div className="flex shrink-0 gap-2">
+                        <button
+                          onClick={() => {
+                            const savedUsername = profile?.username;
+                            if (savedUsername) {
+                              navigator.clipboard.writeText(`stoxify.in/profiles/${savedUsername}`);
+                              showSuccessToast(
+                                "Link Copied",
+                                "Your landing page link has been copied to clipboard."
+                              );
+                            } else {
+                              showSuccessToast(
+                                "Error",
+                                "Please set and save a unique username first."
+                              );
+                            }
+                          }}
+                          className={BTN_GHOST}
+                          type="button"
+                        >
+                          Copy Link
+                        </button>
+                        {profile?.username && (
+                          <Link
+                            href={`/profiles/${profile.username}`}
+                            target="_blank"
+                            className={BTN_PRIMARY}
+                          >
+                            Visit Page
+                            <Icon name="arrowRight" className="h-3.5 w-3.5" />
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  </SettingsRow>
                 </div>
-
-
-
-                <hr className="border-slate-100 mt-2" />
 
                 {/* Actions */}
-                <div className="flex justify-end gap-3">
-                  <button
-                    onClick={handleCancel}
-                    className="px-4 py-2 border border-slate-200 rounded-lg text-[13px] font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer bg-white"
-                    type="button"
-                  >
+                <div className="flex justify-end gap-3 border-t border-slate-100 pt-6">
+                  <button onClick={handleCancel} className={BTN_GHOST} type="button">
                     Cancel
                   </button>
-                  <button
-                    className="px-4 py-2 bg-[var(--brand)] hover:bg-[var(--brand-dark)] rounded-lg text-[13px] font-bold text-white transition-colors cursor-pointer shadow-sm shadow-[var(--brand)]/15"
-                    type="submit"
-                  >
+                  <button className={BTN_PRIMARY} type="submit">
                     Save Changes
                   </button>
                 </div>
@@ -1316,54 +1125,39 @@ export default function ProfilePage() {
               aria-labelledby="tab-sebi-verification"
               className="flex flex-col gap-6 outline-none"
             >
-              {/* Header */}
+              <SectionHead
+                title="SEBI Verification"
+                subtitle="Manage your SEBI registration details and compliance documents."
+                badge={
+                  isSebiVerified ? (
+                    <StatusPill tone="ok" icon="circleCheck">
+                      Verified
+                    </StatusPill>
+                  ) : (
+                    <StatusPill tone="pending" icon="lock">
+                      {profile?.state ? profile.state.replace(/_/g, " ") : "Pending"}
+                    </StatusPill>
+                  )
+                }
+              />
+
               <div>
-                <div className="flex items-center justify-between">
-                  <h2 className="text-[17px] font-bold text-slate-800 leading-tight flex items-center gap-2">
-                    SEBI Verification
-                    {isSebiVerified ? (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-[10.5px] font-bold text-green-600">
-                        <Icon className="h-3 w-3" name="circleCheck" />
-                        Verified
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[10.5px] font-bold text-amber-600">
-                        <Icon className="h-3 w-3" name="lock" />
-                        {profile?.state ? profile.state.replace(/_/g, " ") : "Pending"}
-                      </span>
-                    )}
-                  </h2>
-                </div>
-                <p className="text-[13px] text-slate-400 mt-1">
-                  Manage your SEBI registration details and compliance documents.
-                </p>
-              </div>
-
-              <hr className="border-slate-100" />
-
-              {/* Fields */}
-              <div className="flex flex-col gap-5">
-                {/* Registration Number */}
-                <div>
-                  <label className="text-[12.5px] font-bold text-slate-700 mb-1.5 block">
-                    SEBI Registration Number
-                  </label>
-                  <input
-                    type="text"
-                    value={profile?.sebi_license_number || profile?.sebi_registration_number || "—"}
-                    disabled
-                    className="w-full px-3 py-2 border border-slate-100 bg-[#f8fafc] rounded-lg text-[13.5px] text-slate-500 cursor-not-allowed focus:outline-none"
-                  />
-                </div>
-
-                {/* Date Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
-                    <label className="text-[12.5px] font-bold text-slate-700 mb-1.5 block">
-                      Registration Date
-                    </label>
-                    <input
-                      type="text"
+                {/* Registration details */}
+                <SettingsRow
+                  label="Registration Details"
+                  description="Held on record by compliance. Contact support to change any of these."
+                >
+                  <div className="grid grid-cols-1 gap-x-8 gap-y-5 rounded-2xl border border-slate-200/70 bg-slate-50/60 p-5 sm:grid-cols-2">
+                    <DetailPair
+                      label="SEBI Registration No."
+                      value={
+                        profile?.sebi_license_number || profile?.sebi_registration_number || "—"
+                      }
+                    />
+                    <DetailPair label="Entity Type" value={entityTypeLabel} />
+                    <DetailPair label="Registered Name" value={profile?.name || "—"} />
+                    <DetailPair
+                      label="Registration Date"
                       value={
                         profile?.verification?.submitted_at
                           ? new Date(profile.verification.submitted_at).toLocaleDateString(
@@ -1376,270 +1170,252 @@ export default function ProfilePage() {
                             )
                           : "—"
                       }
-                      disabled
-                      className="w-full px-3 py-2 border border-slate-100 bg-[#f8fafc] rounded-lg text-[13.5px] text-slate-500 cursor-not-allowed focus:outline-none"
                     />
+                    <DetailPair label="Valid Until" value="—" />
                   </div>
-                  <div>
-                    <label className="text-[12.5px] font-bold text-slate-700 mb-1.5 block">
-                      Valid Until
-                    </label>
-                    <input
-                      type="text"
-                      value="—"
-                      disabled
-                      className="w-full px-3 py-2 border border-slate-100 bg-[#f8fafc] rounded-lg text-[13.5px] text-slate-500 cursor-not-allowed focus:outline-none"
-                    />
-                  </div>
-                </div>
+                </SettingsRow>
 
-                {/* Registered Name & Entity Type */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
-                    <label className="text-[12.5px] font-bold text-slate-700 mb-1.5 block">
-                      Registered Name
-                    </label>
-                    <input
-                      type="text"
-                      value={profile?.name || "Rohan Mehta"}
-                      disabled
-                      className="w-full px-3 py-2 border border-slate-100 bg-[#f8fafc] rounded-lg text-[13.5px] text-slate-500 cursor-not-allowed focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[12.5px] font-bold text-slate-700 mb-1.5 block">
-                      Entity Type
-                    </label>
-                    <input
-                      type="text"
-                      value={entityTypeLabel}
-                      disabled
-                      className="w-full px-3 py-2 border border-slate-100 bg-[#f8fafc] rounded-lg text-[13.5px] text-slate-500 cursor-not-allowed focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <hr className="border-slate-100 mt-2" />
-
-              {/* Uploaded Documents */}
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-[14px] font-bold text-slate-800">Verification Documents (3 Required)</h3>
-                  <p className="text-[12px] text-slate-400 mt-0.5">
-                    Copies of your Aadhaar Card, PAN Card, and official SEBI registration certificates on file.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4">
-                  {/* 1. Aadhaar Card */}
-                  <div className="border border-slate-100 rounded-xl p-4 bg-[#f8fafc]">
-                    <div className="text-[13px] font-bold text-slate-700 mb-2 flex items-center justify-between">
-                      <span>1. Aadhaar Card Document</span>
-                      <DocStatusBadge
-                        staged={Boolean(aadharDocFile)}
-                        saved={Boolean(aadharOnFile) && !removedAadharDoc}
-                      />
-                    </div>
-
-                    {aadharDocFile ? (
-                      <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
-                        <div className="flex items-center gap-2.5 truncate">
-                          <Icon name="fileText" className="h-5 w-5 text-amber-600 shrink-0" />
-                          <span className="text-[13px] font-bold text-slate-800 truncate">{aadharDocFile.name}</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setAadharDocFile(null)}
-                          className="text-red-500 hover:text-red-700 p-1"
-                        >
-                          <Icon name="trash" className="h-4 w-4" />
-                        </button>
+                {/* Uploaded Documents */}
+                <SettingsRow
+                  label="Verification Documents"
+                  description="Aadhaar, PAN and your SEBI registration certificate — all three are required."
+                >
+                  <div className="grid grid-cols-1 gap-3">
+                    {/* 1. Aadhaar Card */}
+                    <div className="rounded-xl border border-slate-200/70 bg-white p-4">
+                      <div className="mb-2.5 flex items-center justify-between gap-3 text-[12.5px] font-bold text-slate-700">
+                        <span>1. Aadhaar Card Document</span>
+                        <DocStatusBadge
+                          staged={Boolean(aadharDocFile)}
+                          saved={Boolean(aadharOnFile) && !removedAadharDoc}
+                        />
                       </div>
-                    ) : aadharOnFile && !removedAadharDoc ? (
-                      <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
-                        <div className="flex items-center gap-2.5 truncate">
-                          <Icon name="fileText" className="h-5 w-5 text-emerald-600 shrink-0" />
-                          <span className="text-[13px] font-bold text-slate-800 truncate">Aadhaar Card Document</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <a
-                            href={aadharOnFile}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-2.5 py-1 text-[12px] font-bold text-amber-700 bg-amber-50 rounded-md hover:bg-amber-100 transition-colors"
-                          >
-                            View
-                          </a>
+
+                      {aadharDocFile ? (
+                        <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50/50 p-3">
+                          <div className="flex items-center gap-2.5 truncate">
+                            <Icon name="fileText" className="h-5 w-5 shrink-0 text-amber-600" />
+                            <span className="text-[13px] font-bold text-slate-800 truncate">
+                              {aadharDocFile.name}
+                            </span>
+                          </div>
                           <button
                             type="button"
-                            onClick={() => setRemovedAadharDoc(true)}
-                            className="text-slate-400 hover:text-red-600 p-1"
+                            onClick={() => setAadharDocFile(null)}
+                            className="text-red-500 hover:text-red-700 p-1"
                           >
                             <Icon name="trash" className="h-4 w-4" />
                           </button>
                         </div>
-                      </div>
-                    ) : (
-                      <div
-                        onClick={() => aadharDocInputRef.current?.click()}
-                        className="border-2 border-dashed border-slate-200 hover:border-amber-400 bg-white rounded-lg p-4 flex items-center justify-between cursor-pointer transition-colors"
-                      >
-                        <input
-                          ref={aadharDocInputRef}
-                          type="file"
-                          accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={(e) =>
-                            handleDocFileChange(e, setAadharDocFile, () => setRemovedAadharDoc(false))
-                          }
-                          className="hidden"
-                        />
-                        <span className="text-[12.5px] font-bold text-slate-600">Select Aadhaar Card (PDF, PNG, JPG)</span>
-                        <span className="text-[12px] font-bold text-amber-600 hover:underline">Browse</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 2. PAN Card */}
-                  <div className="border border-slate-100 rounded-xl p-4 bg-[#f8fafc]">
-                    <div className="text-[13px] font-bold text-slate-700 mb-2 flex items-center justify-between">
-                      <span>2. PAN Card Document</span>
-                      <DocStatusBadge
-                        staged={Boolean(panDocFile)}
-                        saved={Boolean(panOnFile) && !removedPanDoc}
-                      />
+                      ) : aadharOnFile && !removedAadharDoc ? (
+                        <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3">
+                          <div className="flex items-center gap-2.5 truncate">
+                            <Icon name="fileText" className="h-5 w-5 shrink-0 text-emerald-600" />
+                            <span className="text-[13px] font-bold text-slate-800 truncate">
+                              Aadhaar Card Document
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={aadharOnFile}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[12px] font-bold text-[var(--brand)] transition-colors hover:bg-[var(--brand-light)]"
+                            >
+                              View
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => setRemovedAadharDoc(true)}
+                              className="text-slate-400 hover:text-red-600 p-1"
+                            >
+                              <Icon name="trash" className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => aadharDocInputRef.current?.click()}
+                          className="group flex cursor-pointer items-center justify-between gap-3 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50/50 p-4 transition-colors hover:border-[var(--brand)] hover:bg-[var(--brand-light)]/50"
+                        >
+                          <input
+                            ref={aadharDocInputRef}
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={(e) =>
+                              handleDocFileChange(e, setAadharDocFile, () =>
+                                setRemovedAadharDoc(false)
+                              )
+                            }
+                            className="hidden"
+                          />
+                          <span className="min-w-0 truncate text-[12.5px] font-bold text-slate-600">
+                            Select Aadhaar Card (PDF, PNG, JPG)
+                          </span>
+                          <span className="shrink-0 text-[12px] font-bold text-[var(--brand)] group-hover:underline">
+                            Browse
+                          </span>
+                        </div>
+                      )}
                     </div>
 
-                    {panDocFile ? (
-                      <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
-                        <div className="flex items-center gap-2.5 truncate">
-                          <Icon name="fileText" className="h-5 w-5 text-amber-600 shrink-0" />
-                          <span className="text-[13px] font-bold text-slate-800 truncate">{panDocFile.name}</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setPanDocFile(null)}
-                          className="text-red-500 hover:text-red-700 p-1"
-                        >
-                          <Icon name="trash" className="h-4 w-4" />
-                        </button>
+                    {/* 2. PAN Card */}
+                    <div className="rounded-xl border border-slate-200/70 bg-white p-4">
+                      <div className="mb-2.5 flex items-center justify-between gap-3 text-[12.5px] font-bold text-slate-700">
+                        <span>2. PAN Card Document</span>
+                        <DocStatusBadge
+                          staged={Boolean(panDocFile)}
+                          saved={Boolean(panOnFile) && !removedPanDoc}
+                        />
                       </div>
-                    ) : panOnFile && !removedPanDoc ? (
-                      <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
-                        <div className="flex items-center gap-2.5 truncate">
-                          <Icon name="fileText" className="h-5 w-5 text-emerald-600 shrink-0" />
-                          <span className="text-[13px] font-bold text-slate-800 truncate">PAN Card Document</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <a
-                            href={panOnFile}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-2.5 py-1 text-[12px] font-bold text-amber-700 bg-amber-50 rounded-md hover:bg-amber-100 transition-colors"
-                          >
-                            View
-                          </a>
+
+                      {panDocFile ? (
+                        <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50/50 p-3">
+                          <div className="flex items-center gap-2.5 truncate">
+                            <Icon name="fileText" className="h-5 w-5 shrink-0 text-amber-600" />
+                            <span className="text-[13px] font-bold text-slate-800 truncate">
+                              {panDocFile.name}
+                            </span>
+                          </div>
                           <button
                             type="button"
-                            onClick={() => setRemovedPanDoc(true)}
-                            className="text-slate-400 hover:text-red-600 p-1"
+                            onClick={() => setPanDocFile(null)}
+                            className="text-red-500 hover:text-red-700 p-1"
                           >
                             <Icon name="trash" className="h-4 w-4" />
                           </button>
                         </div>
-                      </div>
-                    ) : (
-                      <div
-                        onClick={() => panDocInputRef.current?.click()}
-                        className="border-2 border-dashed border-slate-200 hover:border-amber-400 bg-white rounded-lg p-4 flex items-center justify-between cursor-pointer transition-colors"
-                      >
-                        <input
-                          ref={panDocInputRef}
-                          type="file"
-                          accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={(e) =>
-                            handleDocFileChange(e, setPanDocFile, () => setRemovedPanDoc(false))
-                          }
-                          className="hidden"
-                        />
-                        <span className="text-[12.5px] font-bold text-slate-600">Select PAN Card (PDF, PNG, JPG)</span>
-                        <span className="text-[12px] font-bold text-amber-600 hover:underline">Browse</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 3. SEBI Certificate */}
-                  <div className="border border-slate-100 rounded-xl p-4 bg-[#f8fafc]">
-                    <div className="text-[13px] font-bold text-slate-700 mb-2 flex items-center justify-between">
-                      <span>3. SEBI Registration Certificate</span>
-                      <DocStatusBadge
-                        staged={Boolean(sebiDocFile)}
-                        saved={Boolean(sebiOnFile) && !removedSebiDoc}
-                      />
+                      ) : panOnFile && !removedPanDoc ? (
+                        <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3">
+                          <div className="flex items-center gap-2.5 truncate">
+                            <Icon name="fileText" className="h-5 w-5 shrink-0 text-emerald-600" />
+                            <span className="text-[13px] font-bold text-slate-800 truncate">
+                              PAN Card Document
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={panOnFile}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[12px] font-bold text-[var(--brand)] transition-colors hover:bg-[var(--brand-light)]"
+                            >
+                              View
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => setRemovedPanDoc(true)}
+                              className="text-slate-400 hover:text-red-600 p-1"
+                            >
+                              <Icon name="trash" className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => panDocInputRef.current?.click()}
+                          className="group flex cursor-pointer items-center justify-between gap-3 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50/50 p-4 transition-colors hover:border-[var(--brand)] hover:bg-[var(--brand-light)]/50"
+                        >
+                          <input
+                            ref={panDocInputRef}
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={(e) =>
+                              handleDocFileChange(e, setPanDocFile, () => setRemovedPanDoc(false))
+                            }
+                            className="hidden"
+                          />
+                          <span className="min-w-0 truncate text-[12.5px] font-bold text-slate-600">
+                            Select PAN Card (PDF, PNG, JPG)
+                          </span>
+                          <span className="shrink-0 text-[12px] font-bold text-[var(--brand)] group-hover:underline">
+                            Browse
+                          </span>
+                        </div>
+                      )}
                     </div>
 
-                    {sebiDocFile ? (
-                      <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
-                        <div className="flex items-center gap-2.5 truncate">
-                          <Icon name="fileText" className="h-5 w-5 text-amber-600 shrink-0" />
-                          <span className="text-[13px] font-bold text-slate-800 truncate">{sebiDocFile.name}</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setSebiDocFile(null)}
-                          className="text-red-500 hover:text-red-700 p-1"
-                        >
-                          <Icon name="trash" className="h-4 w-4" />
-                        </button>
+                    {/* 3. SEBI Certificate */}
+                    <div className="rounded-xl border border-slate-200/70 bg-white p-4">
+                      <div className="mb-2.5 flex items-center justify-between gap-3 text-[12.5px] font-bold text-slate-700">
+                        <span>3. SEBI Registration Certificate</span>
+                        <DocStatusBadge
+                          staged={Boolean(sebiDocFile)}
+                          saved={Boolean(sebiOnFile) && !removedSebiDoc}
+                        />
                       </div>
-                    ) : sebiOnFile && !removedSebiDoc ? (
-                      <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
-                        <div className="flex items-center gap-2.5 truncate">
-                          <Icon name="fileText" className="h-5 w-5 text-emerald-600 shrink-0" />
-                          <span className="text-[13px] font-bold text-slate-800 truncate">SEBI Registration Certificate</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <a
-                            href={sebiOnFile}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-2.5 py-1 text-[12px] font-bold text-amber-700 bg-amber-50 rounded-md hover:bg-amber-100 transition-colors"
-                          >
-                            View
-                          </a>
+
+                      {sebiDocFile ? (
+                        <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50/50 p-3">
+                          <div className="flex items-center gap-2.5 truncate">
+                            <Icon name="fileText" className="h-5 w-5 shrink-0 text-amber-600" />
+                            <span className="text-[13px] font-bold text-slate-800 truncate">
+                              {sebiDocFile.name}
+                            </span>
+                          </div>
                           <button
                             type="button"
-                            onClick={() => setRemovedSebiDoc(true)}
-                            className="text-slate-400 hover:text-red-600 p-1"
+                            onClick={() => setSebiDocFile(null)}
+                            className="text-red-500 hover:text-red-700 p-1"
                           >
                             <Icon name="trash" className="h-4 w-4" />
                           </button>
                         </div>
-                      </div>
-                    ) : (
-                      <div
-                        onClick={() => sebiDocInputRef.current?.click()}
-                        className="border-2 border-dashed border-slate-200 hover:border-amber-400 bg-white rounded-lg p-4 flex items-center justify-between cursor-pointer transition-colors"
-                      >
-                        <input
-                          ref={sebiDocInputRef}
-                          type="file"
-                          accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={(e) =>
-                            handleDocFileChange(e, setSebiDocFile, () => setRemovedSebiDoc(false))
-                          }
-                          className="hidden"
-                        />
-                        <span className="text-[12.5px] font-bold text-slate-600">Select SEBI Certificate (PDF, PNG, JPG)</span>
-                        <span className="text-[12px] font-bold text-amber-600 hover:underline">Browse</span>
-                      </div>
-                    )}
+                      ) : sebiOnFile && !removedSebiDoc ? (
+                        <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3">
+                          <div className="flex items-center gap-2.5 truncate">
+                            <Icon name="fileText" className="h-5 w-5 shrink-0 text-emerald-600" />
+                            <span className="text-[13px] font-bold text-slate-800 truncate">
+                              SEBI Registration Certificate
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={sebiOnFile}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[12px] font-bold text-[var(--brand)] transition-colors hover:bg-[var(--brand-light)]"
+                            >
+                              View
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => setRemovedSebiDoc(true)}
+                              className="text-slate-400 hover:text-red-600 p-1"
+                            >
+                              <Icon name="trash" className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => sebiDocInputRef.current?.click()}
+                          className="group flex cursor-pointer items-center justify-between gap-3 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50/50 p-4 transition-colors hover:border-[var(--brand)] hover:bg-[var(--brand-light)]/50"
+                        >
+                          <input
+                            ref={sebiDocInputRef}
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={(e) =>
+                              handleDocFileChange(e, setSebiDocFile, () => setRemovedSebiDoc(false))
+                            }
+                            className="hidden"
+                          />
+                          <span className="min-w-0 truncate text-[12.5px] font-bold text-slate-600">
+                            Select SEBI Certificate (PDF, PNG, JPG)
+                          </span>
+                          <span className="shrink-0 text-[12px] font-bold text-[var(--brand)] group-hover:underline">
+                            Browse
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                </SettingsRow>
               </div>
 
               {/* Bottom Actions */}
-              <div className="flex flex-wrap items-center justify-between gap-3 mt-2">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-6">
                 <button
                   onClick={() =>
                     showSuccessToast(
@@ -1647,238 +1423,37 @@ export default function ProfilePage() {
                       "Your request to update registration details has been received by support."
                     )
                   }
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-[13px] font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer bg-white"
+                  className={BTN_GHOST}
                   type="button"
                 >
                   Request Detail Update
                 </button>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   {hasDocChanges && !savingDocs && (
-                    <button
-                      onClick={handleResetDocs}
-                      className="px-4 py-2 border border-slate-200 rounded-lg text-[13px] font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer bg-white"
-                      type="button"
-                    >
+                    <span className="text-[12px] font-semibold text-amber-600">
+                      You have unsaved document changes.
+                    </span>
+                  )}
+                  {hasDocChanges && !savingDocs && (
+                    <button onClick={handleResetDocs} className={BTN_GHOST} type="button">
                       Discard
                     </button>
                   )}
                   <button
                     onClick={handleSaveDocs}
                     disabled={!hasDocChanges || savingDocs}
-                    className="px-4 py-2 bg-[var(--brand)] hover:bg-[var(--brand-dark)] rounded-lg text-[13px] font-bold text-white transition-colors shadow-sm shadow-[var(--brand)]/15 disabled:opacity-50 disabled:cursor-not-allowed enabled:cursor-pointer"
+                    className={BTN_PRIMARY}
                     type="button"
                   >
                     {savingDocs ? "Saving…" : "Save Documents"}
                   </button>
                 </div>
               </div>
-
-              {hasDocChanges && !savingDocs && (
-                <p className="text-[12px] text-amber-600 font-semibold -mt-3 text-right">
-                  You have unsaved document changes.
-                </p>
-              )}
             </div>
           )}
 
-          {activeTab === "Bank & Payouts" && (
-            <div
-              role="tabpanel"
-              id="panel-bank-payouts"
-              aria-labelledby="tab-bank-payouts"
-              className="flex flex-col gap-6 outline-none"
-            >
-              {/* Header */}
-              <div>
-                <h2 className="text-[17px] font-bold text-slate-800 leading-tight">
-                  Bank & Payouts
-                </h2>
-                <p className="text-[13px] text-slate-400 mt-1">
-                  Manage your bank accounts and track your earnings payouts.
-                </p>
-              </div>
-
-              <hr className="border-slate-100" />
-
-              {/* Bank Account Details Card */}
-              <div className="border border-slate-100 rounded-xl p-6 bg-white shadow-sm flex flex-col gap-5">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center text-slate-500 shrink-0 border border-slate-100">
-                      <Icon className="h-5 w-5" name="bank" />
-                    </div>
-                    <div>
-                      <div className="text-[14px] font-bold text-slate-800 leading-tight">
-                        HDFC Bank Ltd.
-                      </div>
-                      <div className="text-[11.5px] text-slate-400 mt-0.5">
-                        Primary Receiving Account
-                      </div>
-                    </div>
-                  </div>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-[10.5px] font-bold text-green-600">
-                    <Icon className="h-3 w-3" name="circleCheck" />
-                    Verified
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 text-[13px]">
-                  <div>
-                    <span className="text-slate-400 block mb-0.5">Account Holder Name</span>
-                    <span className="font-bold text-slate-800">
-                      {profile?.name || "Rohan Mehta"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block mb-0.5">Account Number</span>
-                    <span className="font-bold text-slate-800">•••• •••• 9382</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block mb-0.5">IFSC Code</span>
-                    <span className="font-bold text-slate-800">HDFC0001234</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block mb-0.5">Account Type</span>
-                    <span className="font-bold text-slate-800">Savings Account</span>
-                  </div>
-                </div>
-
-                <hr className="border-slate-100" />
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() =>
-                      showSuccessToast(
-                        "Request Initiated",
-                        "Bank details update request sent to compliance support."
-                      )
-                    }
-                    className="px-3 py-1.5 border border-slate-200 rounded-lg text-[12.5px] font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
-                    type="button"
-                  >
-                    Update Bank Details
-                  </button>
-                  <button
-                    onClick={() =>
-                      showSuccessToast(
-                        "Request Sent",
-                        "Account removal request submitted to support."
-                      )
-                    }
-                    className="px-3 py-1.5 text-red-500 text-[12.5px] font-bold hover:text-red-600 transition-colors cursor-pointer bg-transparent border-none"
-                    type="button"
-                  >
-                    Remove Account
-                  </button>
-                </div>
-              </div>
-
-              {/* Tax Information Card */}
-              <div className="border border-slate-100 rounded-xl p-6 bg-white shadow-sm flex flex-col gap-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center text-slate-500 shrink-0 border border-slate-100">
-                      <Icon className="h-5 w-5" name="fileText" />
-                    </div>
-                    <div>
-                      <div className="text-[14px] font-bold text-slate-800 leading-tight">
-                        Tax Information
-                      </div>
-                      <div className="text-[11.5px] text-slate-400 mt-0.5">
-                        PAN & TDS Details for statutory compliance
-                      </div>
-                    </div>
-                  </div>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-[10.5px] font-bold text-green-600">
-                    <Icon className="h-3 w-3" name="circleCheck" />
-                    Verified
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 text-[13px]">
-                  <div>
-                    <span className="text-slate-400 block mb-0.5">PAN Number</span>
-                    <span className="font-bold text-slate-800">ABCDE1234F</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block mb-0.5">Name on PAN</span>
-                    <span className="font-bold text-slate-800">
-                      {profile?.name || "Rohan Mehta"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Recent Payouts Table */}
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-[14.5px] font-bold text-slate-800">Recent Payouts</h3>
-                  <button
-                    onClick={() =>
-                      showSuccessToast("Export Started", "Downloading payouts history CSV...")
-                    }
-                    className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-lg text-[12px] font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
-                    type="button"
-                  >
-                    <Icon className="h-3.5 w-3.5" name="download" />
-                    Export CSV
-                  </button>
-                </div>
-
-                <div className="overflow-hidden border border-slate-100 rounded-lg">
-                  <table className="w-full border-collapse text-left">
-                    <thead>
-                      <tr className="bg-[#122238] text-white text-[12px] font-bold">
-                        <th className="px-4 py-3 font-semibold">Date</th>
-                        <th className="px-4 py-3 font-semibold">Transaction ID</th>
-                        <th className="px-4 py-3 font-semibold">Amount</th>
-                        <th className="px-4 py-3 font-semibold">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-[13px] text-slate-700 divide-y divide-slate-100">
-                      <tr className="hover:bg-slate-50 transition-colors">
-                        <td className="px-4 py-3 text-slate-500">Oct 15, 2023</td>
-                        <td className="px-4 py-3 text-slate-400 font-mono">TXN-84729104</td>
-                        <td className="px-4 py-3 font-bold text-slate-800">₹45,200</td>
-                        <td className="px-4 py-3">
-                          <span className="inline-flex items-center gap-1 text-green-600 font-semibold text-[12.5px]">
-                            <Icon className="h-3 w-3" name="circleCheck" />
-                            Processed
-                          </span>
-                        </td>
-                      </tr>
-                      <tr className="hover:bg-slate-50 transition-colors">
-                        <td className="px-4 py-3 text-slate-500">Oct 01, 2023</td>
-                        <td className="px-4 py-3 text-slate-400 font-mono">TXN-73920183</td>
-                        <td className="px-4 py-3 font-bold text-slate-800">₹38,500</td>
-                        <td className="px-4 py-3">
-                          <span className="inline-flex items-center gap-1 text-green-600 font-semibold text-[12.5px]">
-                            <Icon className="h-3 w-3" name="circleCheck" />
-                            Processed
-                          </span>
-                        </td>
-                      </tr>
-                      <tr className="hover:bg-slate-50 transition-colors">
-                        <td className="px-4 py-3 text-slate-500">Sep 15, 2023</td>
-                        <td className="px-4 py-3 text-slate-400 font-mono">TXN-64829102</td>
-                        <td className="px-4 py-3 font-bold text-slate-800">₹41,100</td>
-                        <td className="px-4 py-3">
-                          <span className="inline-flex items-center gap-1 text-green-600 font-semibold text-[12.5px]">
-                            <Icon className="h-3 w-3" name="circleCheck" />
-                            Processed
-                          </span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "Notifications" && <NotificationsTab />}
-
+          {activeTab === "Bank & Payouts" && <BankPayoutsTab />}
           {activeTab === "Delete Account" && <DeleteAccountTab />}
         </div>
       </div>

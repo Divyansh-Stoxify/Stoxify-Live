@@ -15,6 +15,7 @@ export const adminRoutePermissionRules: Record<string, AdminPermissionRule> = {
   "/subscriptions": {
     anyOf: ["PWR_SUBSCRIPTION_READ_ALL", "PWR_SUBSCRIPTION_READ_OWN"],
   },
+  "/bank-accounts": { anyOf: ["PWR_BANK_VERIFY"] },
   "/trades": { anyOf: ["PWR_TRADE_READ_ALL"] },
   "/market-instruments": { anyOf: ["PWR_MARKET_DATA_MANAGE"] },
   "/notifications": { anyOf: ["PWR_NOTIFICATION_SEND_BROADCAST"] },

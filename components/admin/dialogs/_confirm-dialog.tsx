@@ -28,7 +28,15 @@ type Props = {
   onSuccess?: () => void;
   onClose?: () => void;
   children?: ReactNode;
+  /** Action is unavailable entirely — the trigger won't even open the dialog. */
   disabled?: boolean;
+  /**
+   * Dialog opens normally, but the confirm button stays disabled. For dialogs
+   * whose own contents decide whether confirming is allowed (a checklist, a
+   * required reason) — gating those with `disabled` would deadlock, since the
+   * user can't reach the controls that would satisfy it.
+   */
+  confirmDisabled?: boolean;
 };
 
 export function ConfirmDialog({
@@ -43,6 +51,7 @@ export function ConfirmDialog({
   onClose,
   children,
   disabled = false,
+  confirmDisabled: confirmDisabledProp = false,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -80,7 +89,10 @@ export function ConfirmDialog({
   }
 
   const confirmDisabled =
-    isSubmitting || disabled || (!!requireConfirmText && confirmInput !== requireConfirmText);
+    isSubmitting ||
+    disabled ||
+    confirmDisabledProp ||
+    (!!requireConfirmText && confirmInput !== requireConfirmText);
 
   return (
     <>

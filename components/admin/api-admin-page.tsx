@@ -69,9 +69,14 @@ function readHashQuery() {
 
 function writeHashQuery(params: URLSearchParams) {
   if (typeof window === "undefined") return;
-  const [pathPart] = window.location.hash.replace(/^#\/?/, "dashboard").split("?");
+  // Strip the "#" / "#/" marker first, THEN fall back to dashboard when the hash
+  // is empty. Substituting "dashboard" for the marker in one replace() prepended
+  // it to the real route instead ("#bank-accounts" → "dashboardbank-accounts"),
+  // and compounded on every filter change.
+  const [pathPart] = window.location.hash.replace(/^#\/?/, "").split("?");
+  const path = pathPart || "dashboard";
   const qs = params.toString();
-  window.history.replaceState(null, "", `#/${pathPart}${qs ? "?" + qs : ""}`);
+  window.history.replaceState(null, "", `#/${path}${qs ? "?" + qs : ""}`);
 }
 
 export function ApiAdminPage({

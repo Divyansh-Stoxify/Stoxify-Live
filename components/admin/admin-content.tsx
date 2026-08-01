@@ -11,6 +11,7 @@ import { AdminHelpPage } from "@/components/admin/pages/admin-help-page";
 import { AnalyticsPage } from "@/components/admin/pages/analytics-page";
 import { AnalystsPage } from "@/components/admin/pages/analysts-page";
 import { ApiReferencePage } from "@/components/admin/pages/api-reference-page";
+import { BankAccountsPage } from "@/components/admin/pages/bank-accounts-page";
 import { InternalTeamPage } from "@/components/admin/pages/internal-team-page";
 import { IpBlocksPage } from "@/components/admin/pages/ip-blocks-page";
 import { MarketInstrumentsPage } from "@/components/admin/pages/market-instruments-page";
@@ -40,6 +41,7 @@ const adminRoutes: Record<string, ComponentType> = {
   "/internal-team": InternalTeamPage,
   "/plans": PlansPage,
   "/subscriptions": SubscriptionsPage,
+  "/bank-accounts": BankAccountsPage,
   "/trades": TradesPage,
   "/market-instruments": MarketInstrumentsPage,
   "/notifications": NotificationsPage,
