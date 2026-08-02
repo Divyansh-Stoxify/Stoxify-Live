@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AnalystProfile, SubscriptionPlan } from "@/lib/types/analyst";
 import Link from "next/link";
@@ -7,11 +8,54 @@ import { ThemeToggle } from "@/components/public/ThemeToggle";
 import { OpenInAppBanner } from "@/components/public/OpenInAppBanner";
 import { ProfileHero, ProfileTag } from "@/components/public/ProfileHero";
 import { ReviewsSection } from "@/components/public/ReviewsSection";
+import { JsonLd } from "@/components/seo/json-ld";
 
 interface PageProps {
   params: Promise<{
     username: string;
   }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const resolvedParams = await params;
+  const profile = await getAnalystProfile(resolvedParams.username);
+
+  if (!profile) {
+    return {
+      title: "Analyst Profile Not Found",
+      description: "The requested SEBI Research Analyst profile could not be found on Stoxify.",
+    };
+  }
+
+  const sebiRegNo = profile.sebi_license_number || profile.sebi_registration_number;
+  const title = `${profile.name}${sebiRegNo ? ` (SEBI Reg: ${sebiRegNo})` : ""} - SEBI Research Analyst`;
+  const description = profile.bio
+    ? `${profile.name} is a SEBI-registered Research Analyst${sebiRegNo ? ` (${sebiRegNo})` : ""}. ${profile.bio.slice(0, 140)}...`
+    : `Subscribe to verified trade recommendations by SEBI-registered Research Analyst ${profile.name} on Stoxify. Real-time timestamped trade alerts with entry, target, and stop-loss.`;
+  const profileUrl = `https://www.stoxify.in/profiles/${resolvedParams.username}`;
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: profileUrl,
+    },
+    openGraph: {
+      title,
+      description,
+      url: profileUrl,
+      type: "profile",
+      images: profile.profile_pic_url
+        ? [{ url: profile.profile_pic_url, alt: profile.name }]
+        : [{ url: "https://www.stoxify.in/logo-primary.svg", alt: "Stoxify" }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: profile.profile_pic_url ? [profile.profile_pic_url] : ["https://www.stoxify.in/logo-primary.svg"],
+    },
+  };
 }
 
 import { backendUrls, signedBackendFetch } from "@/lib/backend/index";
@@ -110,8 +154,55 @@ export default async function AnalystLandingPage({ params }: PageProps) {
     subscriberCount,
   };
 
+  const sebiRegNo = profile.sebi_license_number || profile.sebi_registration_number || "";
+  const personSchema = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": ["Person", "FinancialService"],
+        "@id": `https://www.stoxify.in/profiles/${resolvedParams.username}#analyst`,
+        "name": profile.name,
+        "description": profile.bio || "SEBI Registered Research Analyst on Stoxify",
+        "url": `https://www.stoxify.in/profiles/${resolvedParams.username}`,
+        "image": profile.profile_pic_url || "https://www.stoxify.in/logo-primary.svg",
+        "identifier": sebiRegNo,
+        "jobTitle": "SEBI Registered Research Analyst",
+        "worksFor": {
+          "@type": "Organization",
+          "name": "Stoxify",
+          "url": "https://www.stoxify.in"
+        },
+        "sameAs": [profile.twitter_url, profile.linkedin_url, profile.website].filter(Boolean)
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": "https://www.stoxify.in"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Analysts",
+            "item": "https://www.stoxify.in/for-analysts"
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": profile.name,
+            "item": `https://www.stoxify.in/profiles/${resolvedParams.username}`
+          }
+        ]
+      }
+    ]
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col transition-colors duration-300">
+      <JsonLd data={personSchema} />
       <header className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-lg border-b border-slate-200/60 dark:border-slate-800/60 py-4 px-6 sticky top-0 z-40">
         <div className="max-w-5xl mx-auto grid grid-cols-3 items-center">
           <div />

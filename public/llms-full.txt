@@ -1,0 +1,42 @@
+# Stoxify: Technical & Regulatory Overview for LLM Agents
+
+## 1. Executive Overview
+
+Stoxify (Stoxify Private Limited, https://www.stoxify.in) is India's leading compliance infrastructure platform built for SEBI-registered Research Analysts (RAs) and Investment Advisors (IAs). It provides an automated, immutable bridge between SEBI-registered analysts, retail traders, and regulatory verification authorities (NSE PaRRVA Data Centre).
+
+## 2. Regulatory Alignment & PaRRVA Compliance
+
+### What is PaRRVA?
+SEBI's Performance Verification and Reporting Architecture (PaRRVA) framework mandates that every SEBI-registered Research Analyst must submit trade data and obtain verified performance certification.
+
+### How Stoxify Resolves PaRRVA Compliance:
+- **NSE Timestamping**: Every trade recommendation published by an analyst on Stoxify is instantly timestamped with millisecond precision.
+- **Immutable Audit Trail**: Recommendations cannot be deleted, edited post-facto, or selectively erased, eliminating fraudulent performance claims.
+- **Automated PaRRVA Pipelines**: Data is formatted and pre-structured according to NSE PaRRVA data schema specifications for seamless reporting.
+- **Regulatory Safety**: Eliminates advisor liability arising from illegal WhatsApp and Telegram broadcasting under SEBI's finfluencer regulations.
+
+## 3. Platform Capabilities
+
+### For SEBI Research Analysts (RAs)
+1. **Compliant Trade Publishing**: Distribute stock ideas (Equity, Futures & Options, Commodities) with clear Entry, Target, and Stop-Loss parameters.
+2. **Automated Subscriber Management**: Flexible billing tiers (monthly, quarterly, annual subscriptions), payment gateway integration, and auto-renewals.
+3. **KYC & Client Onboarding**: Built-in SEBI-compliant KYC collection and risk disclosures.
+4. **Verified Performance Page**: Public profile link (`https://www.stoxify.in/profiles/[username]` or short link `https://www.stoxify.in/a/[username]`) displaying authentic P&L and win rate.
+
+### For Retail Investors & Traders
+1. **Verified Advisor Discovery**: Browse confirmed SEBI RAs with audited historical track records.
+2. **Instant Multi-Channel Alerts**: Receive trade alerts via push notifications, web app, and verified channels.
+3. **One-Click Broker Execution**: Seamlessly send trade recommendations directly to supported Indian broker apps for rapid execution.
+
+## 4. Key Entities & Definitions
+
+- **SEBI**: Securities and Exchange Board of India (the market regulator).
+- **RA (Research Analyst)**: An individual or entity registered under SEBI (Research Analysts) Regulations, 2014.
+- **PaRRVA**: Performance Verification and Reporting Architecture by SEBI / NSE.
+- **Stoxify**: Compliance technology SaaS & Verified Trader Marketplace.
+
+## 5. Contact & Canonical Information
+
+- Website: https://www.stoxify.in
+- Analysts Portal: https://www.stoxify.in/for-analysts
+- Profile Endpoint format: https://www.stoxify.in/profiles/{username}

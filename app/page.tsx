@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -5,6 +6,16 @@ import { Icon, type IconName } from "@/components/stoxify-icon";
 import { RevealObserver } from "@/components/reveal-observer";
 import { StoxifyNav } from "@/components/stoxify-nav";
 import { Logo } from "@/components/logo";
+import { FAQSchema } from "@/components/seo/faq-schema";
+
+export const metadata: Metadata = {
+  title: "Get Real-Time Trade Ideas from SEBI-Registered Research Analysts",
+  description:
+    "Subscribe to verified SEBI-registered Research Analysts and receive real-time timestamped trade ideas with entry, target, stop-loss, and audited performance.",
+  alternates: {
+    canonical: "https://www.stoxify.in",
+  },
+};
 
 const buttonLarge =
   "inline-flex items-center justify-center gap-2 rounded px-[26px] py-3 text-[15px] font-medium transition-all active:scale-[0.97]";
@@ -528,7 +539,7 @@ function AssetClasses() {
     {
       title: "Commodity",
       description: "Diversify with MCX-listed commodity recommendations",
-      image: { src: "/Assets/asset3.png", width: 577, height: 433 },
+      image: { src: "/Assets/asset11.png", width: 577, height: 433 },
     },
   ];
 
@@ -542,12 +553,17 @@ function AssetClasses() {
           </h2>
         </div>
 
-        <div className="grid grid-cols-3 gap-8 max-[860px]:grid-cols-1 max-[860px]:gap-6">
+        {/* Three columns on desktop; below 860px the cards become a horizontal
+            snap slider instead of a tall stack. Cards are 80% wide so the next
+            one peeks in as the affordance that the row scrolls, and the negative
+            margin lets them bleed to the screen edge while `scroll-px-*` keeps
+            snapped cards aligned with the section's padding. */}
+        <div className="no-scrollbar grid grid-cols-3 gap-8 max-[860px]:-mx-6 max-[860px]:snap-x max-[860px]:snap-mandatory max-[860px]:auto-cols-[80%] max-[860px]:grid-flow-col max-[860px]:grid-cols-none max-[860px]:gap-4 max-[860px]:overflow-x-auto max-[860px]:overscroll-x-contain max-[860px]:scroll-px-6 max-[860px]:px-6 max-[560px]:-mx-5 max-[560px]:scroll-px-5 max-[560px]:px-5">
           {classes.map((item, index) => (
             <article
               className={revealClass(
                 index,
-                "flex aspect-square flex-col overflow-hidden rounded-2xl bg-[linear-gradient(140deg,#0b4cc0_0%,#1a6cf0_100%)] p-7 max-[860px]:aspect-auto"
+                "flex aspect-square flex-col overflow-hidden rounded-2xl bg-[linear-gradient(140deg,#0b4cc0_0%,#1a6cf0_100%)] p-7 max-[860px]:aspect-auto max-[860px]:snap-start"
               )}
               data-reveal
               key={item.title}
@@ -890,6 +906,7 @@ function FooterColumn({ title, links }: { title: string; links: string[] }) {
 export default function Home() {
   return (
     <>
+      <FAQSchema items={faqs} />
       <RevealObserver />
       <StoxifyNav />
       <main>

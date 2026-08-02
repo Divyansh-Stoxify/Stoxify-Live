@@ -1,0 +1,14 @@
+# Stoxify (https://www.stoxify.in)
+
+> Stoxify is India's first PaRRVA-aligned compliance infrastructure platform and verified trader marketplace for SEBI-registered Research Analysts (RAs) and Investment Advisors (IAs).
+
+## Core Proposition & Regulatory Infrastructure
+
+- **PaRRVA Compliance**: Aligned with SEBI's Performance Verification and Reporting Architecture (PaRRVA) framework. Trades published on Stoxify are timestamped and immutably logged for audit trails and PaRRVA reporting.
+- **For SEBI-Registered Research Analysts**: A full-stack compliance and business platform providing compliant publishing, subscriber management, KYC verification, automated billing, and verified track record certification.
+- **For Retail Traders**: Access to verified SEBI-registered advisors with transparent, unmanipulable performance metrics, real-time trade alerts (entry, target, stop-loss), and one-click execution.
+
+## Official Links
+- Platform Home: https://www.stoxify.in
+- For Analysts: https://www.stoxify.in/for-analysts
+- Complete LLM Context: https://www.stoxify.in/llms-full.txt

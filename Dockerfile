@@ -13,6 +13,14 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV ECDSA_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMFICAQcwDTIBoSadfZ5EZJm/EXAMPLE\n-----END PRIVATE KEY-----"
 ENV ECDSA_PRIVATE_KEY_PATH=""
 
+# NEXT_PUBLIC_* are inlined into the client bundle by `next build`, so they must
+# be present here rather than only at runtime. Defaults are empty, which keeps
+# the local docker-compose build on the LOCAL_URLS branch of lib/config/environment.ts.
+ARG NEXT_PUBLIC_NODE_ENV=""
+ARG NEXT_PUBLIC_FRONTEND_URL=""
+ENV NEXT_PUBLIC_NODE_ENV=${NEXT_PUBLIC_NODE_ENV}
+ENV NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL}
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN mkdir -p public keys

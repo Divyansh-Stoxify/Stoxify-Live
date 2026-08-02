@@ -7,11 +7,15 @@ import { Logo } from "@/components/logo";
 import { RevealObserver } from "@/components/reveal-observer";
 import { StoxifyNav } from "@/components/stoxify-nav";
 import { WaitlistForm } from "@/components/waitlist-form";
+import { FAQSchema } from "@/components/seo/faq-schema";
 
 export const metadata: Metadata = {
-  title: "Stoxify for Research Analysts - Grow Your Advisory Practice",
+  title: "Stoxify for Research Analysts - PaRRVA Compliance & Subscription SaaS Platform",
   description:
-    "Stoxify gives SEBI-registered Research Analysts a complete platform to publish real-time trade ideas, grow subscribers, and earn recurring revenue.",
+    "Stoxify gives SEBI-registered Research Analysts a complete platform to publish real-time timestamped trade ideas, automate subscriber billing, and ensure PaRRVA compliance.",
+  alternates: {
+    canonical: "https://www.stoxify.in/for-analysts",
+  },
 };
 
 const revealDelays = ["", "reveal-delay-1", "reveal-delay-2", "reveal-delay-3", "reveal-delay-4"];
@@ -940,6 +944,7 @@ function FooterColumn({ title, links }: { title: string; links: string[] }) {
 export default function ForAnalystsPage() {
   return (
     <>
+      <FAQSchema items={faqs} />
       <RevealObserver />
       <StoxifyNav active="analysts" ctaHref="/signup" ctaLabel="Sign Up" ctaVariant="orange" />
       <main>

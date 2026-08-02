@@ -1,0 +1,23 @@
+# Stoxify (https://www.stoxify.in)
+
+> Stoxify is India's first PaRRVA-aligned compliance infrastructure platform and verified trader marketplace for SEBI-registered Research Analysts (RAs) and Investment Advisors (IAs).
+
+## Core Proposition & Regulatory Infrastructure
+
+- **PaRRVA Compliance**: Aligned with SEBI's Performance Verification and Reporting Architecture (PaRRVA) framework. Trades published on Stoxify are timestamped and immutably logged for audit trails and PaRRVA reporting.
+- **For SEBI-Registered Research Analysts**: A full-stack compliance and business platform providing compliant publishing, subscriber management, KYC verification, billing, and verified track record certification.
+- **For Retail Traders**: Access to verified SEBI-registered advisors with transparent, unmanipulable performance metrics, real-time trade alerts (entry, target, stop-loss), and one-click execution.
+- **Market Impact**: Formalizes advisory services for India's 13.6+ crore retail investors by replacing non-compliant, unverified Telegram and WhatsApp tipster groups with verified SEBI advisors.
+
+## Key Public Resources & Directories
+
+- [Home Page](https://www.stoxify.in): Platform overview for retail traders seeking verified SEBI research analysts.
+- [For Analysts](https://www.stoxify.in/for-analysts): Compliance infrastructure, billing, and distribution platform for SEBI RAs.
+- [Analyst Profiles Directory](https://www.stoxify.in/sitemap.xml): Dynamic profiles of SEBI-registered research analysts on Stoxify (`https://www.stoxify.in/profiles/[username]`).
+
+## Official Entity Details
+
+- **Organization**: Stoxify Private Limited
+- **Website**: https://www.stoxify.in
+- **Target Jurisdiction**: India (SEBI & NSE PaRRVA aligned)
+- **Primary Keywords**: SEBI Research Analyst, PaRRVA compliance, verified stock tips, SEBI registered stock advisor, NSE trade timestamping, equity research India, F&O trade ideas.
